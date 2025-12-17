@@ -76,6 +76,8 @@ Cette séparation **raw / cleaned / exposed** garantit traçabilité, qualité e
   * Loggue les erreurs
   * Alimente la base
 
+Chaque exécution de pipeline est horodatée et journalisée afin d’assurer la traçabilité des traitements et la reproductibilité des résultats.
+
 ---
 
 # 4. Analyse, nettoyage et qualité des données
@@ -109,14 +111,14 @@ Le nettoyage vise à :
 
 ## 5.2 Entités principales
 
-* `users`
-* `nutrition_foods`
-* `exercises`
-* `activity_metrics`
-* `health_metrics`
-* `user_goals`
+* `utilisateurs`
+* `aliments`
+* `exercices`
+* `activites`
+* `metriques_sante`
+* `objectifs`
 
-Chaque table est documentée (types, contraintes, clés).
+Ces entités constituent le socle des indicateurs exposés dans les tableaux de bord analytiques et servent de base aux futurs modules de recommandation IA.
 
 ---
 
