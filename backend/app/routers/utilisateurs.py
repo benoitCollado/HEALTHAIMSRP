@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from database import SessionLocal
-from models.utilisateur import Utilisateur
-from schemas.utilisateur import (
+from app.database import SessionLocal
+from app.models.utilisateur import Utilisateur
+from app.schemas.utilisateur import (
     UtilisateurCreate,
     UtilisateurResponse,
     UtilisateurUpdate,
 )
-from security import verify_token
+from app.security import verify_token
 
 router = APIRouter(
     prefix="/utilisateurs",

@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Date, Numeric, SmallInteger, ForeignKey
-from database import Base
+from app.database import Base
 
 class MetriqueSante(Base):
     __tablename__ = "metrique_sante"
