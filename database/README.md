@@ -21,7 +21,7 @@ Aucune installation PostgreSQL locale n’est requise.
 
 ```bash
 docker compose down
-docker compose up -d
+docker compose up
 ```
 
 Le conteneur PostgreSQL démarre sur le port **5432**.

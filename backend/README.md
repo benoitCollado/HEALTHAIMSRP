@@ -24,7 +24,7 @@ Aucune installation Python locale n’est nécessaire.
 ```bash
 docker compose down
 docker compose build --no-cache
-docker compose up -d
+docker compose up
 ```
 
 Le backend démarre automatiquement sur le port **8000**.
