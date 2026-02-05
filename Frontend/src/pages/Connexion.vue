@@ -15,6 +15,17 @@
         <div v-if="error" style="margin-bottom:12px;padding:8px;background:#ffebee;color:#c62828;border-radius:4px;font-size:13px">
           {{ error }}
         </div>
+        <div v-if="debugReq || debugRes" style="margin-top:24px;background:#f4f4f4;padding:12px;border-radius:6px;font-size:13px">
+          <h3 style="font-size:15px;margin-bottom:8px">Debug API</h3>
+          <div v-if="debugReq">
+            <strong>Requête envoyée :</strong>
+            <pre style="background:#e3f2fd;padding:8px;border-radius:4px">POST /login\n{{ debugReq }}</pre>
+          </div>
+          <div v-if="debugRes">
+            <strong>Réponse :</strong>
+            <pre style="background:#e8f5e9;padding:8px;border-radius:4px">{{ debugRes }}</pre>
+          </div>
+        </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button type="submit">Se connecter</button>
         </div>
@@ -33,20 +44,24 @@ export default defineComponent({
     const username = ref('')
     const password = ref('')
     const error = ref('')
+    const debugReq = ref('')
+    const debugRes = ref('')
     const router = useRouter()
 
     function submit() {
       error.value = ''
+      debugReq.value = JSON.stringify({ username: username.value, password: password.value }, null, 2)
+      // Simule l'appel API POST /login
       const result = auth.login(username.value, password.value)
+      debugRes.value = JSON.stringify(result, null, 2)
       if (result.success) {
-        // Redirect to appropriate page based on role
         router.push('/page-accueil')
       } else {
         error.value = result.error || 'Erreur de connexion'
       }
     }
 
-    return { username, password, error, submit }
+    return { username, password, error, submit, debugReq, debugRes }
   }
 })
 </script>

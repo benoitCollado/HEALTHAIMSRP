@@ -19,6 +19,10 @@
             <div class="nav-icon">🧹</div>
             <div>Nettoyage</div>
           </router-link>
+          <router-link to="/test-backend" class="nav-card">
+            <div class="nav-icon">🧪</div>
+            <div>Test Backend</div>
+          </router-link>
         </div>
       </div>
 
