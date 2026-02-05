@@ -28,9 +28,11 @@ export default defineComponent({
   components: { Navbar },
   setup() {
     const state = reactive({ rows: [ {id:'N-1', type:'Incohérence date'}, {id:'N-2', type:'Doublon'}, {id:'N-3', type:'Manque info'} ] })
-    function clean(r:any){
-      state.rows = state.rows.filter((x:any)=>x.id!==r.id)
+    
+    function clean(r: any) {
+      state.rows = state.rows.filter((x: any) => x.id !== r.id)
     }
+
     return { ...state, clean }
   }
 })

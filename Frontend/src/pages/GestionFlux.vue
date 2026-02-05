@@ -44,11 +44,12 @@ export default defineComponent({
 
     function valider(item: any) {
       state.valides.push(item)
-      state.encours = state.encours.filter((i:any)=>i.id!==item.id)
+      state.encours = state.encours.filter((i: any) => i.id !== item.id)
     }
+
     function refuser(item: any) {
       state.refuses.push(item)
-      state.encours = state.encours.filter((i:any)=>i.id!==item.id)
+      state.encours = state.encours.filter((i: any) => i.id !== item.id)
     }
 
     return { ...state, valider, refuser }

@@ -13,7 +13,7 @@
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end">
           <button type="submit">Se connecter</button>
-          <router-link to="/dashboard">Tester sans compte</router-link>
+          <router-link to="/page-accueil">Tester sans compte</router-link>
         </div>
       </form>
     </div>
