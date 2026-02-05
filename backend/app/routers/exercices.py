@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from database import SessionLocal
-from models.exercice import Exercice
-from schemas.exercice import (
+from app.database import SessionLocal
+from app.models.exercice import Exercice
+from app.schemas.exercice import (
     ExerciceCreate,
     ExerciceResponse,
     ExerciceUpdate,
 )
-from security import verify_token
+from app.security import verify_token
 
 router = APIRouter(
     prefix="/exercices",

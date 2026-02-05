@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from database import SessionLocal
-from models.aliment import Aliment
-from schemas.aliment import (
+from app.database import SessionLocal
+from app.models.aliment import Aliment
+from app.schemas.aliment import (
     AlimentCreate,
     AlimentResponse,
     AlimentUpdate,
 )
-from security import verify_token
+from app.security import verify_token
 
 router = APIRouter(
     prefix="/aliments",

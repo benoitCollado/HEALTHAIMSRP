@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, Date, Numeric, ForeignKey
-from database import Base
+from app.database import Base
 
 class Consommation(Base):
     __tablename__ = "consommation"

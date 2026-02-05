@@ -1,11 +1,10 @@
-from fastapi import FastAPI, Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
+from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from database import SessionLocal
-from models.utilisateur import Utilisateur
-from security import create_access_token, verify_password
-from routers import (
+from app.database import SessionLocal
+from app.models.utilisateur import Utilisateur
+from app.security import create_access_token, verify_password
+from app.routers import (
     utilisateurs,
     aliments,
     exercices,
@@ -17,8 +16,6 @@ from routers import (
 
 app = FastAPI(title="HealthAI Coach API")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
 def get_db():
     db = SessionLocal()
     try:
@@ -27,24 +24,28 @@ def get_db():
         db.close()
 
 @app.post("/login")
-def login(utilisateur_id: int, db: Session = Depends(get_db)):
+def login(
+    username: str = Query(...),
+    password: str = Query(...),
+    db: Session = Depends(get_db)
+):
     utilisateur = db.query(Utilisateur).filter(
-        Utilisateur.id_utilisateur == utilisateur_id
+        Utilisateur.username == username
     ).first()
 
     if utilisateur is None:
-        raise HTTPException(status_code=401, detail="Utilisateur inconnu")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if not verify_password(password, utilisateur.password_hash):
-        raise HTTPException(status_code=401, detail="Mot de passe incorrect")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    access_token = create_access_token({
+    token = create_access_token({
         "sub": utilisateur.id_utilisateur,
         "is_admin": utilisateur.is_admin
     })
 
     return {
-        "access_token": access_token,
+        "access_token": token,
         "token_type": "bearer"
     }
 

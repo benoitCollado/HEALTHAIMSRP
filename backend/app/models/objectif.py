@@ -1,5 +1,5 @@
 from sqlalchemy import Column, Integer, String, Date, ForeignKey
-from database import Base
+from app.database import Base
 
 class Objectif(Base):
     __tablename__ = "objectif"

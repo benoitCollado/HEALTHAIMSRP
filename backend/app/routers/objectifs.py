@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from database import SessionLocal
-from models.objectif import Objectif
-from schemas.objectif import (
+from app.database import SessionLocal
+from app.models.objectif import Objectif
+from app.schemas.objectif import (
     ObjectifCreate,
     ObjectifResponse,
     ObjectifUpdate,
 )
-from security import verify_token
+from app.security import verify_token
 
 router = APIRouter(
     prefix="/objectifs",

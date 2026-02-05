@@ -3,9 +3,9 @@ import os
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from database import SessionLocal
-from models.utilisateur import Utilisateur
-from security import hash_password
+from app.database import SessionLocal
+from app.models.utilisateur import Utilisateur
+from app.security import hash_password
 
 db = SessionLocal()
 

@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from database import SessionLocal
-from models.metrique_sante import MetriqueSante
-from schemas.metrique_sante import (
+from app.database import SessionLocal
+from app.models.metrique_sante import MetriqueSante
+from app.schemas.metrique_sante import (
     MetriqueSanteCreate,
     MetriqueSanteResponse,
     MetriqueSanteUpdate,
 )
-from security import verify_token
+from app.security import verify_token
 
 router = APIRouter(
     prefix="/metriques-sante",

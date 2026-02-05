@@ -2,14 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from database import SessionLocal
-from models.activite import Activite
-from schemas.activite import (
+from app.database import SessionLocal
+from app.models.activite import Activite
+from app.schemas.activite import (
     ActiviteCreate,
     ActiviteResponse,
     ActiviteUpdate,
 )
-from security import verify_token
+from app.security import verify_token
 
 router = APIRouter(
     prefix="/activites",
