@@ -1,0 +1,98 @@
+{
+  "originalWidth": 1406,
+  "originalHeight": 743,
+  "pages": [
+    {
+      "id": "connexion_page",
+      "title": "Connexion",
+      "areas": [ { "coords": [558.9080200195312,458.3000183105469,647.908020019531,481.300018310547], "href": "#page_daccueil_page" } ]
+    },
+    {
+      "id": "page_daccueil_page",
+      "title": "Page d'accueil",
+      "areas": [
+        { "coords": [796.5,462.5,885.5,485.5], "href": "#connexion_page" },
+        { "coords": [765.5,217.5,854.5,240.5], "href": "#nettoyage_page" },
+        { "coords": [555.5,217.5,644.5,240.5], "href": "#gestion_des_flux_page" },
+        { "coords": [330.5,217.5,419.5,240.5], "href": "#dashboard_page" }
+      ]
+    },
+    {
+      "id": "dashboard_page",
+      "title": "Dashboard",
+      "areas": [ { "coords": [1057.5,560.5,1146.5,583.5], "href": "#page_daccueil_page" } ]
+    },
+    {
+      "id": "gestion_des_flux_page",
+      "title": "Gestion des flux",
+      "areas": [ { "coords": [1122.5,589.5,1211.5,612.5], "href": "#page_daccueil_page" } ]
+    },
+    {
+      "id": "en_attente_page",
+      "title": "En attente",
+      "areas": [
+        { "coords": [1055.5,562.5,1144.5,585.5], "href": "#page_daccueil_page" },
+        { "coords": [340.4375,550.0625,419.4375,574.0625], "href": "#refuser_page" },
+        { "coords": [219.4375,550.0625,298.4375,574.0625], "href": "#modifier_page" },
+        { "coords": [105.4375,550.0625,184.4375,574.0625], "href": "#valider_page" }
+      ]
+    },
+    {
+      "id": "valider_page",
+      "title": "Valider",
+      "areas": [
+        { "coords": [757.3125,431.5,846.3125,454.5], "href": "#en_attente_page" },
+        { "coords": [456.1875,432.3125,545.1875,455.3125], "href": "#en_attente_page" }
+      ]
+    },
+    {
+      "id": "modifier_page",
+      "title": "Modifier",
+      "areas": [
+        { "coords": [503.4375,570.0625,620.8375,594.0625], "href": "#en_attente_page" },
+        { "coords": [243.4375,570.0625,363.397483825684,594.0625], "href": "#en_attente_page" }
+      ]
+    },
+    {
+      "id": "refuser_page",
+      "title": "Refuser",
+      "areas": [
+        { "coords": [772.3125,456.5,861.3125,479.5], "href": "#en_attente_page" },
+        { "coords": [471.1875,457.3125,560.1875,480.3125], "href": "#en_attente_page" }
+      ]
+    },
+    {
+      "id": "rcent_page",
+      "title": "Récent",
+      "areas": [ { "coords": [1069.5001220703125,587.5,1158.50012207031,610.5], "href": "#page_daccueil_page" } ]
+    },
+    {
+      "id": "refus_page",
+      "title": "Refusé",
+      "areas": [ { "coords": [1108.5,594.5,1197.5,617.5], "href": "#page_daccueil_page" } ]
+    },
+    {
+      "id": "nettoyage_page",
+      "title": "Nettoyage",
+      "areas": [ { "coords": [1118.5,611.5,1207.5,634.5], "href": "#page_daccueil_page" } ]
+    },
+    {
+      "id": "contacter_administrateur_page",
+      "title": "CONTACTER ADMINISTRATEUR",
+      "areas": [ { "coords": [989.125,496.13751220703125,1161.00048828125,528.00001335144], "href": "#connexion_page" } ]
+    },
+    {
+      "id": "crer_un_compte_page",
+      "title": "Créer un compte",
+      "areas": [
+        { "coords": [752.2200317382812,422.0199890136719,841.220031738281,445.019989013672], "href": "#connexion_page" },
+        { "coords": [593.2200317382812,422.0199890136719,682.220031738281,445.019989013672], "href": "#compt_cr_page" }
+      ]
+    },
+    {
+      "id": "compt_cr_page",
+      "title": "Compté créé",
+      "areas": [ { "coords": [521.6000366210938,453.8000183105469,564.237537384033,473.000019073486], "href": "#connexion_page" } ]
+    }
+  ]
+}
