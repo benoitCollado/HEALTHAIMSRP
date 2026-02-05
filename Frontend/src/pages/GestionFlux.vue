@@ -1,28 +1,55 @@
 <template>
   <div class="canvas">
     <Navbar title="Gestion des flux" />
-    <div style="padding:24px;max-width:1100px;width:100%;margin:0 auto;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
-      <section style="background:#fff;padding:16px;border-radius:8px;">
-        <h3>Validés</h3>
-        <ul>
-          <li v-for="item in valides" :key="item.id">{{ item.id }} - {{ item.nom }}</li>
-        </ul>
-      </section>
-
+    <div style="padding:24px;max-width:1200px;width:100%;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <section style="background:#fff;padding:16px;border-radius:8px;">
         <h3>En cours</h3>
         <ul>
-          <li v-for="item in encours" :key="item.id">
-            {{ item.id }} - {{ item.nom }}
-            <div style="margin-top:6px"><button @click="valider(item)">Valider</button> <button @click="refuser(item)">Refuser</button></div>
+          <li v-for="item in encours" :key="item.id" class="clickable-item" @click="router.push(`/flux/${item.id}`)" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-weight:600">{{ item.id }} - {{ item.nom }}</div>
+              <div style="font-size:12px;color:#666">{{ item.description }}</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="text-align:right;font-size:13px;color:#333">
+                <div>{{ item.fileSize || '-' }}</div>
+                <div style="font-size:12px;color:#666">{{ item.stats?.rows || '-' }} lignes</div>
+              </div>
+            </div>
           </li>
         </ul>
       </section>
 
       <section style="background:#fff;padding:16px;border-radius:8px;">
+        <h3>Validés récemment</h3>
+        <ul>
+          <li v-for="item in recentValides" :key="item.id" class="clickable-item" @click="router.push(`/flux/${item.id}`)" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-weight:600">{{ item.id }} - {{ item.nom }}</div>
+              <div v-if="item.comment" style="font-size:12px;color:#666">Commentaire: {{ item.comment }}</div>
+            </div>
+            <div style="text-align:right">
+              <div>{{ item.fileSize || '-' }}</div>
+              <div style="font-size:12px;color:#666">{{ item.stats?.rows || '-' }} lignes</div>
+            </div>
+          </li>
+        </ul>
+      </section>
+
+      <section style="grid-column:1 / -1;background:#fff;padding:16px;border-radius:8px;">
         <h3>Refusés</h3>
         <ul>
-          <li v-for="item in refuses" :key="item.id">{{ item.id }} - {{ item.nom }}</li>
+          <li v-for="item in refuses" :key="item.id" class="clickable-item" @click="router.push(`/flux/${item.id}`)" style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-weight:600">{{ item.id }} - {{ item.nom }}</div>
+              <div v-if="item.comment" style="font-size:12px;color:#666">Commentaire: {{ item.comment }}</div>
+              <div v-if="item.errors" style="font-size:12px;color:#a00">Erreurs: {{ item.errors.join('; ') }}</div>
+            </div>
+            <div style="text-align:right">
+              <div>{{ item.fileSize || '-' }}</div>
+              <div style="font-size:12px;color:#666">{{ item.stats?.rows || '-' }} lignes</div>
+            </div>
+          </li>
         </ul>
       </section>
     </div>
@@ -30,29 +57,40 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive } from 'vue'
+import { defineComponent, reactive, computed } from 'vue'
 import Navbar from '../components/Navbar.vue'
+import { mockFluxData } from '../data/mockApiData'
+import { useRouter } from 'vue-router'
 
 export default defineComponent({
   components: { Navbar },
   setup() {
+    // work on local reactive copies
     const state = reactive({
-      valides: [ {id: 'F-101', nom: 'Flux A'}, {id:'F-102', nom:'Flux B'} ],
-      encours: [ {id: 'F-201', nom: 'Flux C'}, {id:'F-202', nom:'Flux D'} ],
-      refuses: [ {id: 'F-301', nom: 'Flux X'} ]
+      valides: [...mockFluxData.valides],
+      encours: [...mockFluxData.encours],
+      refuses: [...mockFluxData.refuses]
+    })
+    const router = useRouter()
+
+    const recentValides = computed(() => {
+      return state.valides.slice(-5).reverse()
     })
 
-    function valider(item: any) {
-      state.valides.push(item)
-      state.encours = state.encours.filter((i: any) => i.id !== item.id)
+    function refreshLists() {
+      state.valides = [...mockFluxData.valides]
+      state.encours = [...mockFluxData.encours]
+      state.refuses = [...mockFluxData.refuses]
     }
 
-    function refuser(item: any) {
-      state.refuses.push(item)
-      state.encours = state.encours.filter((i: any) => i.id !== item.id)
-    }
-
-    return { ...state, valider, refuser }
+    return { ...state, recentValides, refreshLists, router }
   }
 })
 </script>
+
+<style scoped>
+.open-btn{background:#0078d4;color:#fff;padding:6px 10px;border-radius:6px;text-decoration:none}
+.open-btn:hover{opacity:0.9}
+.clickable-item{cursor:pointer;padding:10px;border-radius:6px}
+.clickable-item:hover{background:#f6f9ff}
+</style>
