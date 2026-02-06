@@ -1,8 +1,27 @@
 # Backend – HealthAI Coach API
 
-Ce backend fournit une API REST sécurisée pour gérer les utilisateurs, la nutrition, les exercices et les données de santé.
+Ce projet fournit une **API REST sécurisée** pour la gestion :
 
-L’API est développée avec **FastAPI**, **PostgreSQL**, **JWT** et **Docker**.
+* des utilisateurs
+* de la nutrition
+* des exercices
+* des activités
+* des métriques de santé
+* des objectifs
+
+Le backend est développé avec **FastAPI**, **PostgreSQL**, **JWT** et **Docker**.
+
+---
+
+## Technologies utilisées
+
+* Python 3.11
+* FastAPI
+* SQLAlchemy
+* PostgreSQL
+* JWT (JSON Web Token)
+* Docker / Docker Compose
+* Pytest
 
 ---
 
@@ -19,16 +38,16 @@ Aucune installation Python locale n’est nécessaire.
 
 ## Lancer le projet
 
-### A la racine du projet
+À la **racine du projet** :
 
 ```bash
 docker compose down -v
 docker compose up --build
-
-docker compose restart backend
 ```
 
-Le backend démarre automatiquement sur le port **8000**.
+Le backend démarre automatiquement.
+
+Port utilisé : **8000**
 
 ---
 
@@ -37,14 +56,14 @@ Le backend démarre automatiquement sur le port **8000**.
 * API :
   [http://localhost:8000](http://localhost:8000)
 
-* Documentation interactive (OpenAPI / Swagger) :
+* Documentation interactive (Swagger / OpenAPI) :
   [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
 ## Authentification
 
-L’API est sécurisée avec **JWT (Bearer Token)**.
+L’API est protégée par **JWT (Bearer Token)**.
 
 ### Connexion
 
@@ -54,7 +73,9 @@ Endpoint :
 POST /login
 ```
 
-Body JSON :
+Les identifiants sont envoyés sous forme de **form-data** (OAuth2).
+
+Exemple :
 
 ```json
 {
@@ -67,12 +88,12 @@ Réponse :
 
 ```json
 {
-  "access_token": "...",
+  "access_token": "jwt_token",
   "token_type": "bearer"
 }
 ```
 
-Le token doit être utilisé dans l’en-tête HTTP :
+Le token doit être ajouté dans les requêtes protégées :
 
 ```
 Authorization: Bearer <token>
@@ -82,8 +103,8 @@ Authorization: Bearer <token>
 
 ## Gestion des rôles
 
-* Par défaut, un utilisateur est **non admin**
-* Le champ `is_admin` est stocké en base de données
+* Chaque utilisateur possède le champ `is_admin`
+* Par défaut, un utilisateur n’est **pas administrateur**
 * Certaines routes sont **réservées aux administrateurs** :
 
   * création d’utilisateurs
@@ -98,15 +119,17 @@ Les autres routes sont accessibles aux utilisateurs authentifiés.
 
 Les tests sont exécutés **dans le conteneur Docker**.
 
+Commande :
+
 ```bash
 docker exec -it backend_api python -m pytest app/test
 ```
 
 Les tests couvrent :
 
-* authentification
-* sécurité (admin / non admin)
-* routes utilisateurs
+* l’authentification
+* la sécurité (admin / non admin)
+* les routes principales de l’API
 
 ---
 
@@ -117,14 +140,13 @@ backend/
 │
 ├── app/
 │   ├── main.py          # Point d’entrée FastAPI
-│   ├── database.py      # Connexion PostgreSQL
-│   ├── security.py      # JWT et mots de passe
+│   ├── database.py      # Connexion à PostgreSQL
+│   ├── security.py      # JWT et gestion des mots de passe
 │   ├── models/          # Modèles SQLAlchemy
 │   ├── schemas/         # Schémas Pydantic
-│   ├── routers/         # Routes API
+│   ├── routers/         # Routes de l’API
 │   └── test/            # Tests Pytest
 │
-├── docker-compose.yml
 ├── Dockerfile
 ├── requirements.txt
 └── README.md
@@ -135,9 +157,21 @@ backend/
 ## Sécurité
 
 * Mots de passe stockés **hachés (bcrypt)**
-* JWT signé avec clé secrète
-* Vérification du rôle admin côté backend
+* JWT signé avec une clé secrète (`SECRET_KEY`)
+* Vérification des rôles côté backend
 * Accès aux routes protégé par dépendances FastAPI
+
+---
+
+## Variables d’environnement
+
+Exemple de fichier `.env` :
+
+```env
+DATABASE_URL=postgresql://healthuser:healthpass@postgres:5432/healthdb
+SECRET_KEY=your_secret_key_here
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+```
 
 ---
 
@@ -146,3 +180,4 @@ backend/
 ```bash
 docker compose down
 ```
+
