@@ -19,12 +19,13 @@ Aucune installation Python locale n’est nécessaire.
 
 ## Lancer le projet
 
-### Depuis le dossier `backend`
+### A la racine du projet
 
 ```bash
-docker compose down
-docker compose build --no-cache
-docker compose up
+docker compose down -v
+docker compose up --build
+
+docker compose restart backend
 ```
 
 Le backend démarre automatiquement sur le port **8000**.
@@ -98,7 +99,7 @@ Les autres routes sont accessibles aux utilisateurs authentifiés.
 Les tests sont exécutés **dans le conteneur Docker**.
 
 ```bash
-docker exec -it backend_api python -m pytest
+docker exec -it backend_api python -m pytest app/test
 ```
 
 Les tests couvrent :

@@ -9,7 +9,7 @@ from app.schemas.utilisateur import (
     UtilisateurResponse,
     UtilisateurUpdate,
 )
-from app.security import verify_token
+from app.security import verify_token, hash_password
 
 router = APIRouter(
     prefix="/utilisateurs",
@@ -36,13 +36,17 @@ def require_admin(user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=403, detail="Admin only")
     return user
 
+
 @router.post("/", response_model=UtilisateurResponse, status_code=201)
 def create_utilisateur(
     utilisateur: UtilisateurCreate,
     db: Session = Depends(get_db),
     user: dict = Depends(require_admin)
 ):
-    new_user = Utilisateur(**utilisateur.model_dump())
+    data = utilisateur.model_dump(exclude={"password"})
+    data["password_hash"] = hash_password(utilisateur.password)
+
+    new_user = Utilisateur(**data)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)

@@ -20,7 +20,10 @@ def test_create_utilisateur(client, admin_headers):
         "poids_kg": 75,
         "niveau_activite": 2,
         "type_abonnement": 1,
-        "date_inscription": "2026-02-05"
+        "type_abonnement": 1,
+        "date_inscription": "2026-02-05",
+        "username": "testuser",
+        "password": "testpassword"
     }
 
     response = client.post(

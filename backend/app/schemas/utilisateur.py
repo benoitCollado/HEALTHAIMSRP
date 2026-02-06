@@ -12,7 +12,8 @@ class UtilisateurBase(BaseModel):
     date_inscription: date
 
 class UtilisateurCreate(UtilisateurBase):
-    pass
+    username: str
+    password: str
 
 class UtilisateurUpdate(BaseModel):
     age: Optional[int] = None

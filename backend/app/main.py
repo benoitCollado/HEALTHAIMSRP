@@ -1,5 +1,6 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from fastapi.security import OAuth2PasswordRequestForm
 
 from app.database import SessionLocal
 from app.models.utilisateur import Utilisateur
@@ -25,22 +26,21 @@ def get_db():
 
 @app.post("/login")
 def login(
-    username: str = Query(...),
-    password: str = Query(...),
+    form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)
 ):
     utilisateur = db.query(Utilisateur).filter(
-        Utilisateur.username == username
+        Utilisateur.username == form_data.username
     ).first()
 
     if utilisateur is None:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    if not verify_password(password, utilisateur.password_hash):
+    if not verify_password(form_data.password, utilisateur.password_hash):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = create_access_token({
-        "sub": utilisateur.id_utilisateur,
+        "sub": str(utilisateur.id_utilisateur),
         "is_admin": utilisateur.is_admin
     })
 
