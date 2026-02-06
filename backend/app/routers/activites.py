@@ -11,13 +11,16 @@ from app.schemas.activite import (
 )
 from app.security import verify_token
 
+# Création du routeur pour les routes liées aux activités
 router = APIRouter(
     prefix="/activites",
     tags=["Activites"]
 )
 
+# Schéma d’authentification OAuth2 basé sur un token
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+# Dépendance pour obtenir une session de base de données
 def get_db():
     db = SessionLocal()
     try:
@@ -25,17 +28,20 @@ def get_db():
     finally:
         db.close()
 
+# Récupère l’utilisateur courant à partir du token JWT
 def get_current_user(token: str = Depends(oauth2_scheme)):
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid token")
     return payload
 
+# Vérifie que l’utilisateur est administrateur
 def require_admin(user: dict = Depends(get_current_user)):
     if not user.get("is_admin", False):
         raise HTTPException(status_code=403, detail="Admin only")
     return user
 
+# Crée une nouvelle activité
 @router.post("/", response_model=ActiviteResponse, status_code=201)
 def create_activite(
     activite: ActiviteCreate,
@@ -48,6 +54,7 @@ def create_activite(
     db.refresh(new_activite)
     return new_activite
 
+# Récupère toutes les activités
 @router.get("/", response_model=list[ActiviteResponse])
 def get_activites(
     db: Session = Depends(get_db),
@@ -55,6 +62,7 @@ def get_activites(
 ):
     return db.query(Activite).all()
 
+# Récupère une activité par son identifiant
 @router.get("/{activite_id}", response_model=ActiviteResponse)
 def get_activite_by_id(
     activite_id: int = Path(..., gt=0),
@@ -70,6 +78,7 @@ def get_activite_by_id(
 
     return activite
 
+# Met à jour une activité existante
 @router.put("/{activite_id}", response_model=ActiviteResponse)
 def update_activite(
     activite_id: int,
@@ -91,6 +100,7 @@ def update_activite(
     db.refresh(activite)
     return activite
 
+# Supprime une activité (réservé aux administrateurs)
 @router.delete("/{activite_id}", status_code=204)
 def delete_activite(
     activite_id: int,

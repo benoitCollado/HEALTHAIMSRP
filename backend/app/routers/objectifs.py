@@ -11,13 +11,16 @@ from app.schemas.objectif import (
 )
 from app.security import verify_token
 
+# Routeur pour les endpoints liés aux objectifs
 router = APIRouter(
     prefix="/objectifs",
     tags=["Objectifs"]
 )
 
+# Schéma OAuth2 pour récupérer le token JWT depuis /login
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+# Dépendance pour ouvrir et fermer une session de base de données
 def get_db():
     db = SessionLocal()
     try:
@@ -25,17 +28,20 @@ def get_db():
     finally:
         db.close()
 
+# Récupère l’utilisateur courant à partir du token JWT
 def get_current_user(token: str = Depends(oauth2_scheme)):
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid token")
     return payload
 
+# Vérifie que l’utilisateur est administrateur
 def require_admin(user: dict = Depends(get_current_user)):
     if not user.get("is_admin", False):
         raise HTTPException(status_code=403, detail="Admin only")
     return user
 
+# Création d’un nouvel objectif
 @router.post("/", response_model=ObjectifResponse, status_code=201)
 def create_objectif(
     objectif: ObjectifCreate,
@@ -48,6 +54,7 @@ def create_objectif(
     db.refresh(new_objectif)
     return new_objectif
 
+# Récupération de tous les objectifs
 @router.get("/", response_model=list[ObjectifResponse])
 def get_objectifs(
     db: Session = Depends(get_db),
@@ -55,6 +62,7 @@ def get_objectifs(
 ):
     return db.query(Objectif).all()
 
+# Récupération d’un objectif par identifiant
 @router.get("/{objectif_id}", response_model=ObjectifResponse)
 def get_objectif_by_id(
     objectif_id: int = Path(..., gt=0),
@@ -70,6 +78,7 @@ def get_objectif_by_id(
 
     return objectif
 
+# Mise à jour d’un objectif existant
 @router.put("/{objectif_id}", response_model=ObjectifResponse)
 def update_objectif(
     objectif_id: int,
@@ -91,6 +100,7 @@ def update_objectif(
     db.refresh(objectif)
     return objectif
 
+# Suppression d’un objectif (réservée aux administrateurs)
 @router.delete("/{objectif_id}", status_code=204)
 def delete_objectif(
     objectif_id: int,
