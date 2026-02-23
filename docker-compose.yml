@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres_health
+    restart: always
+    environment:
+      POSTGRES_DB: healthdb
+      POSTGRES_USER: healthuser
+      POSTGRES_PASSWORD: healthpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - health_net
+
+  backend:
+    build: ./backend
+    env_file:
+      - .env
+    container_name: backend_api
+    restart: always
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://healthuser:healthpass@postgres:5432/healthdb
+    networks:
+      - health_net
+
+volumes:
+  postgres_data:
+
+networks:
+  health_net:

@@ -11,13 +11,16 @@ from app.schemas.exercice import (
 )
 from app.security import verify_token
 
+# Routeur principal pour les endpoints liés aux exercices
 router = APIRouter(
     prefix="/exercices",
     tags=["Exercices"]
 )
 
+# Schéma OAuth2 pour extraire le token JWT depuis /login
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
+# Dépendance pour créer et fermer une session de base de données
 def get_db():
     db = SessionLocal()
     try:
@@ -25,17 +28,20 @@ def get_db():
     finally:
         db.close()
 
+# Récupère l’utilisateur courant à partir du token JWT
 def get_current_user(token: str = Depends(oauth2_scheme)):
     payload = verify_token(token)
     if payload is None:
         raise HTTPException(status_code=401, detail="Invalid token")
     return payload
 
+# Vérifie que l’utilisateur connecté est administrateur
 def require_admin(user: dict = Depends(get_current_user)):
     if not user.get("is_admin", False):
         raise HTTPException(status_code=403, detail="Admin only")
     return user
 
+# Création d’un nouvel exercice (réservé aux administrateurs)
 @router.post("/", response_model=ExerciceResponse, status_code=201)
 def create_exercice(
     exercice: ExerciceCreate,
@@ -48,6 +54,7 @@ def create_exercice(
     db.refresh(new_exercice)
     return new_exercice
 
+# Récupération de tous les exercices
 @router.get("/", response_model=list[ExerciceResponse])
 def get_exercices(
     db: Session = Depends(get_db),
@@ -55,6 +62,7 @@ def get_exercices(
 ):
     return db.query(Exercice).all()
 
+# Récupération d’un exercice par son identifiant
 @router.get("/{exercice_id}", response_model=ExerciceResponse)
 def get_exercice_by_id(
     exercice_id: int = Path(..., gt=0),
@@ -70,6 +78,7 @@ def get_exercice_by_id(
 
     return exercice
 
+# Mise à jour d’un exercice existant (réservé aux administrateurs)
 @router.put("/{exercice_id}", response_model=ExerciceResponse)
 def update_exercice(
     exercice_id: int,
@@ -91,6 +100,7 @@ def update_exercice(
     db.refresh(exercice)
     return exercice
 
+# Suppression d’un exercice (réservé aux administrateurs)
 @router.delete("/{exercice_id}", status_code=204)
 def delete_exercice(
     exercice_id: int,
