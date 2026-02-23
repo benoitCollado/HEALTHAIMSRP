@@ -1,6 +1,3 @@
-// Mock authentication service
-// In production, replace with real API calls to FastAPI backend
-
 export type UserRole = 'admin' | 'user' | null
 
 export interface User {
@@ -10,17 +7,63 @@ export interface User {
 }
 
 const STORAGE_KEY = 'app_user'
+const TOKEN_KEY = 'app_token'
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-// Mock user database
-const users = [
-  { id: '1', username: 'admin', password: 'admin', role: 'admin' as UserRole },
-  { id: '2', username: 'user', password: 'user', role: 'user' as UserRole }
-]
+interface LoginResult {
+  success: boolean
+  user?: User
+  error?: string
+}
+
+interface JwtPayload {
+  sub?: string | number
+  is_admin?: boolean
+}
+
+function decodeJwtPayload(token: string): JwtPayload | null {
+  const parts = token.split('.')
+  if (parts.length < 2) return null
+
+  try {
+    const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
+    const json = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map((char) => `%${(`00${char.charCodeAt(0).toString(16)}`).slice(-2)}`)
+        .join('')
+    )
+
+    return JSON.parse(json)
+  } catch {
+    return null
+  }
+}
+
+async function loginRequest(username: string, password: string): Promise<{ access_token: string; token_type: string }> {
+  const query = new URLSearchParams({ username, password }).toString()
+  const response = await fetch(`${API_BASE_URL}/login?${query}`, {
+    method: 'POST'
+  })
+
+  if (!response.ok) {
+    let errorMessage = 'Erreur de connexion'
+    try {
+      const errorData = await response.json()
+      errorMessage = errorData?.detail || errorMessage
+    } catch {
+      // no-op
+    }
+    throw new Error(errorMessage)
+  }
+
+  return response.json()
+}
 
 export const auth = {
-  // Get current user from sessionStorage
+  // Get current user from localStorage
   getCurrentUser(): User | null {
-    const stored = sessionStorage.getItem(STORAGE_KEY)
+    const stored = localStorage.getItem(STORAGE_KEY)
     if (!stored) return null
     try {
       return JSON.parse(stored)
@@ -29,31 +72,42 @@ export const auth = {
     }
   },
 
-  // Login with username/password
-  login(username: string, password: string): { success: boolean; user?: User; error?: string } {
-    const user = users.find(u => u.username === username)
-    if (!user) {
-      return { success: false, error: 'Utilisateur non trouvé' }
-    }
+  // Login with username/password using FastAPI backend
+  async login(username: string, password: string): Promise<LoginResult> {
+    try {
+      const result = await loginRequest(username, password)
+      const payload = decodeJwtPayload(result.access_token)
 
-    // In production: hash password and verify on backend
-    if (user.password !== password) {
-      return { success: false, error: 'Mot de passe incorrect' }
-    }
+      if (!payload?.sub) {
+        return { success: false, error: 'Token invalide' }
+      }
 
-    const sessionUser: User = {
-      id: user.id,
-      username: user.username,
-      role: user.role
-    }
+      const role: UserRole = payload.is_admin ? 'admin' : 'user'
+      const sessionUser: User = {
+        id: String(payload.sub),
+        username,
+        role
+      }
 
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser))
-    return { success: true, user: sessionUser }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sessionUser))
+      localStorage.setItem(TOKEN_KEY, result.access_token)
+
+      return { success: true, user: sessionUser }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Erreur de connexion'
+      return { success: false, error: message }
+    }
   },
 
   // Logout
   logout(): void {
-    sessionStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(STORAGE_KEY)
+    localStorage.removeItem(TOKEN_KEY)
+  },
+
+  // Get access token
+  getToken(): string | null {
+    return localStorage.getItem(TOKEN_KEY)
   },
 
   // Check if user has a specific role
