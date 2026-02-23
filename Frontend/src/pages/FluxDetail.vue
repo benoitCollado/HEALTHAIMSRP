@@ -104,29 +104,161 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref } from 'vue'
+import { defineComponent, computed, ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import Navbar from '../components/Navbar.vue'
-import { mockFluxData } from '../data/mockApiData'
+import { auth } from '../services/auth'
+
+interface Objectif {
+  id_objectif: number
+  type_objectif: string
+  description: string
+  date_debut: string
+  date_fin: string
+  statut: string
+  id_utilisateur: number
+}
+
+interface Activite {
+  id_activite: number
+  date_activite: string
+  duree_minutes: number
+  calories_depensees: number
+  id_exercice: number
+  id_utilisateur: number
+}
+
+interface Consommation {
+  id_consommation: number
+  date_consommation: string
+  quantite_g: number
+  calories_calculees: number
+  id_aliment: number
+  id_utilisateur: number
+}
+
+interface Metrique {
+  id_metrique: number
+  date_mesure: string
+  poids_kg?: number
+  frequence_cardiaque?: number
+  duree_sommeil_h?: number
+  calories_brulees?: number
+  pas?: number
+  id_utilisateur: number
+}
 
 export default defineComponent({
   components: { Navbar },
   setup() {
     const route = useRoute()
     const router = useRouter()
-    const id = (route.params.id as string) || ''
+    const id = Number(route.params.id as string)
 
     const flux = ref<any | null>(null)
-    function findFlux() {
-      flux.value = [...mockFluxData.valides, ...mockFluxData.encours, ...mockFluxData.refuses].find((f:any)=>f.id===id) || null
-    }
-    findFlux()
+    const objectifs = ref<Objectif[]>([])
+    const activites = ref<Activite[]>([])
+    const consommations = ref<Consommation[]>([])
+    const metriques = ref<Metrique[]>([])
 
     const lastQueryResult = ref<string | null>(null)
     const editMode = ref(false)
     const csvEditor = ref('')
 
-    const isEncours = computed(() => mockFluxData.encours.some((f:any)=>f.id===id))
+    const normalizeStatus = (status: string) => {
+      const s = (status || '').toLowerCase()
+      if (s.includes('term') || s.includes('valid')) return 'valide'
+      if (s.includes('cours') || s.includes('actif')) return 'encours'
+      if (s.includes('refus') || s.includes('rejet')) return 'refuse'
+      return 'refuse'
+    }
+
+    const isEncours = computed(() => {
+      if (!flux.value) return false
+      return normalizeStatus(flux.value.rawStatut || '') === 'encours'
+    })
+
+    const buildFluxFromObjectif = (objectif: Objectif) => {
+      const relatedActivities = activites.value.filter(a => a.id_utilisateur === objectif.id_utilisateur)
+      const relatedConsumptions = consommations.value.filter(c => c.id_utilisateur === objectif.id_utilisateur)
+      const relatedMetriques = metriques.value.filter(m => m.id_utilisateur === objectif.id_utilisateur)
+
+      const rows = relatedActivities.length + relatedConsumptions.length + relatedMetriques.length
+      const exploitablePct = normalizeStatus(objectif.statut) === 'valide' ? 100 : normalizeStatus(objectif.statut) === 'encours' ? 70 : 30
+      const lastRun = relatedActivities[0]?.date_activite || relatedConsumptions[0]?.date_consommation || objectif.date_fin || objectif.date_debut
+
+      const tableData = [
+        { cle: 'type_objectif', valeur: objectif.type_objectif },
+        { cle: 'description', valeur: objectif.description },
+        { cle: 'statut', valeur: objectif.statut },
+        { cle: 'id_utilisateur', valeur: objectif.id_utilisateur },
+        { cle: 'nb_activites', valeur: relatedActivities.length },
+        { cle: 'nb_consommations', valeur: relatedConsumptions.length },
+        { cle: 'nb_metriques', valeur: relatedMetriques.length }
+      ]
+
+      return {
+        id: objectif.id_objectif,
+        nom: `Objectif ${objectif.type_objectif}`,
+        description: objectif.description,
+        rawStatut: objectif.statut,
+        stats: {
+          exploitablePct,
+          rows,
+          lastRun
+        },
+        sampleQueries: [
+          { name: 'Activités liées utilisateur', query: `SELECT * FROM activites WHERE id_utilisateur = ${objectif.id_utilisateur}` },
+          { name: 'Consommations liées utilisateur', query: `SELECT * FROM consommations WHERE id_utilisateur = ${objectif.id_utilisateur}` },
+          { name: 'Métriques liées utilisateur', query: `SELECT * FROM metrique_sante WHERE id_utilisateur = ${objectif.id_utilisateur}` }
+        ],
+        tableData,
+        csvContent: `cle,valeur\n${tableData.map((row) => `${row.cle},${row.valeur}`).join('\n')}`,
+        fileSize: '-',
+        comment: normalizeStatus(objectif.statut) === 'refuse' ? `Statut: ${objectif.statut}` : '',
+        errors: normalizeStatus(objectif.statut) === 'refuse' ? [`Objectif marqué comme ${objectif.statut}`] : []
+      }
+    }
+
+    async function fetchJson(endpoint: string, token: string) {
+      const response = await fetch(`http://localhost:8000${endpoint}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status} sur ${endpoint}`)
+      }
+
+      return response.json()
+    }
+
+    async function loadFlux() {
+      const token = auth.getToken()
+      if (!token || !Number.isFinite(id)) return
+
+      const [objectif, allObjectifs, allActivites, allConsommations, allMetriques] = await Promise.all([
+        fetchJson(`/objectifs/${id}`, token) as Promise<Objectif>,
+        fetchJson('/objectifs/', token) as Promise<Objectif[]>,
+        fetchJson('/activites/', token) as Promise<Activite[]>,
+        fetchJson('/consommations/', token) as Promise<Consommation[]>,
+        fetchJson('/metriques-sante/', token) as Promise<Metrique[]>
+      ])
+
+      objectifs.value = allObjectifs
+      activites.value = allActivites
+      consommations.value = allConsommations
+      metriques.value = allMetriques
+
+      flux.value = buildFluxFromObjectif(objectif)
+    }
+
+    onMounted(() => {
+      loadFlux()
+    })
 
     function runQuery(q: string) {
       lastQueryResult.value = `Résultat simulé pour: ${q}\nLignes: ${Math.floor(Math.random()*10)+1}`
@@ -198,37 +330,45 @@ export default defineComponent({
     }
 
     function validerFlux() {
-      if (!flux.value) return
-      const idx = mockFluxData.encours.findIndex((f:any)=>f.id===flux.value.id)
-      if (idx !== -1) {
-        const obj = mockFluxData.encours.splice(idx,1)[0]
-        obj.comment = obj.comment || ''
-        mockFluxData.valides.push(obj)
+      const updateStatus = async () => {
+        if (!flux.value) return
+        const token = auth.getToken()
+        if (!token) return
+
+        await fetch(`http://localhost:8000/objectifs/${id}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ statut: 'Terminé' })
+        })
+
+        router.push('/gestion-des-flux')
       }
-      router.push('/gestion-des-flux')
+
+      updateStatus()
     }
 
     function refuserFlux() {
-      if (!flux.value) return
-      const comment = prompt('Commentaire (optionnel) pour le refus:') || ''
-      const errors = prompt('Liste d\'erreurs (séparées par ; ) (optionnel):') || ''
-      // remove from encours or valides
-      let idx = mockFluxData.encours.findIndex((f:any)=>f.id===flux.value.id)
-      if (idx !== -1) {
-        const obj = mockFluxData.encours.splice(idx,1)[0]
-        obj.comment = comment
-        obj.errors = errors ? errors.split(';').map((s:string)=>s.trim()) : []
-        mockFluxData.refuses.push(obj)
-      } else {
-        idx = mockFluxData.valides.findIndex((f:any)=>f.id===flux.value.id)
-        if (idx !== -1) {
-          const obj = mockFluxData.valides.splice(idx,1)[0]
-          obj.comment = comment
-          obj.errors = errors ? errors.split(';').map((s:string)=>s.trim()) : []
-          mockFluxData.refuses.push(obj)
-        }
+      const updateStatus = async () => {
+        if (!flux.value) return
+        const token = auth.getToken()
+        if (!token) return
+
+        await fetch(`http://localhost:8000/objectifs/${id}`, {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ statut: 'Refusé' })
+        })
+
+        router.push('/gestion-des-flux')
       }
-      router.push('/gestion-des-flux')
+
+      updateStatus()
     }
 
 

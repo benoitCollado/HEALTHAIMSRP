@@ -57,33 +57,108 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, computed } from 'vue'
+import { defineComponent, reactive, computed, onMounted } from 'vue'
 import Navbar from '../components/Navbar.vue'
-import { mockFluxData } from '../data/mockApiData'
 import { useRouter } from 'vue-router'
+import { auth } from '../services/auth'
+
+interface Objectif {
+  id_objectif: number
+  type_objectif: string
+  description: string
+  date_debut: string
+  date_fin: string
+  statut: string
+  id_utilisateur: number
+}
+
+interface FluxItem {
+  id: number
+  nom: string
+  description: string
+  comment?: string
+  errors?: string[]
+  fileSize?: string
+  stats?: {
+    rows: number
+    exploitablePct: number
+    lastRun: string
+  }
+}
 
 export default defineComponent({
   components: { Navbar },
   setup() {
-    // work on local reactive copies
     const state = reactive({
-      valides: [...mockFluxData.valides],
-      encours: [...mockFluxData.encours],
-      refuses: [...mockFluxData.refuses]
+      valides: [] as FluxItem[],
+      encours: [] as FluxItem[],
+      refuses: [] as FluxItem[]
     })
     const router = useRouter()
 
-    const recentValides = computed(() => {
-      return state.valides.slice(-5).reverse()
-    })
-
-    function refreshLists() {
-      state.valides = [...mockFluxData.valides]
-      state.encours = [...mockFluxData.encours]
-      state.refuses = [...mockFluxData.refuses]
+    const normalizeStatus = (status: string) => {
+      const s = (status || '').toLowerCase()
+      if (s.includes('term') || s.includes('valid')) return 'valide'
+      if (s.includes('cours') || s.includes('actif')) return 'encours'
+      if (s.includes('refus') || s.includes('rejet')) return 'refuse'
+      return 'refuse'
     }
 
-    return { ...state, recentValides, refreshLists, router }
+    const mapObjectifToFlux = (objectif: Objectif): FluxItem => ({
+      id: objectif.id_objectif,
+      nom: `Objectif ${objectif.type_objectif}`,
+      description: objectif.description,
+      stats: {
+        rows: 1,
+        exploitablePct: normalizeStatus(objectif.statut) === 'valide' ? 100 : normalizeStatus(objectif.statut) === 'encours' ? 70 : 30,
+        lastRun: objectif.date_fin || objectif.date_debut
+      },
+      fileSize: '-',
+      comment: normalizeStatus(objectif.statut) === 'refuse' ? `Statut: ${objectif.statut}` : ''
+    })
+
+    async function fetchObjectifs() {
+      const token = auth.getToken()
+      if (!token) return
+
+      const response = await fetch('http://localhost:8000/objectifs/', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) return
+
+      const objectifs = (await response.json()) as Objectif[]
+      const mapped = objectifs.map(mapObjectifToFlux)
+
+      state.valides = mapped.filter(item => {
+        const target = objectifs.find(o => o.id_objectif === item.id)
+        return target ? normalizeStatus(target.statut) === 'valide' : false
+      })
+
+      state.encours = mapped.filter(item => {
+        const target = objectifs.find(o => o.id_objectif === item.id)
+        return target ? normalizeStatus(target.statut) === 'encours' : false
+      })
+
+      state.refuses = mapped.filter(item => {
+        const target = objectifs.find(o => o.id_objectif === item.id)
+        return target ? normalizeStatus(target.statut) === 'refuse' : false
+      })
+    }
+
+    const recentValides = computed(() => {
+      return [...state.valides].slice(-5).reverse()
+    })
+
+    onMounted(() => {
+      fetchObjectifs()
+    })
+
+    return { ...state, recentValides, router }
   }
 })
 </script>

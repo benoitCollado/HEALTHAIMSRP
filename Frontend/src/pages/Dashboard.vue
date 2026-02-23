@@ -12,7 +12,7 @@
       </section>
 
       <section style="background:#fff;padding:16px;border-radius:8px;">
-        <h3>Taux de validation</h3>
+        <h3>Taux objectifs terminés</h3>
         <svg :width="chartW" :height="chartH">
           <polyline :points="linePoints" fill="none" stroke="#E79A0F" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
         </svg>
@@ -21,18 +21,18 @@
       <section style="grid-column:1 / -1;background:#fff;padding:16px;border-radius:8px;">
         <h3>Résumé</h3>
         <div style="display:flex;gap:12px">
-          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Validés<br/><strong>{{summary.valides}}</strong></div>
+          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Terminés<br/><strong>{{summary.valides}}</strong></div>
           <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">En cours<br/><strong>{{summary.enCours}}</strong></div>
-          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Refusés<br/><strong>{{summary.refuses}}</strong></div>
+          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Autres<br/><strong>{{summary.refuses}}</strong></div>
         </div>
       </section>
 
       <section style="background:#fff;padding:16px;border-radius:8px;">
-        <h3>Répartition par type</h3>
+        <h3>Répartition des objectifs</h3>
         <svg :width="pieW" :height="pieH" viewBox="0 0 200 200">
           <circle cx="100" cy="100" r="80" fill="none" stroke="#ddd" stroke-width="40" />
           <path v-for="(slice, idx) in pieSlices" :key="idx" :d="slice.d" :fill="slice.color" />
-          <text x="100" y="100" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-size="20">{{ apiData.total }}</text>
+          <text x="100" y="100" text-anchor="middle" dominant-baseline="middle" font-weight="bold" font-size="20">{{ totalObjectives }}</text>
         </svg>
         <div style="margin-top:12px;font-size:12px">
           <div v-for="t in typeData" :key="t.label" style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
@@ -48,6 +48,22 @@
 <script lang="ts">
 import { defineComponent, computed, ref, onMounted } from 'vue'
 import Navbar from '../components/Navbar.vue'
+import { auth } from '../services/auth'
+
+interface Activite {
+  date_activite: string
+  calories_depensees: number
+}
+
+interface Objectif {
+  type_objectif: string
+  date_debut: string
+  statut: string
+}
+
+interface Utilisateur {
+  id_utilisateur: number
+}
 
 export default defineComponent({
   components: { Navbar },
@@ -59,69 +75,137 @@ export default defineComponent({
     const pieW = 160
     const pieH = 160
 
-    // Toutes les données viennent du faux API
     const data1 = ref<number[]>([])
     const data2 = ref<number[]>([])
     const summary = ref({ valides: 0, enCours: 0, refuses: 0 })
-    const apiData = ref({ type_a: 0, type_b: 0, type_c: 0, type_d: 0, total: 0 })
+    const objectifTypeCounts = ref<Record<string, number>>({})
+    const totalObjectives = ref(0)
 
     const maxV = computed(() => Math.max(...data1.value, 1))
     const scale = computed(() => (chartH - 20) / maxV.value)
 
+    const colors = ['#5294E2', '#E79A0F', '#27AE60', '#E74C3C', '#8E44AD', '#16A085']
+
+    const normalizeStatus = (status: string) => {
+      const s = (status || '').toLowerCase()
+      if (s.includes('term')) return 'termine'
+      if (s.includes('cours') || s.includes('actif')) return 'encours'
+      return 'autre'
+    }
+
+    const getLastDays = (count: number) => {
+      const days: Date[] = []
+      const now = new Date()
+      for (let i = count - 1; i >= 0; i--) {
+        const d = new Date(now)
+        d.setDate(now.getDate() - i)
+        d.setHours(0, 0, 0, 0)
+        days.push(d)
+      }
+      return days
+    }
+
+    const sameDay = (a: Date, b: Date) => {
+      return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+    }
+
+    const fetchJson = async (endpoint: string, token: string) => {
+      const response = await fetch(`http://localhost:8000${endpoint}`, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      })
+
+      if (!response.ok) {
+        throw new Error(`Erreur ${response.status} sur ${endpoint}`)
+      }
+
+      return response.json()
+    }
+
     onMounted(() => {
-      // GROS APPEL API FAKE - simule la réponse complète du backend
-      const fakeApiResponse = {
-        // Activité récente par jour (bar chart)
-        activity: [45, 38, 52, 41, 67, 55, 73],
-        activityLabels: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'],
-        activityTotal: 371,
-        
-        // Taux de validation dans le temps (line chart) en %
-        validationRate: [68, 71, 75, 78, 82, 79, 85],
-        validationRateLabels: ['Semaine 1', 'Semaine 2', 'Semaine 3', 'Semaine 4', 'Semaine 5', 'Semaine 6', 'Semaine 7'],
-        validationRateAverage: 77.1,
-        
-        // Répartition par type de flux
-        typeDistribution: {
-          type_a: 48,
-          type_b: 25,
-          type_c: 18,
-          type_d: 9,
-          total: 100
-        },
-        
-        // Résumé principal
-        summary: {
-          valides: 287,
-          enCours: 54,
-          refuses: 12,
-          total: 353
-        },
-        
-        // Métriques additionnelles
-        metrics: {
-          derniere_activite: '32 secondes',
-          taux_succes: 81.3,
-          taux_erreur: 3.4,
-          taux_en_attente: 15.3
+      const loadDashboard = async () => {
+        const token = auth.getToken()
+        if (!token) return
+
+        try {
+          const [activites, objectifs, utilisateurs] = await Promise.all([
+            fetchJson('/activites/', token) as Promise<Activite[]>,
+            fetchJson('/objectifs/', token) as Promise<Objectif[]>,
+            fetchJson('/utilisateurs/', token) as Promise<Utilisateur[]>
+          ])
+
+          const last7Days = getLastDays(7)
+
+          data1.value = last7Days.map((day) => {
+            return Math.round(
+              activites
+                .filter((a) => {
+                  const d = new Date(a.date_activite)
+                  return sameDay(d, day)
+                })
+                .reduce((sum, a) => sum + (a.calories_depensees || 0), 0)
+            )
+          })
+
+          const objectifsByStatus = objectifs.reduce(
+            (acc, objectif) => {
+              const normalized = normalizeStatus(objectif.statut)
+              acc[normalized] += 1
+              return acc
+            },
+            { termine: 0, encours: 0, autre: 0 }
+          )
+
+          summary.value = {
+            valides: objectifsByStatus.termine,
+            enCours: objectifsByStatus.encours,
+            refuses: objectifsByStatus.autre
+          }
+
+          data2.value = last7Days.map((day) => {
+            const started = objectifs.filter((o) => new Date(o.date_debut).getTime() <= day.getTime())
+            if (!started.length) return 0
+            const completed = started.filter((o) => normalizeStatus(o.statut) === 'termine').length
+            return Math.round((completed / started.length) * 100)
+          })
+
+          const typeCounts = objectifs.reduce((acc: Record<string, number>, objectif) => {
+            const label = objectif.type_objectif || 'Non défini'
+            acc[label] = (acc[label] || 0) + 1
+            return acc
+          }, {})
+
+          objectifTypeCounts.value = typeCounts
+          totalObjectives.value = objectifs.length
+
+          if (!objectifs.length) {
+            totalObjectives.value = utilisateurs.length
+          }
+        } catch {
+          data1.value = [0, 0, 0, 0, 0, 0, 0]
+          data2.value = [0, 0, 0, 0, 0, 0, 0]
+          summary.value = { valides: 0, enCours: 0, refuses: 0 }
+          objectifTypeCounts.value = {}
+          totalObjectives.value = 0
         }
       }
-      
-      // Remplir les données avec la réponse API
-      data1.value = fakeApiResponse.activity
-      data2.value = fakeApiResponse.validationRate
-      apiData.value = fakeApiResponse.typeDistribution
-      summary.value = fakeApiResponse.summary
+
+      loadDashboard()
     })
 
     const typeData = computed(() => {
-      const total = apiData.value.total || 1
-      return [
-        { label: 'Type A', value: apiData.value.type_a, color: '#5294E2' },
-        { label: 'Type B', value: apiData.value.type_b, color: '#E79A0F' },
-        { label: 'Type C', value: apiData.value.type_c, color: '#27AE60' },
-        { label: 'Type D', value: apiData.value.type_d, color: '#E74C3C' }
-      ]
+      const entries = Object.entries(objectifTypeCounts.value)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6)
+
+      return entries.map(([label, value], idx) => ({
+        label,
+        value,
+        color: colors[idx % colors.length]
+      }))
     })
 
     function polarToCartesian(centerX: number, centerY: number, radius: number, angleInDegrees: number) {
@@ -145,7 +229,7 @@ export default defineComponent({
     }
 
     const pieSlices = computed(() => {
-      const total = apiData.value.total || 1
+      const total = typeData.value.reduce((sum, type) => sum + type.value, 0) || 1
       const center = 100
       const radius = 80
       let startAngle = 0
@@ -170,7 +254,7 @@ export default defineComponent({
       return data2.value.map((v, i) => `${10 + i * (barW + barGap)} , ${chartH - 10 - v * s}`).join(' ')
     })
 
-    return { data1, chartW, chartH, barW, barGap, scale, linePoints, summary, pieW, pieH, typeData, apiData, pieSlices }
+    return { data1, chartW, chartH, barW, barGap, scale, linePoints, summary, pieW, pieH, typeData, pieSlices, totalObjectives }
   }
 })
 </script>
