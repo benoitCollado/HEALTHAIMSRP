@@ -159,3 +159,24 @@ Ces entités constituent le socle des indicateurs exposés dans les tableaux de 
 | Visualisation         | Oui        |
 | Exploitation IA-ready | Oui        |
 
+---
+
+# 8. Démarrage rapide
+
+## Services Docker
+
+```bash
+docker compose up -d                    # Backend, frontend, PostgreSQL
+docker compose --profile seed run --rm seed   # Import des données CSV
+```
+
+## Airflow (import quotidien Open Food Facts France)
+
+```bash
+docker compose up -d postgres
+docker compose --profile airflow run --rm airflow-init   # Première fois
+docker compose --profile airflow up -d
+```
+
+Interface : http://localhost:8080 (airflow / airflow). Voir `airflow/README.md`.
+
