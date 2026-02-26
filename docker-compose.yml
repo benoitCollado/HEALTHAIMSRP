@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: healthuser
       POSTGRES_PASSWORD: healthpass
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-127.0.0.1:5435}:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d
@@ -24,11 +24,44 @@ services:
     depends_on:
       - postgres
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-127.0.0.1:8089}:8000"
     environment:
       DATABASE_URL: postgresql://healthuser:healthpass@postgres:5432/healthdb
+      SECRET_KEY: ${SECRET_KEY:-healthaim-secret-key-dev-change-in-production}
     networks:
       - health_net
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile.nginx
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+    container_name: frontend_nginx
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-127.0.0.1:89}:80"
+    networks:
+      - health_net
+
+  seed:
+    build: ./backend
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    volumes:
+      - ./data:/data
+    environment:
+      DATABASE_URL: postgresql://healthuser:healthpass@postgres:5432/healthdb
+      DATA_DIR: /data
+    command: python /data/seed_db.py
+    networks:
+      - health_net
+    profiles:
+      - seed
 
 volumes:
   postgres_data:

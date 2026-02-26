@@ -319,6 +319,7 @@
 import { ref, onMounted } from 'vue';
 import Navbar from '../components/Navbar.vue';
 import { auth } from '../services/auth';
+import { API_BASE_URL } from '../config';
 
 interface Response {
   utilisateurs?: any[];
@@ -421,7 +422,7 @@ const loadUserMetrics = async (userId: number, token: string) => {
   try {
     userMetricsLoading.value = true;
 
-    const response = await fetch('http://localhost:8000/metriques-sante/', {
+    const response = await fetch(`${API_BASE_URL}/metriques-sante/`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -448,7 +449,7 @@ const loadUserActivities = async (userId: number, token: string) => {
   try {
     userActivitiesLoading.value = true;
 
-    const response = await fetch('http://localhost:8000/activites/', {
+    const response = await fetch(`${API_BASE_URL}/activites/`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -475,7 +476,7 @@ const loadUserConsumptions = async (userId: number, token: string) => {
   try {
     userConsumptionsLoading.value = true;
 
-    const response = await fetch('http://localhost:8000/consommations/', {
+    const response = await fetch(`${API_BASE_URL}/consommations/`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -502,7 +503,7 @@ const loadUserGoals = async (userId: number, token: string) => {
   try {
     userGoalsLoading.value = true;
 
-    const response = await fetch('http://localhost:8000/objectifs/', {
+    const response = await fetch(`${API_BASE_URL}/objectifs/`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -541,7 +542,7 @@ const loadCurrentUser = async () => {
     if (!Number.isFinite(userId)) return;
 
     // Fetch user details
-    const response = await fetch(`http://localhost:8000/utilisateurs/${userId}`, {
+    const response = await fetch(`${API_BASE_URL}/utilisateurs/${userId}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -573,7 +574,7 @@ const testAuth = async () => {
       return;
     }
 
-    const response = await fetch('http://localhost:8000/utilisateurs/', {
+    const response = await fetch(`${API_BASE_URL}/utilisateurs/`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -615,7 +616,7 @@ const loadEndpoint = async (key: keyof Response, endpoint: string) => {
       return;
     }
 
-    const response = await fetch(`http://localhost:8000${endpoint}`, {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -660,7 +661,7 @@ const loadAllData = async () => {
     }
 
     for (const [key, endpoint] of endpoints) {
-      const response = await fetch(`http://localhost:8000${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -698,7 +699,7 @@ const seedTestData = async () => {
       return;
     }
 
-    const response = await fetch('http://localhost:8000/seed/populate', {
+    const response = await fetch(`${API_BASE_URL}/seed/populate`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${token}`,

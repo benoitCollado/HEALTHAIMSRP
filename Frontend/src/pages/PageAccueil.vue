@@ -163,6 +163,7 @@
 import { defineComponent, computed, ref, onMounted } from 'vue'
 import Navbar from '../components/Navbar.vue'
 import { auth } from '../services/auth'
+import { API_BASE_URL } from '../config'
 
 interface UserProfile {
   id_utilisateur: number
@@ -247,7 +248,7 @@ export default defineComponent({
     })
 
     async function fetchJson(endpoint: string, token: string) {
-      const response = await fetch(`http://localhost:8000${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,

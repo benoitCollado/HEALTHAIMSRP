@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 
@@ -15,8 +16,17 @@ from app.routers import (
     objectifs
 )
 
-# Création de l’application FastAPI avec un titre
+# Création de l'application FastAPI avec un titre
 app = FastAPI(title="HealthAI Coach API")
+
+# CORS : autoriser les requêtes depuis le frontend
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Dépendance pour fournir une session de base de données
 def get_db():

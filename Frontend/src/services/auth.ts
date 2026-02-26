@@ -6,9 +6,10 @@ export interface User {
   role: UserRole
 }
 
+import { API_BASE_URL } from '../config'
+
 const STORAGE_KEY = 'app_user'
 const TOKEN_KEY = 'app_token'
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
 interface LoginResult {
   success: boolean
@@ -41,9 +42,11 @@ function decodeJwtPayload(token: string): JwtPayload | null {
 }
 
 async function loginRequest(username: string, password: string): Promise<{ access_token: string; token_type: string }> {
-  const query = new URLSearchParams({ username, password }).toString()
-  const response = await fetch(`${API_BASE_URL}/login?${query}`, {
-    method: 'POST'
+  const body = new URLSearchParams({ username, password }).toString()
+  const response = await fetch(`${API_BASE_URL}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body
   })
 
   if (!response.ok) {

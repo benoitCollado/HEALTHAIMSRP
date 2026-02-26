@@ -32,3 +32,5 @@ Thumbs.db
 .cache/
 .parcel-cache/
 .turbo/
+
+.ipynb_checkpoints/

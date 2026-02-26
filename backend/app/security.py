@@ -4,7 +4,7 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 # Clé secrète utilisée pour signer et vérifier les tokens JWT
-SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY = os.getenv("SECRET_KEY") or "healthaim-secret-key-dev-change-in-production"
 
 # Algorithme de signature du JWT
 ALGORITHM = "HS256"

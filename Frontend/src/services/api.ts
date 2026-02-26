@@ -7,7 +7,7 @@ import {
 } from '../data/mockApiData'
 
 // API base URL - change this when connecting to real backend
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+import { API_BASE_URL } from '../config'
 
 // ============ Dashboard ============
 

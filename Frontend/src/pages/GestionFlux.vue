@@ -61,6 +61,7 @@ import { defineComponent, reactive, computed, onMounted } from 'vue'
 import Navbar from '../components/Navbar.vue'
 import { useRouter } from 'vue-router'
 import { auth } from '../services/auth'
+import { API_BASE_URL } from '../config'
 
 interface Objectif {
   id_objectif: number
@@ -121,7 +122,7 @@ export default defineComponent({
       const token = auth.getToken()
       if (!token) return
 
-      const response = await fetch('http://localhost:8000/objectifs/', {
+      const response = await fetch(`${API_BASE_URL}/objectifs/`, {
         method: 'GET',
         headers: {
           Authorization: `Bearer ${token}`,
