@@ -35,3 +35,7 @@ Thumbs.db
 .turbo/
 
 .ipynb_checkpoints/
+.env.example
+
+database/db/
+data/export/
