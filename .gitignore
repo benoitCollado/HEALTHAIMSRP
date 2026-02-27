@@ -35,3 +35,5 @@ Thumbs.db
 
 .ipynb_checkpoints/
 .env.example
+
+database/db/
