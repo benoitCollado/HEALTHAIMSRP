@@ -3,7 +3,7 @@
     <Navbar title="Dashboard" />
     <div style="padding:24px;max-width:1100px;width:100%;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <section style="background:#fff;padding:16px;border-radius:8px;">
-        <h3>Activité récente</h3>
+        <h3>Activité récente (tous utilisateurs)</h3>
         <svg :width="chartW" :height="chartH">
           <g v-for="(v,i) in data1" :key="i">
             <rect :x="10 + i*(barW+barGap)" :y="chartH - 10 - (v*scale)" :width="barW" :height="v*scale" fill="#5294E2" />
@@ -12,18 +12,19 @@
       </section>
 
       <section style="background:#fff;padding:16px;border-radius:8px;">
-        <h3>Taux objectifs terminés</h3>
+        <h3>Taux objectifs terminés (global)</h3>
         <svg :width="chartW" :height="chartH">
           <polyline :points="linePoints" fill="none" stroke="#E79A0F" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" />
         </svg>
       </section>
 
       <section style="grid-column:1 / -1;background:#fff;padding:16px;border-radius:8px;">
-        <h3>Résumé</h3>
+        <h3>Résumé global</h3>
         <div style="display:flex;gap:12px">
-          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Terminés<br/><strong>{{summary.valides}}</strong></div>
-          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">En cours<br/><strong>{{summary.enCours}}</strong></div>
-          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Autres<br/><strong>{{summary.refuses}}</strong></div>
+          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Utilisateurs<br/><strong>{{ summary.utilisateurs }}</strong></div>
+          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Activités<br/><strong>{{ summary.activites }}</strong></div>
+          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Calories consommées<br/><strong>{{ summary.caloriesConsommees }}</strong></div>
+          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Objectifs terminés<br/><strong>{{ summary.valides }}</strong></div>
         </div>
       </section>
 
@@ -62,6 +63,14 @@ interface Objectif {
   statut: string
 }
 
+interface Consommation {
+  calories_calculees?: number
+}
+
+interface Metrique {
+  id_utilisateur: number
+}
+
 interface Utilisateur {
   id_utilisateur: number
 }
@@ -78,7 +87,14 @@ export default defineComponent({
 
     const data1 = ref<number[]>([])
     const data2 = ref<number[]>([])
-    const summary = ref({ valides: 0, enCours: 0, refuses: 0 })
+    const summary = ref({
+      valides: 0,
+      enCours: 0,
+      refuses: 0,
+      utilisateurs: 0,
+      activites: 0,
+      caloriesConsommees: 0
+    })
     const objectifTypeCounts = ref<Record<string, number>>({})
     const totalObjectives = ref(0)
 
@@ -132,10 +148,12 @@ export default defineComponent({
         if (!token) return
 
         try {
-          const [activites, objectifs, utilisateurs] = await Promise.all([
+          const [activites, objectifs, utilisateurs, consommations, metriques] = await Promise.all([
             fetchJson('/activites/', token) as Promise<Activite[]>,
             fetchJson('/objectifs/', token) as Promise<Objectif[]>,
-            fetchJson('/utilisateurs/', token) as Promise<Utilisateur[]>
+            fetchJson('/utilisateurs/', token) as Promise<Utilisateur[]>,
+            fetchJson('/consommations/', token) as Promise<Consommation[]>,
+            fetchJson('/metriques-sante/', token) as Promise<Metrique[]>
           ])
 
           const last7Days = getLastDays(7)
@@ -163,7 +181,10 @@ export default defineComponent({
           summary.value = {
             valides: objectifsByStatus.termine,
             enCours: objectifsByStatus.encours,
-            refuses: objectifsByStatus.autre
+            refuses: objectifsByStatus.autre,
+            utilisateurs: utilisateurs.length,
+            activites: activites.length,
+            caloriesConsommees: Math.round(consommations.reduce((sum, c) => sum + (c.calories_calculees || 0), 0))
           }
 
           data2.value = last7Days.map((day) => {
@@ -183,12 +204,12 @@ export default defineComponent({
           totalObjectives.value = objectifs.length
 
           if (!objectifs.length) {
-            totalObjectives.value = utilisateurs.length
+            totalObjectives.value = metriques.length ? new Set(metriques.map(m => m.id_utilisateur)).size : utilisateurs.length
           }
         } catch {
           data1.value = [0, 0, 0, 0, 0, 0, 0]
           data2.value = [0, 0, 0, 0, 0, 0, 0]
-          summary.value = { valides: 0, enCours: 0, refuses: 0 }
+          summary.value = { valides: 0, enCours: 0, refuses: 0, utilisateurs: 0, activites: 0, caloriesConsommees: 0 }
           objectifTypeCounts.value = {}
           totalObjectives.value = 0
         }
