@@ -15,6 +15,14 @@
             <div class="nav-icon">📋</div>
             <div>Gestion des flux</div>
           </router-link>
+          <router-link to="/nettoyage" class="nav-card">
+            <div class="nav-icon">🧹</div>
+            <div>Nettoyage</div>
+          </router-link>
+          <router-link to="/test-backend" class="nav-card">
+            <div class="nav-icon">🧪</div>
+            <div>Test API</div>
+          </router-link>
         </div>
       </div>
 
@@ -427,8 +435,8 @@ export default defineComponent({
 
 .nav-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
   margin-top: 32px;
   max-width: 900px;
 }
@@ -457,7 +465,14 @@ export default defineComponent({
 
 @media (max-width: 900px) {
   .user-grid,
-  .user-grid-2,
+  .user-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .nav-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 500px) {
   .nav-grid {
     grid-template-columns: 1fr;
   }
