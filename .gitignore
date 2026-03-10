@@ -35,3 +35,6 @@ Thumbs.db
 .turbo/
 
 .ipynb_checkpoints/
+
+database/db/*
+!database/db/.gitkeep
