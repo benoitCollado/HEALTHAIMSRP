@@ -1,12 +1,24 @@
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from datetime import date
-from app.database import SessionLocal
+from app.database import SessionLocal, engine
 from app.models.utilisateur import Utilisateur
 from app.security import hash_password
+
+# Attendre que la BDD soit prête (retries pour postgres lent à démarrer)
+for attempt in range(10):
+    try:
+        with engine.connect() as _:
+            break
+    except Exception:
+        if attempt < 9:
+            time.sleep(2)
+        else:
+            raise
 
 db = SessionLocal()
 
