@@ -57,11 +57,23 @@ services:
     environment:
       DATABASE_URL: postgresql://healthuser:healthpass@postgres:5432/healthdb
       DATA_DIR: /data
-    command: python /data/seed_db.py
+    command: bash -c "python /data/seed_db.py && python /app/app/create_admin.py"
     networks:
       - health_net
     profiles:
       - seed
+
+  # Init permissions pour le dossier export (Airflow doit pouvoir écrire, vous pourrez lire)
+  export-init:
+    image: alpine
+    container_name: export_init
+    user: root
+    volumes:
+      - ./data/export:/opt/airflow/export
+    command: sh -c "mkdir -p /opt/airflow/export && chmod 777 /opt/airflow/export"
+    networks:
+      - health_net
+    restart: "no"
 
   # Airflow - base de métadonnées
   postgres_airflow:
@@ -81,8 +93,6 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
-    profiles:
-      - airflow
 
   # Airflow - initialisation (une fois)
   airflow-init:
@@ -96,7 +106,7 @@ services:
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres_airflow:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__FERNET_KEY: ""
-      AIRFLOW_UID: 50000
+      AIRFLOW_UID: ${AIRFLOW_UID:-50000}
       _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-http apache-airflow-providers-postgres requests"
     command: >
       bash -c "
@@ -105,58 +115,74 @@ services:
       "
     networks:
       - health_net
-    profiles:
-      - airflow
 
   # Airflow - webserver
   airflow-webserver:
     image: apache/airflow:2.10.4-python3.11
     container_name: airflow_webserver
+    hostname: airflow-webserver
     restart: always
     depends_on:
-      - postgres_airflow
-      - postgres
+      postgres_airflow:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_started
+      export-init:
+        condition: service_completed_successfully
     ports:
-      - "${AIRFLOW_PORT:-127.0.0.1:8080}:8080"
+      - "${AIRFLOW_PORT:-8080}:8080"
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres_airflow:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__FERNET_KEY: ""
-      AIRFLOW_UID: 50000
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-healthaim-airflow-secret-key-dev}
+      AIRFLOW_UID: ${AIRFLOW_UID:-50000}
+      NO_PROXY: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
+      no_proxy: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
       _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-http apache-airflow-providers-postgres requests"
       AIRFLOW_CONN_HEALTHAIM_POSTGRES: postgresql://healthuser:healthpass@postgres:5432/healthdb
     volumes:
       - ./airflow/dags:/opt/airflow/dags
+      - ./data/export:/opt/airflow/export
     command: webserver
     networks:
       - health_net
-    profiles:
-      - airflow
 
   # Airflow - scheduler
   airflow-scheduler:
     image: apache/airflow:2.10.4-python3.11
     container_name: airflow_scheduler
+    hostname: airflow-scheduler
     restart: always
     depends_on:
-      - postgres_airflow
-      - postgres
+      postgres_airflow:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_started
+      export-init:
+        condition: service_completed_successfully
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres_airflow:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__FERNET_KEY: ""
-      AIRFLOW_UID: 50000
+      AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-healthaim-airflow-secret-key-dev}
+      AIRFLOW_UID: ${AIRFLOW_UID:-50000}
+      NO_PROXY: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
+      no_proxy: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
       _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-http apache-airflow-providers-postgres requests"
       AIRFLOW_CONN_HEALTHAIM_POSTGRES: postgresql://healthuser:healthpass@postgres:5432/healthdb
     volumes:
       - ./airflow/dags:/opt/airflow/dags
+      - ./data/export:/opt/airflow/export
     command: scheduler
     networks:
       - health_net
-    profiles:
-      - airflow
 
 
 volumes:

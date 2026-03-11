@@ -1,9 +1,3 @@
-#!/usr/bin/env python3
-"""
-Script de nettoyage des données CSV - basé sur le notebook Untitled.ipynb
-Récupère les fichiers CSV, les nettoie et crée de nouveaux fichiers propres.
-"""
-
 import glob
 import os
 from pathlib import Path
@@ -12,12 +6,10 @@ import pandas as pd
 
 
 def get_data_dir() -> Path:
-    """Retourne le répertoire des données (où se trouve ce script)."""
     return Path(__file__).parent
 
 
 def load_csv_files(data_dir: Path) -> dict:
-    """Charge tous les fichiers CSV du répertoire."""
     df_food = pd.read_csv(
         data_dir / "daily_food_nutrition_dataset.csv",
         on_bad_lines="skip"
@@ -43,11 +35,6 @@ def load_csv_files(data_dir: Path) -> dict:
 
 
 def clean_string_columns(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Nettoie les colonnes de type string/object :
-    - Supprime les caractères \\t et \\n
-    - Supprime les espaces en début et fin
-    """
     df = df.copy()
     for col in df.columns:
         if df[col].dtype in ("object", "string"):
@@ -61,12 +48,10 @@ def clean_string_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def clean_food_data(df: pd.DataFrame) -> pd.DataFrame:
-    """Nettoie le dataset nutrition alimentaire."""
     return clean_string_columns(df)
 
 
 def clean_diet_data(df: pd.DataFrame) -> pd.DataFrame:
-    """Nettoie le dataset des recommandations diététiques."""
     df = clean_string_columns(df)
     # Remplit les valeurs manquantes (NaN et chaînes vides)
     if "Gender" in df.columns:
@@ -81,9 +66,6 @@ def clean_diet_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def clean_exercise_data(df_members: pd.DataFrame, df_exercises: pd.DataFrame) -> pd.DataFrame:
-    """
-    Fusionne et nettoie les données gym (membres + exercices).
-    """
     df_merged = pd.concat([df_members, df_exercises], axis=0, ignore_index=True)
     df_merged = clean_string_columns(df_merged)
     # Remplit les valeurs manquantes de Gender par "Other"
@@ -95,7 +77,6 @@ def clean_exercise_data(df_members: pd.DataFrame, df_exercises: pd.DataFrame) ->
 
 
 def save_clean_data(dataframes: dict, output_dir: Path) -> None:
-    """Sauvegarde les DataFrames nettoyés en CSV."""
     output_dir.mkdir(parents=True, exist_ok=True)
 
     file_mapping = {
@@ -112,7 +93,6 @@ def save_clean_data(dataframes: dict, output_dir: Path) -> None:
 
 
 def main():
-    """Point d'entrée principal."""
     data_dir = get_data_dir()
     output_dir = data_dir / "clean"
 

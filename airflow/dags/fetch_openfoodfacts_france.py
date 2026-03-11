@@ -1,10 +1,3 @@
-"""
-DAG Airflow : import quotidien des nouveaux produits Open Food Facts vendus en France.
-
-Exécution quotidienne à 6h00.
-Récupère les produits via l'API Open Food Facts et les insère dans la table aliment.
-"""
-
 from datetime import datetime, timedelta
 import logging
 import re
@@ -22,7 +15,6 @@ HEALTH_DB_CONN_ID = "healthaim_postgres"
 
 # Mapping des nutriments Open Food Facts (pour 100g)
 def extract_nutriment(product: dict, key: str, default: float = 0.0) -> float:
-    """Extrait une valeur nutritionnelle du produit."""
     nutriments = product.get("nutriments") or {}
     # Clés possibles : energy-kcal_100g, energy_100g (en kJ), proteins_100g, etc.
     val = nutriments.get(f"{key}_100g") or nutriments.get(key)
@@ -35,7 +27,6 @@ def extract_nutriment(product: dict, key: str, default: float = 0.0) -> float:
 
 
 def get_calories(product: dict) -> float:
-    """Calories pour 100g. OFF peut fournir energy-kcal_100g ou energy_100g (kJ)."""
     kcal = extract_nutriment(product, "energy-kcal")
     if kcal > 0:
         return round(kcal, 2)
@@ -46,7 +37,6 @@ def get_calories(product: dict) -> float:
 
 
 def sanitize_str(s: str, max_len: int = 50) -> str:
-    """Nettoie et tronque une chaîne."""
     if not s or not isinstance(s, str):
         return "Inconnu"
     s = re.sub(r"[\t\n\r]", "", s.strip())[:max_len]
@@ -54,10 +44,6 @@ def sanitize_str(s: str, max_len: int = 50) -> str:
 
 
 def fetch_and_insert_off_products(**context):
-    """
-    Récupère les produits vendus en France depuis Open Food Facts
-    et les insère dans la table aliment (sans doublons sur nom_aliment).
-    """
     conn_id = context.get("conn_id", HEALTH_DB_CONN_ID)
     pg_hook = PostgresHook(postgres_conn_id=conn_id)
     conn = pg_hook.get_conn()

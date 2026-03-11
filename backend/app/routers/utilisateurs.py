@@ -123,3 +123,58 @@ def delete_utilisateur(
 
     db.delete(utilisateur)
     db.commit()
+
+
+# ============================================================
+# Route publique d'inscription - Accessible à tous (sans token)
+# ============================================================
+
+@router.post("/register", response_model=UtilisateurResponse, status_code=201)
+def register(
+    utilisateur: UtilisateurCreate,
+    db: Session = Depends(get_db)
+):
+    """
+    Route publique permettant à un nouvel utilisateur de créer un compte.
+    Cette route est accessible sans authentification (pas de token requis).
+    
+    Étapes du processus d'inscription :
+    1. Vérifier que le nom d'utilisateur n'existe pas déjà
+    2. Hasher le mot de passe pour le stocker de manière sécurisée
+    3. Créer l'utilisateur avec is_admin = False par défaut
+    4. Sauvegarder dans la base de données
+    """
+    
+    # Vérification si le nom d'utilisateur existe déjà dans la base de données
+    # Si un utilisateur avec le même username existe, on retourne une erreur 400
+    existing_user = db.query(Utilisateur).filter(
+        Utilisateur.username == utilisateur.username
+    ).first()
+    
+    if existing_user:
+        raise HTTPException(
+            status_code=400, 
+            detail="Ce nom d'utilisateur est déjà utilisé"
+        )
+    
+    # Conversion du schéma Pydantic en dictionnaire
+    # On exclut le mot de passe car on va le hasher séparément
+    data = utilisateur.model_dump(exclude={"password"})
+    
+    # Hashage du mot de passe avec bcrypt pour le sécuriser
+    # Le mot de passe en clair n'est jamais stocké dans la base de données
+    data["password_hash"] = hash_password(utilisateur.password)
+    
+    # Création du nouvel utilisateur
+    # Le champ is_admin sera automatiquement False (valeur par défaut du modèle)
+    new_user = Utilisateur(**data)
+    
+    # Ajout à la session SQLAlchemy et commit pour sauvegarder
+    db.add(new_user)
+    db.commit()
+    
+    # Rafraîchir l'objet pour obtenir l'ID généré par la base de données
+    db.refresh(new_user)
+    
+    # Retourner l'utilisateur créé (sans le mot de passe hashé)
+    return new_user
