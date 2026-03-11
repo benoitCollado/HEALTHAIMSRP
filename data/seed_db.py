@@ -5,7 +5,7 @@ Charge les fichiers du dossier clean/, crée utilisateurs, aliments, exercices
 et activités, puis relie les données aux utilisateurs.
 
 Usage (depuis l'hôte, avec pandas/sqlalchemy/passlib installés):
-    cd HEALTHAIMSRP && PYTHONPATH=backend DATABASE_URL=postgresql://user:pass@localhost:5433/healthdb python data/seed_db.py
+    cd HEALTHAIMSPR && PYTHONPATH=backend DATABASE_URL=postgresql://user:pass@localhost:5433/healthdb python data/seed_db.py
     # Port 5433 par défaut (configurable via POSTGRES_PORT dans .env)
 
 Usage (Docker, avec postgres sur le réseau health_net):

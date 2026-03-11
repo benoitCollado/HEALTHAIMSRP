@@ -4,7 +4,7 @@
       <!-- Logo / accueil -->
       <router-link to="/page-accueil" class="navbar-brand">
         <span class="navbar-logo">❤️</span>
-        HealthAI MSRP
+        HealthAI MSPR
       </router-link>
 
       <!-- Navigation admin -->

@@ -119,9 +119,18 @@ export const auth = {
     return user?.role === role
   },
 
+  // Check if the JWT token is expired
+  isTokenExpired(): boolean {
+    const token = this.getToken()
+    if (!token) return true
+    const payload = decodeJwtPayload(token)
+    if (!payload || typeof (payload as Record<string, unknown>).exp !== 'number') return true
+    return Date.now() >= ((payload as Record<string, unknown>).exp as number) * 1000
+  },
+
   // Check if user is authenticated
   isAuthenticated(): boolean {
-    return this.getCurrentUser() !== null
+    return this.getCurrentUser() !== null && !this.isTokenExpired()
   },
 
   // Check if user is admin

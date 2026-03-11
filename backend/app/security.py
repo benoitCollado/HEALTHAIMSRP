@@ -14,7 +14,7 @@ if not SECRET_KEY:
 ALGORITHM = "HS256"
 
 # Durée de validité du token en minutes
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 heures
 
 # Configuration du contexte de hash pour les mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
