@@ -948,6 +948,15 @@
     <h2>Frontend — Interface utilisateur</h2>
   </div>
 
+  <h3>Déploiement production (Docker)</h3>
+  <p>Le frontend est servi en <strong>production uniquement</strong> par le conteneur <code>frontend_nginx</code>. Aucun serveur de développement Vite ne tourne dans Docker.</p>
+  <ul class="simple">
+    <li><strong>Build :</strong> <code>Dockerfile.nginx</code> — Stage 1 : Vite build (Node 20). Stage 2 : Nginx Alpine sert les fichiers statiques de <code>dist/</code></li>
+    <li><strong>Port :</strong> 89 (hôte) → 80 (conteneur). Accès : <code>http://localhost:89</code></li>
+    <li><strong>Proxy API :</strong> Nginx proxifie <code>/login</code>, <code>/admin</code>, <code>/utilisateurs</code>, etc. vers le backend (même origine = pas de CORS)</li>
+    <li><strong>Variables build :</strong> <code>VITE_API_URL</code> (vide = proxy), <code>VITE_AIRFLOW_UI_URL</code> (lien vers Airflow)</li>
+  </ul>
+
   <h3>Pages et composants</h3>
   <table>
     <thead><tr><th>Page</th><th>Route</th><th>Accès</th><th>Description</th></tr></thead>
@@ -955,10 +964,11 @@
       <tr><td><strong>Connexion</strong></td><td><code>/connexion</code></td><td><span class="badge b-public">Public</span></td><td>Formulaire login avec gradient, spinner, toggle mot de passe</td></tr>
       <tr><td><strong>Page Accueil</strong></td><td><code>/page-accueil</code></td><td><span class="badge b-auth">Auth</span></td><td>Admin : 4 tuiles de nav. Utilisateur : profil avec 5 onglets</td></tr>
       <tr><td><strong>Dashboard</strong></td><td><code>/dashboard</code></td><td><span class="badge b-admin">Admin</span></td><td>Top 3 exercices/aliments, moyennes utilisateurs</td></tr>
-      <tr><td><strong>Gestion Flux</strong></td><td><code>/gestion-des-flux</code></td><td><span class="badge b-admin">Admin</span></td><td>Objectifs classés par statut (En cours / Validés / Refusés)</td></tr>
-      <tr><td><strong>Flux Détail</strong></td><td><code>/flux/:id</code></td><td><span class="badge b-admin">Admin</span></td><td>Détail d'un objectif avec actions</td></tr>
+      <tr><td><strong>Gestion Flux</strong></td><td><code>/gestion-des-flux</code></td><td><span class="badge b-admin">Admin</span></td><td>CSV intermédiaires (import/export) à valider, métadonnées BDD, lien vers DAGs Airflow</td></tr>
+      <tr><td><strong>Flux Détail</strong></td><td><code>/flux/:id</code></td><td><span class="badge b-admin">Admin</span></td><td>Détail d'un flux avec actions</td></tr>
       <tr><td><strong>Nettoyage</strong></td><td><code>/nettoyage</code></td><td><span class="badge b-admin">Admin</span></td><td>Détection automatique de données incohérentes</td></tr>
       <tr><td><strong>Test Backend</strong></td><td><code>/test-backend</code></td><td><span class="badge b-admin">Admin</span></td><td>Exploration complète des endpoints et données brutes</td></tr>
+      <tr><td><strong>Utilisateurs</strong></td><td><code>/utilisateurs</code></td><td><span class="badge b-admin">Admin</span></td><td>Gestion des utilisateurs (recherche, détail)</td></tr>
       <tr><td><strong>Page View</strong></td><td><code>/page-view/:id?</code></td><td><span class="badge b-public">Public</span></td><td>Maquette interactive des pages</td></tr>
     </tbody>
   </table>
@@ -1000,30 +1010,46 @@
   </div>
 
   <div class="info-box">
-    Apache Airflow 2.10 orchestre les pipelines de données asynchrones. Il est accessible via
-    l'interface web sur le port <strong>8080</strong> (identifiants : airflow / airflow).
+    Apache Airflow 2.10 orchestre les pipelines de données asynchrones. Interface web sur le port <strong>8080</strong>
+    (identifiants : airflow / airflow). Le backend accède à l'API Airflow via <code>host.docker.internal:8080</code>.
   </div>
 
-  <h3>DAG 1 — Export base de données vers CSV</h3>
-  <table>
-    <thead><tr><th>Attribut</th><th>Valeur</th></tr></thead>
-    <tbody>
-      <tr><td>Fichier</td><td><code>airflow/dags/export_db_to_csv.py</code></td></tr>
-      <tr><td>Connexion DB</td><td><code>AIRFLOW_CONN_HEALTHAIM_POSTGRES</code></td></tr>
-      <tr><td>Sortie</td><td><code>/opt/airflow/export/*.csv</code> (monté sur <code>./data/export/</code>)</td></tr>
-      <tr><td>Objectif</td><td>Exporter toutes les tables de healthdb vers des fichiers CSV</td></tr>
-    </tbody>
-  </table>
-
-  <h3>DAG 2 — Collecte OpenFoodFacts</h3>
+  <h3>DAG 1 — Import Open Food Facts</h3>
   <table>
     <thead><tr><th>Attribut</th><th>Valeur</th></tr></thead>
     <tbody>
       <tr><td>Fichier</td><td><code>airflow/dags/fetch_openfoodfacts_france.py</code></td></tr>
       <tr><td>Source</td><td>API OpenFoodFacts (produits alimentaires France)</td></tr>
-      <tr><td>Objectif</td><td>Alimenter le catalogue d'aliments avec des données nutritionnelles réelles</td></tr>
+      <tr><td>Sortie</td><td><code>data/intermediate/import/import_YYYYMMDD_HHMMSS.csv</code> (validation admin requise)</td></tr>
+      <tr><td>Objectif</td><td>Collecter des aliments depuis l'API Open Food Facts vers un CSV intermédiaire</td></tr>
     </tbody>
   </table>
+
+  <h3>DAG 2 — Export base de données vers CSV</h3>
+  <table>
+    <thead><tr><th>Attribut</th><th>Valeur</th></tr></thead>
+    <tbody>
+      <tr><td>Fichier</td><td><code>airflow/dags/export_db_to_csv.py</code></td></tr>
+      <tr><td>Connexion DB</td><td><code>AIRFLOW_CONN_HEALTHAIM_POSTGRES</code></td></tr>
+      <tr><td>Sortie</td><td><code>data/intermediate/export/export_YYYYMMDD_HHMMSS.csv</code> (validation admin requise)</td></tr>
+      <tr><td>Objectif</td><td>Exporter les tables de healthdb vers un CSV intermédiaire</td></tr>
+    </tbody>
+  </table>
+
+  <h3>DAG 3 — Incorporation ML</h3>
+  <table>
+    <thead><tr><th>Attribut</th><th>Valeur</th></tr></thead>
+    <tbody>
+      <tr><td>Fichier</td><td><code>airflow/dags/incorporation_ml.py</code></td></tr>
+      <tr><td>Fréquence</td><td>Toutes les heures</td></tr>
+      <tr><td>Entrée</td><td>CSV validés dans <code>data/intermediate/import/</code> et <code>data/intermediate/export/</code></td></tr>
+      <tr><td>Sortie</td><td>Import → BDD healthdb ; Export → <code>data/ml/</code></td></tr>
+      <tr><td>Objectif</td><td>Charger les CSV validés par l'admin en base et copier les exports vers le dossier ML</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Flux de validation</h3>
+  <p>Les DAGs produisent des CSV horodatés. L'admin visualise, modifie et valide via la page <strong>Gestion des flux</strong> (onglets Import/Export). Seuls les CSV validés sont incorporés par l'DAG <code>incorporation_ml</code>.</p>
 
   <h3>Infrastructure Airflow</h3>
   <div class="card-grid">
