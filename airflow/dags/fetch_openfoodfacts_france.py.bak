@@ -1,27 +1,22 @@
-"""
-DAG fetch_openfoodfacts_france : import Open Food Facts → CSV intermédiaire (pas de BDD directe).
-Le CSV est horodaté pour traçabilité. L'admin valide puis incorporation_ml charge en BDD.
-"""
-import csv
-import json
+from datetime import datetime, timedelta
 import logging
 import re
-from datetime import datetime, timedelta
-from pathlib import Path
 
 import requests
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
 
 # Configuration
 OFF_API_BASE = "https://world.openfoodfacts.org/api/v2"
 PAGE_SIZE = 100
-MAX_PAGES = 5
-INTERMEDIATE_DIR = Path("/opt/airflow/intermediate/import")
+MAX_PAGES = 5  # Limite pour respecter les rate limits (10 req/min)
+HEALTH_DB_CONN_ID = "healthaim_postgres"
 
-
+# Mapping des nutriments Open Food Facts (pour 100g)
 def extract_nutriment(product: dict, key: str, default: float = 0.0) -> float:
     nutriments = product.get("nutriments") or {}
+    # Clés possibles : energy-kcal_100g, energy_100g (en kJ), proteins_100g, etc.
     val = nutriments.get(f"{key}_100g") or nutriments.get(key)
     if val is None:
         return default
@@ -37,7 +32,7 @@ def get_calories(product: dict) -> float:
         return round(kcal, 2)
     kj = extract_nutriment(product, "energy")
     if kj > 0:
-        return round(kj / 4.184, 2)
+        return round(kj / 4.184, 2)  # kJ -> kcal
     return 0.0
 
 
@@ -48,19 +43,13 @@ def sanitize_str(s: str, max_len: int = 50) -> str:
     return s or "Inconnu"
 
 
-def fetch_to_csv(**context):
-    """
-    Récupère les produits Open Food Facts et écrit dans un CSV intermédiaire horodaté.
-    Pas d'insertion en BDD : l'admin valide le CSV, puis incorporation_ml charge.
-    """
-    run_date = context.get("logical_date") or datetime.now()
-    ts = run_date.strftime("%Y%m%d_%H%M%S")
-    csv_path = INTERMEDIATE_DIR / f"import_{ts}.csv"
-    meta_path = INTERMEDIATE_DIR / f"import_{ts}.json"
+def fetch_and_insert_off_products(**context):
+    conn_id = context.get("conn_id", HEALTH_DB_CONN_ID)
+    pg_hook = PostgresHook(postgres_conn_id=conn_id)
+    conn = pg_hook.get_conn()
+    cur = conn.cursor()
 
-    INTERMEDIATE_DIR.mkdir(parents=True, exist_ok=True)
-
-    rows = []
+    inserted = 0
     skipped = 0
     errors = 0
 
@@ -96,9 +85,8 @@ def fetch_to_csv(**context):
                 proteines = round(extract_nutriment(p, "proteins"), 2)
                 glucides = round(extract_nutriment(p, "carbohydrates"), 2)
                 lipides = round(extract_nutriment(p, "fat"), 2)
-                sucres = round(extract_nutriment(p, "sugars"), 2)
-                acides_gras_satures = round(extract_nutriment(p, "saturated-fat"), 2)
 
+                # Ignorer les produits sans données nutritionnelles
                 if calories == 0 and proteines == 0 and glucides == 0 and lipides == 0:
                     skipped += 1
                     continue
@@ -107,42 +95,32 @@ def fetch_to_csv(**context):
                     p.get("categories", "").split(",")[0] if p.get("categories") else "Aliment"
                 )
 
-                rows.append({
-                    "nom_aliment": nom,
-                    "calories": calories,
-                    "proteines_g": proteines,
-                    "glucides_g": glucides,
-                    "lipides_g": lipides,
-                    "sucres_g": sucres,
-                    "acides_gras_satures_g": acides_gras_satures,
-                    "categorie": categorie,
-                })
+                # Insertion si pas déjà présent (ON CONFLICT ou check)
+                cur.execute(
+                    """
+                    INSERT INTO aliment (nom_aliment, calories, proteines_g, glucides_g, lipides_g, categorie)
+                    SELECT %s, %s, %s, %s, %s, %s
+                    WHERE NOT EXISTS (SELECT 1 FROM aliment WHERE nom_aliment = %s)
+                    """,
+                    (nom, calories, proteines, glucides, lipides, categorie, nom),
+                )
+                if cur.rowcount > 0:
+                    inserted += 1
+                else:
+                    skipped += 1
             except Exception as e:
                 logging.warning("Produit ignoré %s: %s", p.get("code"), e)
                 errors += 1
 
-    fieldnames = ["nom_aliment", "calories", "proteines_g", "glucides_g", "lipides_g", "sucres_g", "acides_gras_satures_g", "categorie"]
-    with open(csv_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames)
-        writer.writeheader()
-        writer.writerows(rows)
+    conn.commit()
+    cur.close()
+    conn.close()
 
-    metadata = {
-        "filename": csv_path.name,
-        "type": "import",
-        "dag_id": "fetch_openfoodfacts_france",
-        "run_id": context.get("run_id", ""),
-        "created_at": run_date.isoformat(),
-        "status": "pending",
-        "rows": len(rows),
-        "skipped": skipped,
-        "errors": errors,
-    }
-    with open(meta_path, "w", encoding="utf-8") as f:
-        json.dump(metadata, f, indent=2)
-
-    logging.info("Open Food Facts France: %d lignes dans %s (pending validation)", len(rows), csv_path.name)
-    return {"file": str(csv_path), "rows": len(rows), "status": "pending"}
+    logging.info(
+        "Open Food Facts France: %d insérés, %d ignorés, %d erreurs",
+        inserted, skipped, errors,
+    )
+    return {"inserted": inserted, "skipped": skipped, "errors": errors}
 
 
 default_args = {
@@ -157,13 +135,14 @@ default_args = {
 with DAG(
     dag_id="fetch_openfoodfacts_france",
     default_args=default_args,
-    description="Import Open Food Facts → CSV intermédiaire (validation admin requise)",
-    schedule="0 6 * * *",
+    description="Import quotidien des nouveaux produits Open Food Facts vendus en France",
+    schedule="0 6 * * *",  # Tous les jours à 6h00 (cron)
     start_date=datetime(2025, 1, 1),
     catchup=False,
-    tags=["openfoodfacts", "france", "aliment", "import"],
+    tags=["openfoodfacts", "france", "aliment"],
 ) as dag:
     fetch_task = PythonOperator(
-        task_id="fetch_to_csv",
-        python_callable=fetch_to_csv,
+        task_id="fetch_and_insert_off_france",
+        python_callable=fetch_and_insert_off_products,
+        op_kwargs={"conn_id": HEALTH_DB_CONN_ID},
     )

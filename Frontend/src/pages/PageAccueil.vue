@@ -1,7 +1,7 @@
 <template>
   <div class="canvas nav-page">
     <Navbar title="Accueil" />
-    <div class="page-content">
+    <div id="main-content" class="page-content">
       <!-- Admin view: Navigation -->
       <div v-if="isAdmin">
         <h2>Page d'accueil</h2>
@@ -18,6 +18,10 @@
           <router-link to="/nettoyage" class="nav-card">
             <div class="nav-icon">🧹</div>
             <div>Nettoyage</div>
+          </router-link>
+          <router-link to="/utilisateurs" class="nav-card">
+            <div class="nav-icon">👥</div>
+            <div>Utilisateurs</div>
           </router-link>
           <router-link to="/test-backend" class="nav-card">
             <div class="nav-icon">🧪</div>

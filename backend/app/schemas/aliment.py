@@ -13,6 +13,8 @@ class AlimentBase(BaseModel):
     glucides_g: float
     # Quantité de lipides en grammes
     lipides_g: float
+    sucres_g: Optional[float] = None
+    acides_gras_satures_g: Optional[float] = None
     # Catégorie de l’aliment (ex: fruit, viande, boisson)
     categorie: str
 
@@ -32,6 +34,8 @@ class AlimentUpdate(BaseModel):
     glucides_g: Optional[float] = None
     # Nouvelle quantité de lipides (optionnelle)
     lipides_g: Optional[float] = None
+    sucres_g: Optional[float] = None
+    acides_gras_satures_g: Optional[float] = None
     # Nouvelle catégorie (optionnelle)
     categorie: Optional[str] = None
 

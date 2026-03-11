@@ -1,13 +1,13 @@
 <template>
   <div class="canvas">
     <Navbar :title="flux?.nom || 'Flux'" />
-    <div style="padding:24px;max-width:1000px;margin:0 auto;">
+    <div id="main-content" style="padding:24px;max-width:1000px;margin:0 auto;">
         <div style="display:flex;justify-content:space-between;align-items:center">
           <h2>{{ flux?.nom }}</h2>
           <div style="display:flex;gap:8px;align-items:center">
-            <button v-if="isEncours" @click="validerFlux">Valider</button>
-            <button @click="toggleEdit">{{ editMode ? 'Annuler' : 'Modifier' }}</button>
-            <button @click="refuserFlux" style="background:#f39c12;color:#fff">Refuser</button>
+            <button v-if="isEncours" @click="validerFlux" aria-label="Valider le flux">Valider</button>
+            <button @click="toggleEdit" :aria-label="editMode ? 'Annuler les modifications' : 'Modifier le flux'">{{ editMode ? 'Annuler' : 'Modifier' }}</button>
+            <button @click="refuserFlux" style="background:#f39c12;color:#fff" aria-label="Refuser le flux">Refuser</button>
           </div>
         </div> 
       <p>{{ flux?.description }}</p>

@@ -16,6 +16,7 @@ services:
       - health_net
 
   backend:
+    image: healthaimsrp-backend
     build: ./backend
     env_file:
       - .env
@@ -25,9 +26,20 @@ services:
       - postgres
     ports:
       - "${BACKEND_PORT:-127.0.0.1:8089}:8000"
+    volumes:
+      - ./data:/data
     environment:
       DATABASE_URL: postgresql://healthuser:healthpass@postgres:5432/healthdb
       SECRET_KEY: ${SECRET_KEY:-healthaim-secret-key-dev-change-in-production}
+      DATA_DIR: /data
+      AIRFLOW_API_URL: ${AIRFLOW_API_URL:-http://airflow-webserver:8080}
+      AIRFLOW_USER: ${AIRFLOW_USER:-airflow}
+      AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
+    command: >
+      bash -c "
+        python /data/seed_db.py && python /app/app/create_admin.py || true &&
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+      "
     networks:
       - health_net
 
@@ -37,6 +49,7 @@ services:
       dockerfile: Dockerfile.nginx
       args:
         VITE_API_URL: ${VITE_API_URL:-}
+        VITE_AIRFLOW_UI_URL: ${VITE_AIRFLOW_UI_URL:-http://localhost:8080}
     container_name: frontend_nginx
     restart: always
     depends_on:
@@ -46,31 +59,16 @@ services:
     networks:
       - health_net
 
-  seed:
-    build: ./backend
-    env_file:
-      - .env
-    depends_on:
-      - postgres
-    volumes:
-      - ./data:/data
-    environment:
-      DATABASE_URL: postgresql://healthuser:healthpass@postgres:5432/healthdb
-      DATA_DIR: /data
-    command: bash -c "python /data/seed_db.py && python /app/app/create_admin.py"
-    networks:
-      - health_net
-    profiles:
-      - seed
-
-  # Init permissions pour le dossier export (Airflow doit pouvoir écrire, vous pourrez lire)
+  # Init permissions pour les dossiers export et intermediate (Airflow doit pouvoir écrire)
   export-init:
     image: alpine
     container_name: export_init
     user: root
     volumes:
       - ./data/export:/opt/airflow/export
-    command: sh -c "mkdir -p /opt/airflow/export && chmod 777 /opt/airflow/export"
+      - ./data/intermediate:/opt/airflow/intermediate
+      - ./data/ml:/opt/airflow/ml
+    command: sh -c "mkdir -p /opt/airflow/export /opt/airflow/intermediate/import /opt/airflow/intermediate/export /opt/airflow/ml && chmod -R 777 /opt/airflow/export /opt/airflow/intermediate /opt/airflow/ml"
     networks:
       - health_net
     restart: "no"
@@ -132,7 +130,7 @@ services:
       export-init:
         condition: service_completed_successfully
     ports:
-      - "${AIRFLOW_PORT:-8080}:8080"
+      - "${AIRFLOW_PORT:-127.0.0.1:8080}:8080"
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres_airflow:5432/airflow
@@ -147,6 +145,8 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./data/export:/opt/airflow/export
+      - ./data/intermediate:/opt/airflow/intermediate
+      - ./data/ml:/opt/airflow/ml
     command: webserver
     networks:
       - health_net
@@ -180,6 +180,8 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./data/export:/opt/airflow/export
+      - ./data/intermediate:/opt/airflow/intermediate
+      - ./data/ml:/opt/airflow/ml
     command: scheduler
     networks:
       - health_net

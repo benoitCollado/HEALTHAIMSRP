@@ -1,13 +1,11 @@
 <template>
-  <header class="navbar">
+  <header class="navbar" role="banner" aria-label="En-tête de l'application">
     <div class="navbar-inner">
-      <!-- Logo / accueil -->
-      <router-link to="/page-accueil" class="navbar-brand">
+      <router-link to="/page-accueil" class="navbar-brand" aria-label="Retour à l'accueil HealthAI MSRP">
         <span class="navbar-logo">❤️</span>
         HealthAI MSRP
       </router-link>
 
-      <!-- Navigation admin -->
       <nav v-if="isAdmin" class="navbar-nav">
         <router-link to="/dashboard"        class="nav-link">📊 Dashboard</router-link>
         <router-link to="/gestion-des-flux" class="nav-link">📋 Flux</router-link>
@@ -15,19 +13,17 @@
         <router-link to="/test-backend"     class="nav-link">🧪 Test API</router-link>
       </nav>
 
-      <!-- Titre de la page courante -->
-      <span class="navbar-page-title">{{ title }}</span>
+      <span class="navbar-page-title" aria-hidden="true">{{ title }}</span>
 
-      <!-- Utilisateur + déconnexion -->
       <div class="navbar-user">
-        <span v-if="currentUser" class="user-info">
+        <span v-if="currentUser" class="user-info" aria-label="Utilisateur connecté : {{ currentUser.username }}">
           <span class="user-avatar">{{ userInitial }}</span>
           {{ currentUser.username }}
           <span class="user-role" :class="{ admin: isAdmin }">
             {{ isAdmin ? 'Admin' : 'Utilisateur' }}
           </span>
         </span>
-        <button v-if="currentUser" @click="logout" class="btn-logout">
+        <button v-if="currentUser" @click="logout" class="btn-logout" aria-label="Se déconnecter">
           Déconnexion
         </button>
       </div>
