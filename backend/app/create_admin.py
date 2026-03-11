@@ -1,3 +1,8 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 from datetime import date
 from app.database import SessionLocal
 from app.models.utilisateur import Utilisateur

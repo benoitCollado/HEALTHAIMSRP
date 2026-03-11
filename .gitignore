@@ -36,5 +36,7 @@ Thumbs.db
 
 .ipynb_checkpoints/
 
-database/db/*
-!database/db/.gitkeep
+database/db/
+data/export/
+data/intermediate/
+data/ml/

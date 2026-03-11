@@ -24,5 +24,8 @@ class Aliment(Base):
     # Quantité de lipides (en grammes)
     lipides_g = Column(Numeric(6, 2), nullable=False)
 
+    sucres_g = Column(Numeric(6, 2), nullable=True)
+    acides_gras_satures_g = Column(Numeric(6, 2), nullable=True)
+
     # Catégorie de l’aliment (ex: fruit, légume, viande)
     categorie = Column(String(50), nullable=False)

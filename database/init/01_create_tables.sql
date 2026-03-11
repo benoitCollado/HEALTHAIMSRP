@@ -32,7 +32,9 @@ CREATE TABLE aliment (
     proteines_g DECIMAL(6,2) NOT NULL,
     glucides_g DECIMAL(6,2) NOT NULL,
     lipides_g DECIMAL(6,2) NOT NULL,
-    categorie VARCHAR(50) NOT NULL
+    categorie VARCHAR(50) NOT NULL,
+    sucres_g DECIMAL(6,2),
+    acides_gras_satures_g DECIMAL(6,2)
 );
 
 CREATE TABLE consommation (
