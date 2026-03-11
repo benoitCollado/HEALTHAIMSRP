@@ -129,95 +129,18 @@
           </div>
         </section>
 
-        <section class="card" aria-labelledby="encours-title">
-          <h2 id="encours-title">En cours</h2>
-          <p class="section-desc">Flux ETL en cours d'exécution (Airflow)</p>
-          <ul class="flux-list" role="list">
-            <li
-              v-for="item in fluxData.encours"
-              :key="item.id"
-              class="flux-item"
-              role="listitem"
-            >
-              <div class="flux-link flux-link-static">
-                <span class="flux-name">{{ item.nom }}</span>
-                <span class="flux-desc">{{ item.description }}</span>
-                <span class="flux-stats">Dernier run : {{ item.stats?.lastRun ?? '-' }} · {{ item.statut }}</span>
-                <a
-                  v-if="item.dag_id"
-                  :href="airflowDagUrl(item.dag_id)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="btn-link"
-                  :aria-label="`Ouvrir ${item.nom} dans Airflow`"
-                >
-                  Voir dans Airflow →
-                </a>
-              </div>
-            </li>
-            <li v-if="!fluxData.encours.length" class="empty">Aucun flux en cours</li>
-          </ul>
-        </section>
-
-        <section class="card" aria-labelledby="valides-title">
-          <h2 id="valides-title">Réussis récemment</h2>
-          <p class="section-desc">Dernières exécutions réussies des flux ETL</p>
-          <ul class="flux-list" role="list">
-            <li
-              v-for="item in recentValides"
-              :key="item.id"
-              class="flux-item"
-              role="listitem"
-            >
-              <div class="flux-link flux-link-static">
-                <span class="flux-name">{{ item.nom }}</span>
-                <span class="flux-desc">{{ item.description }}</span>
-                <span class="flux-stats">Dernier run : {{ item.stats?.lastRun ?? '-' }}</span>
-                <a
-                  v-if="item.dag_id"
-                  :href="airflowDagUrl(item.dag_id)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="btn-link"
-                  :aria-label="`Ouvrir ${item.nom} dans Airflow`"
-                >
-                  Voir dans Airflow →
-                </a>
-              </div>
-            </li>
-            <li v-if="!recentValides.length" class="empty">Aucun flux réussi récemment</li>
-          </ul>
-        </section>
-
-        <section class="card" aria-labelledby="refuses-title">
-          <h2 id="refuses-title">En échec</h2>
-          <p class="section-desc">Flux ETL en échec ou sans exécution récente</p>
-          <ul class="flux-list" role="list">
-            <li
-              v-for="item in fluxData.refuses"
-              :key="item.id"
-              class="flux-item"
-              role="listitem"
-            >
-              <div class="flux-link flux-link-static">
-                <span class="flux-name">{{ item.nom }}</span>
-                <span class="flux-desc">{{ item.description }}</span>
-                <span v-if="item.errors" class="flux-errors">{{ item.errors.join('; ') }}</span>
-                <span class="flux-stats">Dernier run : {{ item.stats?.lastRun ?? '-' }}</span>
-                <a
-                  v-if="item.dag_id"
-                  :href="airflowDagUrl(item.dag_id)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  class="btn-link"
-                  :aria-label="`Ouvrir ${item.nom} dans Airflow pour diagnostiquer`"
-                >
-                  Voir dans Airflow →
-                </a>
-              </div>
-            </li>
-            <li v-if="!fluxData.refuses.length" class="empty">Aucun flux en échec</li>
-          </ul>
+        <section class="card" aria-labelledby="airflow-title">
+          <h2 id="airflow-title">Flux ETL (Airflow)</h2>
+          <p class="section-desc">Gérez les DAGs (import Open Food Facts, export CSV, incorporation ML) depuis l'interface Airflow.</p>
+          <a
+            :href="airflowBaseUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-airflow"
+            aria-label="Ouvrir Airflow pour voir les DAGs"
+          >
+            Voir les DAGs dans Airflow →
+          </a>
         </section>
       </template>
     </div>
@@ -225,7 +148,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue'
+import { defineComponent, ref, onMounted, onUnmounted } from 'vue'
 import Navbar from '../components/Navbar.vue'
 import {
   getFlux,
@@ -301,14 +224,7 @@ export default defineComponent({
       return [headers.map(escape).join(','), ...rows.map((r) => padRow(r).map(escape).join(','))].join('\n')
     }
 
-    const recentValides = computed(() => {
-      if (!fluxData.value) return []
-      return [...fluxData.value.valides].slice(-5).reverse()
-    })
-
-    const airflowDagUrl = (dagId: string) => {
-      return `${AIRFLOW_UI_URL.replace(/\/$/, '')}/dags/${dagId}/grid`
-    }
+    const airflowBaseUrl = AIRFLOW_UI_URL.replace(/\/$/, '') + '/home'
 
     async function loadCsvList() {
       csvLoading.value = true
@@ -412,8 +328,7 @@ export default defineComponent({
       fluxData,
       loading,
       error,
-      recentValides,
-      airflowDagUrl,
+      airflowBaseUrl,
       csvTab,
       csvList,
       csvLoading,
@@ -518,15 +433,20 @@ export default defineComponent({
   color: #a00;
 }
 
-.btn-link {
-  margin-top: 6px;
-  font-size: 0.9rem;
-  color: #5294E2;
+.btn-airflow {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  background: #5294E2;
+  border-radius: 6px;
   text-decoration: none;
 }
 
-.btn-link:hover, .btn-link:focus {
-  text-decoration: underline;
+.btn-airflow:hover, .btn-airflow:focus {
+  background: #3d7bc6;
   outline: 2px solid #5294E2;
   outline-offset: 2px;
 }
