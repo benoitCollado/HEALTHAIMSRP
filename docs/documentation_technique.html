@@ -1,1245 +1,2391 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Documentation Technique — HealthAI MSPR</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
-
-  :root {
-    --navy: #0f2044;
-    --blue: #2563eb;
-    --blue-light: #eff6ff;
-    --blue-mid: #1e3a5f;
-    --gray-50: #f8fafc;
-    --gray-100: #f1f5f9;
-    --gray-200: #e2e8f0;
-    --gray-500: #64748b;
-    --gray-700: #334155;
-    --gray-900: #0f172a;
-    --success: #16a34a;
-    --danger: #dc2626;
-    --warning: #d97706;
-  }
-
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-
-  body {
-    font-family: 'Inter', sans-serif;
-    font-size: 10pt;
-    color: var(--gray-900);
-    background: #fff;
-    line-height: 1.6;
-  }
-
-  /* ---- COVER PAGE ---- */
-  .cover {
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background: linear-gradient(135deg, #0f2044 0%, #1e3a5f 50%, #2563eb 100%);
-    color: #fff;
-    padding: 60px;
-    position: relative;
-    overflow: hidden;
-    page-break-after: always;
-  }
-
-  .cover::before {
-    content: '';
-    position: absolute;
-    width: 500px; height: 500px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.04);
-    top: -150px; right: -100px;
-  }
-  .cover::after {
-    content: '';
-    position: absolute;
-    width: 300px; height: 300px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.03);
-    bottom: -80px; left: -60px;
-  }
-
-  .cover-logo {
-    font-size: 48pt;
-    margin-bottom: 24px;
-  }
-  .cover-tag {
-    display: inline-block;
-    background: rgba(255,255,255,0.15);
-    border: 1px solid rgba(255,255,255,0.3);
-    padding: 4px 16px;
-    border-radius: 20px;
-    font-size: 9pt;
-    font-weight: 600;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    margin-bottom: 20px;
-  }
-  .cover h1 {
-    font-size: 36pt;
-    font-weight: 800;
-    line-height: 1.1;
-    margin-bottom: 8px;
-    letter-spacing: -1px;
-  }
-  .cover h2 {
-    font-size: 16pt;
-    font-weight: 400;
-    opacity: 0.7;
-    margin-bottom: 40px;
-  }
-  .cover-divider {
-    width: 60px;
-    height: 3px;
-    background: rgba(255,255,255,0.4);
-    border-radius: 2px;
-    margin: 32px 0;
-  }
-  .cover-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    font-size: 10pt;
-    opacity: 0.75;
-  }
-  .cover-meta strong { color: #fff; opacity: 1; }
-  .cover-footer {
-    margin-top: auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
-    font-size: 9pt;
-    opacity: 0.5;
-    border-top: 1px solid rgba(255,255,255,0.2);
-    padding-top: 20px;
-  }
-
-  /* ---- CONTENT ---- */
-  .page {
-    padding: 48px 56px;
-    max-width: 210mm;
-    margin: 0 auto;
-  }
-
-  /* Section header */
-  .section-header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 24px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid var(--gray-200);
-  }
-  .section-num {
-    width: 32px; height: 32px;
-    background: var(--blue);
-    color: #fff;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 13pt;
-    font-weight: 800;
-    flex-shrink: 0;
-  }
-  .section-header h2 {
-    font-size: 16pt;
-    font-weight: 700;
-    color: var(--navy);
-  }
-
-  h3 {
-    font-size: 11pt;
-    font-weight: 700;
-    color: var(--blue-mid);
-    margin: 20px 0 10px;
-    padding-left: 10px;
-    border-left: 3px solid var(--blue);
-  }
-
-  p { color: var(--gray-700); margin-bottom: 10px; line-height: 1.65; }
-
-  /* Cards / Boxes */
-  .info-box {
-    background: var(--blue-light);
-    border: 1px solid #bfdbfe;
-    border-left: 4px solid var(--blue);
-    border-radius: 8px;
-    padding: 14px 18px;
-    margin-bottom: 16px;
-    color: #1e40af;
-    font-size: 9.5pt;
-  }
-
-  .card-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 14px;
-    margin-bottom: 20px;
-  }
-  .card-grid-2 { grid-template-columns: repeat(2, 1fr); }
-  .card-grid-4 { grid-template-columns: repeat(4, 1fr); }
-
-  .stat-card {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: 10px;
-    padding: 16px;
-    text-align: center;
-  }
-  .stat-card .icon { font-size: 22pt; margin-bottom: 6px; }
-  .stat-card .label { font-size: 8pt; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
-  .stat-card .value { font-size: 13pt; font-weight: 700; color: var(--navy); margin-top: 4px; }
-
-  /* Architecture diagram */
-  .arch-box {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: 10px;
-    padding: 24px;
-    margin-bottom: 20px;
-    text-align: center;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 9pt;
-    line-height: 2;
-    color: var(--gray-700);
-  }
-
-  .layer {
-    display: flex;
-    justify-content: center;
-    gap: 12px;
-    margin-bottom: 6px;
-  }
-  .layer-box {
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-family: 'Inter', sans-serif;
-    font-size: 9pt;
-    font-weight: 600;
-    min-width: 120px;
-    text-align: center;
-  }
-  .layer-arrow { text-align: center; color: var(--gray-500); font-size: 11pt; margin: 2px 0; }
-  .lb-navy { background: #0f2044; color: #fff; }
-  .lb-blue { background: #2563eb; color: #fff; }
-  .lb-green { background: #16a34a; color: #fff; }
-  .lb-orange { background: #d97706; color: #fff; }
-  .lb-purple { background: #7c3aed; color: #fff; }
-  .lb-gray { background: var(--gray-200); color: var(--gray-700); }
-
-  /* Tables */
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
-    font-size: 9pt;
-  }
-  thead th {
-    background: var(--navy);
-    color: #fff;
-    padding: 9px 12px;
-    text-align: left;
-    font-weight: 600;
-    font-size: 8.5pt;
-    letter-spacing: 0.3px;
-  }
-  thead th:first-child { border-radius: 6px 0 0 0; }
-  thead th:last-child  { border-radius: 0 6px 0 0; }
-  tbody td {
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--gray-100);
-    color: var(--gray-700);
-    vertical-align: top;
-  }
-  tbody tr:nth-child(even) td { background: var(--gray-50); }
-
-  /* Badges */
-  .badge {
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 8pt;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-  }
-  .b-get    { background: #dbeafe; color: #1e40af; }
-  .b-post   { background: #dcfce7; color: #166534; }
-  .b-put    { background: #fef9c3; color: #854d0e; }
-  .b-delete { background: #fee2e2; color: #991b1b; }
-  .b-auth   { background: #f3e8ff; color: #6b21a8; }
-  .b-admin  { background: #fef3c7; color: #92400e; }
-  .b-public { background: #d1fae5; color: #065f46; }
-
-  /* Code */
-  code {
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 8.5pt;
-    background: var(--gray-100);
-    color: #2563eb;
-    padding: 1px 5px;
-    border-radius: 4px;
-  }
-
-  .code-block {
-    background: #1e293b;
-    color: #e2e8f0;
-    border-radius: 8px;
-    padding: 16px;
-    font-family: 'JetBrains Mono', monospace;
-    font-size: 8.5pt;
-    line-height: 1.7;
-    margin-bottom: 16px;
-    overflow-x: auto;
-  }
-  .code-block .kw { color: #93c5fd; }
-  .code-block .str { color: #86efac; }
-  .code-block .cm { color: #64748b; }
-  .code-block .fn { color: #fde68a; }
-
-  /* Flow chart for auth */
-  .flow {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin: 16px 0;
-    font-size: 9pt;
-  }
-  .flow-step {
-    background: var(--gray-100);
-    border: 1px solid var(--gray-200);
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-weight: 600;
-    color: var(--gray-700);
-    text-align: center;
-    font-size: 9pt;
-  }
-  .flow-step.blue { background: var(--blue-light); border-color: #93c5fd; color: #1e40af; }
-  .flow-step.green { background: #dcfce7; border-color: #86efac; color: #166534; }
-  .flow-arrow { color: var(--gray-500); font-size: 13pt; }
-
-  /* List */
-  ul.feature-list {
-    list-style: none;
-    padding: 0;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-  ul.feature-list li {
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
-    font-size: 9.5pt;
-    color: var(--gray-700);
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: 8px;
-    padding: 10px 12px;
-  }
-  ul.feature-list li .check { color: var(--success); font-size: 11pt; flex-shrink: 0; }
-
-  ul.simple { padding-left: 20px; margin-bottom: 12px; }
-  ul.simple li { margin-bottom: 5px; color: var(--gray-700); font-size: 9.5pt; }
-
-  /* Page break */
-  .page-break { page-break-before: always; padding-top: 48px; }
-
-  /* TOC */
-  .toc {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: 10px;
-    padding: 24px;
-    margin-bottom: 24px;
-  }
-  .toc h3 { border: none; padding: 0; color: var(--navy); margin-bottom: 14px; font-size: 12pt; }
-  .toc-item {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 5px 0;
-    border-bottom: 1px dashed var(--gray-200);
-    font-size: 9.5pt;
-    color: var(--gray-700);
-  }
-  .toc-item:last-child { border-bottom: none; }
-  .toc-num { color: var(--blue); font-weight: 700; width: 24px; }
-  .toc-dots { flex: 1; border-bottom: 1px dotted var(--gray-300); margin: 0 8px; }
-  .toc-pg { color: var(--gray-500); font-size: 9pt; }
-
-  /* DB model */
-  .model-card {
-    background: var(--gray-50);
-    border: 1px solid var(--gray-200);
-    border-radius: 10px;
-    margin-bottom: 14px;
-    overflow: hidden;
-  }
-  .model-header {
-    background: var(--navy);
-    color: #fff;
-    padding: 10px 16px;
-    font-weight: 700;
-    font-size: 10pt;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .model-fields {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0;
-  }
-  .model-field {
-    padding: 7px 14px;
-    border-bottom: 1px solid var(--gray-200);
-    border-right: 1px solid var(--gray-200);
-    font-size: 8.5pt;
-  }
-  .model-field .fname { font-weight: 600; color: var(--navy); font-family: 'JetBrains Mono', monospace; }
-  .model-field .ftype { color: var(--blue); font-size: 8pt; }
-  .model-field .fpk { color: var(--warning); font-size: 7.5pt; font-weight: 700; }
-
-  /* Print media */
-  @media print {
-    body { font-size: 10pt; }
-    .cover { height: 100vh; page-break-after: always; }
-    .page-break { page-break-before: always; }
-    @page {
-      size: A4;
-      margin: 0;
-    }
-    .page { padding: 40px 48px; }
-  }
-</style>
-</head>
-<body>
-
-<!-- ============================================================ COVER -->
-<div class="cover">
-  <div class="cover-logo">❤️</div>
-  <div class="cover-tag">Documentation Technique</div>
-  <h1>HealthAI MSPR</h1>
-  <h2>Plateforme de suivi santé intelligent</h2>
-  <div class="cover-divider"></div>
-  <div class="cover-meta">
-    <div><strong>Projet :</strong> HealthAI MSPR — Monitoring Santé & Recommandations Personnalisées</div>
-    <div><strong>Organisation :</strong> EPSI</div>
-    <div><strong>Version :</strong> 1.0.0</div>
-    <div><strong>Date :</strong> Mars 2026</div>
-    <div><strong>Stack :</strong> Vue 3 · FastAPI · PostgreSQL · Docker · Apache Airflow</div>
-  </div>
-  <div class="cover-footer">
-    <span>EPSI — Confidentiel</span>
-    <span>HealthAI MSPR v1.0.0</span>
-  </div>
-</div>
-
-<!-- ============================================================ TABLE OF CONTENTS -->
-<div class="page">
-  <div class="section-header">
-    <div class="section-num">📋</div>
-    <h2>Table des matières</h2>
-  </div>
-
-  <div class="toc">
-    <div class="toc-item"><span class="toc-num">1</span>Présentation du projet<div class="toc-dots"></div><span class="toc-pg">3</span></div>
-    <div class="toc-item"><span class="toc-num">2</span>Architecture technique<div class="toc-dots"></div><span class="toc-pg">4</span></div>
-    <div class="toc-item"><span class="toc-num">3</span>Stack technologique<div class="toc-dots"></div><span class="toc-pg">5</span></div>
-    <div class="toc-item"><span class="toc-num">4</span>Structure du projet<div class="toc-dots"></div><span class="toc-pg">6</span></div>
-    <div class="toc-item"><span class="toc-num">5</span>Base de données<div class="toc-dots"></div><span class="toc-pg">7</span></div>
-    <div class="toc-item"><span class="toc-num">6</span>API REST — Endpoints<div class="toc-dots"></div><span class="toc-pg">8</span></div>
-    <div class="toc-item"><span class="toc-num">7</span>Authentification JWT<div class="toc-dots"></div><span class="toc-pg">10</span></div>
-    <div class="toc-item"><span class="toc-num">8</span>Frontend — Interface utilisateur<div class="toc-dots"></div><span class="toc-pg">11</span></div>
-    <div class="toc-item"><span class="toc-num">9</span>Pipeline de données — Apache Airflow<div class="toc-dots"></div><span class="toc-pg">12</span></div>
-    <div class="toc-item"><span class="toc-num">10</span>Déploiement Docker<div class="toc-dots"></div><span class="toc-pg">13</span></div>
-    <div class="toc-item"><span class="toc-num">11</span>Sécurité<div class="toc-dots"></div><span class="toc-pg">14</span></div>
-    <div class="toc-item"><span class="toc-num">12</span>Conclusion &amp; Perspectives<div class="toc-dots"></div><span class="toc-pg">15</span></div>
-  </div>
-</div>
-
-<!-- ============================================================ SECTION 1 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">1</div>
-    <h2>Présentation du projet</h2>
-  </div>
-
-  <div class="info-box">
-    HealthAI MSPR est une application web full-stack de suivi et d'analyse de données de santé,
-    conçue pour EPSI. Elle permet la collecte, la visualisation et l'analyse des données
-    physiologiques des utilisateurs (activité physique, alimentation, métriques santé, objectifs).
-  </div>
-
-  <h3>Objectifs</h3>
-  <ul class="feature-list">
-    <li><span class="check">✓</span>Centraliser les données de santé des utilisateurs</li>
-    <li><span class="check">✓</span>Offrir un tableau de bord d'analyse pour les administrateurs</li>
-    <li><span class="check">✓</span>Permettre aux utilisateurs de consulter leur profil santé</li>
-    <li><span class="check">✓</span>Gérer les flux de données et leur validation</li>
-    <li><span class="check">✓</span>Détecter et nettoyer les données incohérentes</li>
-    <li><span class="check">✓</span>Automatiser les pipelines de données avec Airflow</li>
-    <li><span class="check">✓</span>Sécuriser l'accès via authentification JWT</li>
-    <li><span class="check">✓</span>Déploiement 100% conteneurisé avec Docker</li>
-  </ul>
-
-  <h3>Indicateurs clés</h3>
-  <div class="card-grid card-grid-4">
-    <div class="stat-card">
-      <div class="icon">🗄️</div>
-      <div class="label">Tables DB</div>
-      <div class="value">7</div>
-    </div>
-    <div class="stat-card">
-      <div class="icon">🔌</div>
-      <div class="label">Endpoints API</div>
-      <div class="value">35+</div>
-    </div>
-    <div class="stat-card">
-      <div class="icon">🖥️</div>
-      <div class="label">Pages Frontend</div>
-      <div class="value">8</div>
-    </div>
-    <div class="stat-card">
-      <div class="icon">🐳</div>
-      <div class="label">Services Docker</div>
-      <div class="value">8</div>
-    </div>
-  </div>
-
-  <h3>Rôles utilisateurs</h3>
-  <table>
-    <thead>
-      <tr>
-        <th>Rôle</th>
-        <th>Accès</th>
-        <th>Fonctionnalités</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr>
-        <td><span class="badge b-admin">ADMIN</span></td>
-        <td>Toutes les pages</td>
-        <td>Dashboard global, Gestion des flux, Nettoyage des données, Test API, Gestion complète des utilisateurs</td>
-      </tr>
-      <tr>
-        <td><span class="badge b-public">USER</span></td>
-        <td>Page profil uniquement</td>
-        <td>Consultation du profil personnel, métriques santé, activités, alimentation, objectifs</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
-
-<!-- ============================================================ SECTION 2 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">2</div>
-    <h2>Architecture technique</h2>
-  </div>
-
-  <p>L'application repose sur une architecture <strong>3-tiers conteneurisée</strong> : présentation (Vue.js + Nginx), logique métier (FastAPI), persistance (PostgreSQL). Un pipeline Airflow orchestre les tâches de données en arrière-plan.</p>
-
-  <div class="arch-box">
-    <div class="layer">
-      <div class="layer-box lb-gray">🌐 Navigateur (Chrome / Firefox)</div>
-    </div>
-    <div class="layer-arrow">↕ HTTP/HTTPS (port 89)</div>
-    <div class="layer">
-      <div class="layer-box lb-blue">🖥️ Frontend — Vue 3 + Nginx</div>
-    </div>
-    <div class="layer-arrow">↕ REST API (proxy interne port 8000)</div>
-    <div class="layer">
-      <div class="layer-box lb-navy">⚙️ Backend — FastAPI (Python)</div>
-      <div class="layer-box lb-purple">🔐 Auth — JWT / bcrypt</div>
-    </div>
-    <div class="layer-arrow">↕ SQLAlchemy ORM</div>
-    <div class="layer">
-      <div class="layer-box lb-green">🗄️ PostgreSQL — Base de données santé</div>
-    </div>
-    <div class="layer-arrow" style="margin-top:20px">↕ Accès DB (port 5432 interne)</div>
-    <div class="layer">
-      <div class="layer-box lb-orange">🌀 Apache Airflow — Orchestration DAGs</div>
-      <div class="layer-box lb-green">🗄️ PostgreSQL — Base Airflow</div>
-    </div>
-  </div>
-
-  <h3>Flux de communication</h3>
-  <table>
-    <thead>
-      <tr><th>Source</th><th>Destination</th><th>Protocole</th><th>Port</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>Navigateur</td><td>Nginx (Frontend)</td><td>HTTP</td><td>89</td></tr>
-      <tr><td>Nginx (proxy)</td><td>FastAPI (Backend)</td><td>HTTP interne</td><td>8000</td></tr>
-      <tr><td>FastAPI</td><td>PostgreSQL Health</td><td>TCP (SQLAlchemy)</td><td>5432 interne</td></tr>
-      <tr><td>Navigateur (admin)</td><td>Airflow Webserver</td><td>HTTP</td><td>8080</td></tr>
-      <tr><td>Airflow</td><td>PostgreSQL Health</td><td>TCP (psycopg2)</td><td>5432 interne</td></tr>
-      <tr><td>Client externe</td><td>PostgreSQL Health</td><td>TCP</td><td>5435</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Réseau Docker</h3>
-  <p>Tous les conteneurs communiquent via le réseau bridge interne <code>health_net</code>. Seuls les ports nécessaires sont exposés vers l'hôte.</p>
-</div>
-
-<!-- ============================================================ SECTION 3 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">3</div>
-    <h2>Stack technologique</h2>
-  </div>
-
-  <div class="card-grid">
-    <div class="stat-card" style="text-align:left;padding:18px">
-      <div style="font-size:20pt;margin-bottom:8px">🖥️</div>
-      <div style="font-weight:700;color:#0f2044;margin-bottom:8px;font-size:11pt">Frontend</div>
-      <ul class="simple">
-        <li><strong>Vue 3</strong> — Framework réactif (Options API)</li>
-        <li><strong>TypeScript</strong> — Typage statique</li>
-        <li><strong>Vite</strong> — Build tool ultra-rapide</li>
-        <li><strong>Vue Router 4</strong> — Navigation SPA</li>
-        <li><strong>Nginx</strong> — Serveur web + proxy</li>
-      </ul>
-    </div>
-    <div class="stat-card" style="text-align:left;padding:18px">
-      <div style="font-size:20pt;margin-bottom:8px">⚙️</div>
-      <div style="font-weight:700;color:#0f2044;margin-bottom:8px;font-size:11pt">Backend</div>
-      <ul class="simple">
-        <li><strong>FastAPI</strong> — Framework Python moderne</li>
-        <li><strong>SQLAlchemy</strong> — ORM Python</li>
-        <li><strong>Pydantic v2</strong> — Validation des données</li>
-        <li><strong>python-jose</strong> — Génération JWT</li>
-        <li><strong>passlib/bcrypt</strong> — Hash des mots de passe</li>
-      </ul>
-    </div>
-    <div class="stat-card" style="text-align:left;padding:18px">
-      <div style="font-size:20pt;margin-bottom:8px">🗄️</div>
-      <div style="font-weight:700;color:#0f2044;margin-bottom:8px;font-size:11pt">Données</div>
-      <ul class="simple">
-        <li><strong>PostgreSQL 17</strong> — Base de données principale</li>
-        <li><strong>Apache Airflow 2.10</strong> — Orchestration DAGs</li>
-        <li><strong>psycopg2</strong> — Driver Python/PostgreSQL</li>
-        <li><strong>CSV seeds</strong> — Données initiales</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="card-grid card-grid-2" style="margin-top:8px">
-    <div class="stat-card" style="text-align:left;padding:18px">
-      <div style="font-size:20pt;margin-bottom:8px">🐳</div>
-      <div style="font-weight:700;color:#0f2044;margin-bottom:8px;font-size:11pt">Infrastructure</div>
-      <ul class="simple">
-        <li><strong>Docker</strong> — Conteneurisation</li>
-        <li><strong>Docker Compose</strong> — Orchestration multi-conteneurs</li>
-        <li><strong>Python 3.11-slim</strong> — Image base backend</li>
-        <li><strong>Node 20 + Alpine</strong> — Image build frontend</li>
-      </ul>
-    </div>
-    <div class="stat-card" style="text-align:left;padding:18px">
-      <div style="font-size:20pt;margin-bottom:8px">🔒</div>
-      <div style="font-weight:700;color:#0f2044;margin-bottom:8px;font-size:11pt">Sécurité</div>
-      <ul class="simple">
-        <li><strong>JWT (HS256)</strong> — Tokens d'accès (8h)</li>
-        <li><strong>bcrypt</strong> — Hash des mots de passe</li>
-        <li><strong>OAuth2 Password Flow</strong> — Standard d'auth</li>
-        <li><strong>RBAC</strong> — Contrôle d'accès par rôle</li>
-        <li><strong>CORS</strong> — Politique d'origine croisée</li>
-      </ul>
-    </div>
-  </div>
-</div>
-
-<!-- ============================================================ SECTION 4 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">4</div>
-    <h2>Structure du projet</h2>
-  </div>
-
-  <div class="card-grid card-grid-2">
-    <div>
-      <h3>Backend (Python / FastAPI)</h3>
-      <div class="code-block">
-<span class="cm">backend/</span>
-├── Dockerfile
-├── requirements.txt
-└── app/
-    ├── <span class="fn">main.py</span>          <span class="cm"># Point d'entrée API</span>
-    ├── <span class="fn">database.py</span>      <span class="cm"># Connexion SQLAlchemy</span>
-    ├── <span class="fn">security.py</span>      <span class="cm"># JWT + bcrypt</span>
-    ├── <span class="fn">create_admin.py</span>  <span class="cm"># Init compte admin</span>
-    ├── models/
-    │   ├── utilisateur.py
-    │   ├── activite.py
-    │   ├── aliment.py
-    │   ├── consommation.py
-    │   ├── exercice.py
-    │   ├── metrique_sante.py
-    │   └── objectif.py
-    ├── routers/
-    │   ├── utilisateurs.py
-    │   ├── activites.py
-    │   ├── aliments.py
-    │   ├── consommations.py
-    │   ├── exercices.py
-    │   ├── metriques_sante.py
-    │   └── objectifs.py
-    └── schemas/         <span class="cm"># Pydantic schemas</span>
-      </div>
-    </div>
-    <div>
-      <h3>Frontend (Vue 3 / TypeScript)</h3>
-      <div class="code-block">
-<span class="cm">Frontend/</span>
-├── Dockerfile.nginx
-├── vite.config.ts
-└── src/
-    ├── <span class="fn">main.ts</span>          <span class="cm"># Entrée Vue App</span>
-    ├── <span class="fn">App.vue</span>          <span class="cm"># Layout root</span>
-    ├── <span class="fn">router.ts</span>        <span class="cm"># Navigation + guards</span>
-    ├── <span class="fn">styles.css</span>       <span class="cm"># Design System global</span>
-    ├── components/
-    │   ├── Navbar.vue
-    │   └── AppFooter.vue
-    ├── pages/
-    │   ├── Connexion.vue
-    │   ├── PageAccueil.vue  <span class="cm"># Profil (tabs)</span>
-    │   ├── Dashboard.vue
-    │   ├── GestionFlux.vue
-    │   ├── FluxDetail.vue
-    │   ├── Nettoyage.vue
-    │   ├── TestBackend.vue
-    │   └── PageView.vue
-    └── services/
-        ├── auth.ts          <span class="cm"># JWT + localStorage</span>
-        └── api.ts           <span class="cm"># Appels API</span>
-      </div>
-    </div>
-  </div>
-
-  <h3>Données &amp; Orchestration</h3>
-  <div class="code-block">
-<span class="cm">airflow/dags/</span>
-├── export_db_to_csv.py      <span class="cm"># DAG : Export PostgreSQL → CSV</span>
-└── fetch_openfoodfacts_france.py  <span class="cm"># DAG : Collecte données OpenFoodFacts</span>
-
-<span class="cm">data/</span>
-├── seed_db.py               <span class="cm"># Chargement données initiales</span>
-└── clean_csv_data.py        <span class="cm"># Nettoyage fichiers CSV</span>
-  </div>
-</div>
-
-<!-- ============================================================ SECTION 5 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">5</div>
-    <h2>Base de données</h2>
-  </div>
-
-  <p>La base de données <code>healthdb</code> sur PostgreSQL 17 contient <strong>7 tables</strong> modélisant le domaine santé utilisateur.</p>
-
-  <div class="model-card">
-    <div class="model-header">👤 utilisateurs <span style="opacity:0.6;font-weight:400;font-size:9pt">— Table centrale des profils</span></div>
-    <div class="model-fields">
-      <div class="model-field"><div class="fname">id_utilisateur</div><div class="ftype">INTEGER</div><div class="fpk">🔑 PK</div></div>
-      <div class="model-field"><div class="fname">username</div><div class="ftype">VARCHAR(50) UNIQUE</div></div>
-      <div class="model-field"><div class="fname">password_hash</div><div class="ftype">VARCHAR(255)</div></div>
-      <div class="model-field"><div class="fname">age</div><div class="ftype">INTEGER</div></div>
-      <div class="model-field"><div class="fname">sexe</div><div class="ftype">VARCHAR(1)</div></div>
-      <div class="model-field"><div class="fname">taille_cm</div><div class="ftype">INTEGER</div></div>
-      <div class="model-field"><div class="fname">poids_kg</div><div class="ftype">INTEGER</div></div>
-      <div class="model-field"><div class="fname">niveau_activite</div><div class="ftype">INTEGER</div></div>
-      <div class="model-field"><div class="fname">type_abonnement</div><div class="ftype">INTEGER</div></div>
-      <div class="model-field"><div class="fname">date_inscription</div><div class="ftype">DATE</div></div>
-      <div class="model-field"><div class="fname">is_admin</div><div class="ftype">BOOLEAN</div></div>
-    </div>
-  </div>
-
-  <div class="card-grid">
-    <div class="model-card" style="margin:0">
-      <div class="model-header">❤️ metriques_sante</div>
-      <div style="padding:10px 14px;font-size:8.5pt;color:var(--gray-700)">
-        <code>id_metrique</code> PK · <code>date_mesure</code> · <code>poids_kg</code> · <code>frequence_cardiaque</code> · <code>duree_sommeil_h</code> · <code>calories_brulees</code> · <code>pas</code> · <code>id_utilisateur</code> FK
-      </div>
-    </div>
-    <div class="model-card" style="margin:0">
-      <div class="model-header">🏃 activites</div>
-      <div style="padding:10px 14px;font-size:8.5pt;color:var(--gray-700)">
-        <code>id_activite</code> PK · <code>date_activite</code> · <code>duree_minutes</code> · <code>calories_depensees</code> · <code>intensite</code> · <code>id_exercice</code> FK · <code>id_utilisateur</code> FK
-      </div>
-    </div>
-    <div class="model-card" style="margin:0">
-      <div class="model-header">🎯 objectifs</div>
-      <div style="padding:10px 14px;font-size:8.5pt;color:var(--gray-700)">
-        <code>id_objectif</code> PK · <code>type_objectif</code> · <code>description</code> · <code>date_debut</code> · <code>date_fin</code> · <code>statut</code> · <code>id_utilisateur</code> FK
-      </div>
-    </div>
-    <div class="model-card" style="margin:0">
-      <div class="model-header">🍽️ consommations</div>
-      <div style="padding:10px 14px;font-size:8.5pt;color:var(--gray-700)">
-        <code>id_consommation</code> PK · <code>date_consommation</code> · <code>quantite_g</code> · <code>calories_calculees</code> · <code>id_aliment</code> FK · <code>id_utilisateur</code> FK
-      </div>
-    </div>
-    <div class="model-card" style="margin:0">
-      <div class="model-header">🍎 aliments</div>
-      <div style="padding:10px 14px;font-size:8.5pt;color:var(--gray-700)">
-        <code>id_aliment</code> PK · <code>nom_aliment</code> · <code>calories</code> · <code>proteines_g</code> · <code>glucides_g</code> · <code>lipides_g</code> · <code>categorie</code>
-      </div>
-    </div>
-    <div class="model-card" style="margin:0">
-      <div class="model-header">💪 exercices</div>
-      <div style="padding:10px 14px;font-size:8.5pt;color:var(--gray-700)">
-        <code>id_exercice</code> PK · <code>nom_exercice</code> · <code>type_exercice</code> · <code>niveau_difficulte</code> · <code>equipement</code> · <code>muscle_principal</code>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ============================================================ SECTION 6 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">6</div>
-    <h2>API REST — Endpoints</h2>
-  </div>
-
-  <div class="info-box">
-    L'API est documentée automatiquement via <strong>Swagger UI</strong> à l'adresse
-    <code>http://localhost:8089/docs</code> (accès direct backend) et proxifiée par Nginx sur le port 89.
-    Toutes les routes (sauf <code>/login</code>) requièrent un token JWT Bearer.
-  </div>
-
-  <h3>Authentification</h3>
-  <table>
-    <thead><tr><th>Méthode</th><th>Route</th><th>Accès</th><th>Description</th></tr></thead>
-    <tbody>
-      <tr><td><span class="badge b-post">POST</span></td><td><code>/login</code></td><td><span class="badge b-public">Public</span></td><td>Connexion — retourne un token JWT (OAuth2 Password Flow)</td></tr>
-      <tr><td><span class="badge b-post">POST</span></td><td><code>/utilisateurs/register</code></td><td><span class="badge b-public">Public</span></td><td>Inscription d'un nouvel utilisateur</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Utilisateurs — <code>/utilisateurs</code></h3>
-  <table>
-    <thead><tr><th>Méthode</th><th>Route</th><th>Accès</th><th>Description</th></tr></thead>
-    <tbody>
-      <tr><td><span class="badge b-get">GET</span></td><td><code>/utilisateurs/</code></td><td><span class="badge b-auth">Auth</span></td><td>Liste tous les utilisateurs</td></tr>
-      <tr><td><span class="badge b-get">GET</span></td><td><code>/utilisateurs/{id}</code></td><td><span class="badge b-auth">Auth</span></td><td>Détail d'un utilisateur par ID</td></tr>
-      <tr><td><span class="badge b-post">POST</span></td><td><code>/utilisateurs/</code></td><td><span class="badge b-admin">Admin</span></td><td>Créer un utilisateur</td></tr>
-      <tr><td><span class="badge b-put">PUT</span></td><td><code>/utilisateurs/{id}</code></td><td><span class="badge b-admin">Admin</span></td><td>Modifier un utilisateur</td></tr>
-      <tr><td><span class="badge b-delete">DELETE</span></td><td><code>/utilisateurs/{id}</code></td><td><span class="badge b-admin">Admin</span></td><td>Supprimer un utilisateur</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Activités — <code>/activites</code> &amp; Métriques — <code>/metriques-sante</code></h3>
-  <table>
-    <thead><tr><th>Méthode</th><th>Route</th><th>Accès</th><th>Description</th></tr></thead>
-    <tbody>
-      <tr><td><span class="badge b-get">GET</span></td><td><code>/activites/</code></td><td><span class="badge b-auth">Auth</span></td><td>Liste toutes les activités physiques</td></tr>
-      <tr><td><span class="badge b-get">GET</span></td><td><code>/activites/{id}</code></td><td><span class="badge b-auth">Auth</span></td><td>Détail d'une activité</td></tr>
-      <tr><td><span class="badge b-post">POST</span></td><td><code>/activites/</code></td><td><span class="badge b-auth">Auth</span></td><td>Enregistrer une activité</td></tr>
-      <tr><td><span class="badge b-put">PUT</span></td><td><code>/activites/{id}</code></td><td><span class="badge b-auth">Auth</span></td><td>Modifier une activité</td></tr>
-      <tr><td><span class="badge b-delete">DELETE</span></td><td><code>/activites/{id}</code></td><td><span class="badge b-admin">Admin</span></td><td>Supprimer une activité</td></tr>
-      <tr><td><span class="badge b-get">GET</span></td><td><code>/metriques-sante/</code></td><td><span class="badge b-auth">Auth</span></td><td>Liste toutes les métriques santé</td></tr>
-      <tr><td><span class="badge b-post">POST</span></td><td><code>/metriques-sante/</code></td><td><span class="badge b-auth">Auth</span></td><td>Enregistrer une mesure santé</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Alimentation — <code>/aliments</code> · <code>/consommations</code> · <code>/objectifs</code> · <code>/exercices</code></h3>
-  <table>
-    <thead><tr><th>Méthode</th><th>Route</th><th>Accès</th><th>Description</th></tr></thead>
-    <tbody>
-      <tr><td><span class="badge b-get">GET</span></td><td><code>/aliments/</code></td><td><span class="badge b-auth">Auth</span></td><td>Liste du catalogue d'aliments (OpenFoodFacts)</td></tr>
-      <tr><td><span class="badge b-get">GET</span></td><td><code>/consommations/</code></td><td><span class="badge b-auth">Auth</span></td><td>Historique des consommations alimentaires</td></tr>
-      <tr><td><span class="badge b-post">POST</span></td><td><code>/consommations/</code></td><td><span class="badge b-auth">Auth</span></td><td>Enregistrer une consommation</td></tr>
-      <tr><td><span class="badge b-get">GET</span></td><td><code>/objectifs/</code></td><td><span class="badge b-auth">Auth</span></td><td>Liste les objectifs santé</td></tr>
-      <tr><td><span class="badge b-post">POST</span></td><td><code>/objectifs/</code></td><td><span class="badge b-auth">Auth</span></td><td>Créer un objectif</td></tr>
-      <tr><td><span class="badge b-get">GET</span></td><td><code>/exercices/</code></td><td><span class="badge b-auth">Auth</span></td><td>Catalogue des exercices physiques</td></tr>
-    </tbody>
-  </table>
-
-  <p style="font-size:9pt;color:var(--gray-500)">
-    Chaque ressource implémente complètement les opérations CRUD (GET, GET/{id}, POST, PUT/{id}, DELETE/{id}).
-    Seules les suppressions sont réservées aux administrateurs.
-  </p>
-</div>
-
-<!-- ============================================================ SECTION 7 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">7</div>
-    <h2>Authentification JWT</h2>
-  </div>
-
-  <h3>Flux d'authentification</h3>
-  <div class="flow">
-    <div class="flow-step">1. Saisie<br/>identifiants</div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step blue">2. POST /login<br/>form-urlencoded</div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step">3. Vérification<br/>bcrypt hash</div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step blue">4. Génération<br/>JWT HS256</div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step green">5. Token stocké<br/>localStorage</div>
-    <div class="flow-arrow">→</div>
-    <div class="flow-step green">6. Bearer token<br/>dans chaque requête</div>
-  </div>
-
-  <h3>Structure du token JWT</h3>
-  <div class="card-grid">
-    <div>
-      <p><strong>Header</strong></p>
-      <div class="code-block">{
-  <span class="str">"alg"</span>: <span class="str">"HS256"</span>,
-  <span class="str">"typ"</span>: <span class="str">"JWT"</span>
-}</div>
-    </div>
-    <div>
-      <p><strong>Payload</strong></p>
-      <div class="code-block">{
-  <span class="str">"sub"</span>: <span class="str">"1001"</span>,        <span class="cm">// ID utilisateur</span>
-  <span class="str">"is_admin"</span>: <span class="kw">false</span>,   <span class="cm">// Rôle</span>
-  <span class="str">"exp"</span>: 1741945200    <span class="cm">// +8 heures</span>
-}</div>
-    </div>
-    <div>
-      <p><strong>Signature</strong></p>
-      <div class="code-block">HMACSHA256(
-  base64(header) +
-  base64(payload),
-  <span class="str">SECRET_KEY</span>  <span class="cm">// .env</span>
-)</div>
-    </div>
-  </div>
-
-  <h3>Paramètres de sécurité</h3>
-  <table>
-    <thead><tr><th>Paramètre</th><th>Valeur</th><th>Rôle</th></tr></thead>
-    <tbody>
-      <tr><td><code>ALGORITHM</code></td><td>HS256</td><td>Algorithme de signature symétrique</td></tr>
-      <tr><td><code>ACCESS_TOKEN_EXPIRE_MINUTES</code></td><td>480 (8h)</td><td>Durée de validité du token</td></tr>
-      <tr><td><code>SECRET_KEY</code></td><td>Variable d'environnement</td><td>Clé secrète de signature (non exposée)</td></tr>
-      <tr><td><code>pwd_context</code></td><td>bcrypt (rounds auto)</td><td>Hash adaptatif des mots de passe</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Gestion côté frontend</h3>
-  <ul class="simple">
-    <li>Le token est décodé côté client pour extraire <code>sub</code> (user ID) et <code>is_admin</code></li>
-    <li><code>isAuthenticated()</code> vérifie à la fois la présence du token ET son expiration (champ <code>exp</code>)</li>
-    <li>Toute réponse <code>401</code> provoque un logout automatique et une redirection vers <code>/connexion</code></li>
-    <li>Le token est stocké dans <code>localStorage</code> sous la clé <code>app_token</code></li>
-    <li>Les guards de navigation Vue Router bloquent l'accès aux routes protégées si non authentifié</li>
-  </ul>
-</div>
-
-<!-- ============================================================ SECTION 8 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">8</div>
-    <h2>Frontend — Interface utilisateur</h2>
-  </div>
-
-  <h3>Déploiement production (Docker)</h3>
-  <p>Le frontend est servi en <strong>production uniquement</strong> par le conteneur <code>frontend_nginx</code>. Aucun serveur de développement Vite ne tourne dans Docker.</p>
-  <ul class="simple">
-    <li><strong>Build :</strong> <code>Dockerfile.nginx</code> — Stage 1 : Vite build (Node 20). Stage 2 : Nginx Alpine sert les fichiers statiques de <code>dist/</code></li>
-    <li><strong>Port :</strong> 89 (hôte) → 80 (conteneur). Accès : <code>http://localhost:89</code></li>
-    <li><strong>Proxy API :</strong> Nginx proxifie <code>/login</code>, <code>/admin</code>, <code>/utilisateurs</code>, etc. vers le backend (même origine = pas de CORS)</li>
-    <li><strong>Variables build :</strong> <code>VITE_API_URL</code> (vide = proxy), <code>VITE_AIRFLOW_UI_URL</code> (lien vers Airflow)</li>
-  </ul>
-
-  <h3>Pages et composants</h3>
-  <table>
-    <thead><tr><th>Page</th><th>Route</th><th>Accès</th><th>Description</th></tr></thead>
-    <tbody>
-      <tr><td><strong>Connexion</strong></td><td><code>/connexion</code></td><td><span class="badge b-public">Public</span></td><td>Formulaire login avec gradient, spinner, toggle mot de passe</td></tr>
-      <tr><td><strong>Page Accueil</strong></td><td><code>/page-accueil</code></td><td><span class="badge b-auth">Auth</span></td><td>Admin : 4 tuiles de nav. Utilisateur : profil avec 5 onglets</td></tr>
-      <tr><td><strong>Dashboard</strong></td><td><code>/dashboard</code></td><td><span class="badge b-admin">Admin</span></td><td>Top 3 exercices/aliments, moyennes utilisateurs</td></tr>
-      <tr><td><strong>Gestion Flux</strong></td><td><code>/gestion-des-flux</code></td><td><span class="badge b-admin">Admin</span></td><td>CSV intermédiaires (import/export) à valider, métadonnées BDD, lien vers DAGs Airflow</td></tr>
-      <tr><td><strong>Flux Détail</strong></td><td><code>/flux/:id</code></td><td><span class="badge b-admin">Admin</span></td><td>Détail d'un flux avec actions</td></tr>
-      <tr><td><strong>Nettoyage</strong></td><td><code>/nettoyage</code></td><td><span class="badge b-admin">Admin</span></td><td>Détection automatique de données incohérentes</td></tr>
-      <tr><td><strong>Test Backend</strong></td><td><code>/test-backend</code></td><td><span class="badge b-admin">Admin</span></td><td>Exploration complète des endpoints et données brutes</td></tr>
-      <tr><td><strong>Utilisateurs</strong></td><td><code>/utilisateurs</code></td><td><span class="badge b-admin">Admin</span></td><td>Gestion des utilisateurs (recherche, détail)</td></tr>
-      <tr><td><strong>Page View</strong></td><td><code>/page-view/:id?</code></td><td><span class="badge b-public">Public</span></td><td>Maquette interactive des pages</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Profil utilisateur — Navigation par onglets</h3>
-  <div class="card-grid card-grid-4" style="margin-top:10px">
-    <div class="stat-card"><div class="icon">👤</div><div class="label">Onglet 1</div><div class="value" style="font-size:10pt">Profil</div></div>
-    <div class="stat-card"><div class="icon">❤️</div><div class="label">Onglet 2</div><div class="value" style="font-size:10pt">Santé</div></div>
-    <div class="stat-card"><div class="icon">🏃</div><div class="label">Onglet 3</div><div class="value" style="font-size:10pt">Activités</div></div>
-    <div class="stat-card"><div class="icon">🍽️</div><div class="label">Onglet 4</div><div class="value" style="font-size:10pt">Alimentation</div></div>
-  </div>
-
-  <h3>Design System</h3>
-  <ul class="simple">
-    <li><strong>Police :</strong> Inter (Google Fonts) — 400, 500, 600, 700, 800</li>
-    <li><strong>Couleurs primaires :</strong> Navy <code>#0f2044</code> / Blue <code>#2563eb</code> / Gray Scale</li>
-    <li><strong>Variables CSS :</strong> Système complet de tokens (radius, shadow, transition, couleurs)</li>
-    <li><strong>Responsive :</strong> Breakpoints à 500px, 768px, 900px</li>
-    <li><strong>Navbar :</strong> Gradient navy → blue, sticky, liens actifs surlignés, badge rôle</li>
-    <li><strong>Footer :</strong> Global, marque + liens + version, fond navy</li>
-  </ul>
-
-  <h3>Nettoyage automatique des données (page Admin)</h3>
-  <p>La page Nettoyage analyse en temps réel les données via l'API et signale :</p>
-  <ul class="simple">
-    <li>Objectifs avec statut refusé ou rejeté</li>
-    <li>Objectifs sans description</li>
-    <li>Consommations avec calories ou quantité invalides (≤ 0)</li>
-    <li>Métriques avec fréquence cardiaque incohérente (&lt; 30 ou &gt; 220 bpm)</li>
-    <li>Métriques avec poids incohérent (&lt; 20 ou &gt; 350 kg)</li>
-  </ul>
-</div>
-
-<!-- ============================================================ SECTION 9 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">9</div>
-    <h2>Pipeline de données — Apache Airflow</h2>
-  </div>
-
-  <div class="info-box">
-    Apache Airflow 2.10 orchestre les pipelines de données asynchrones. Interface web sur le port <strong>8080</strong>
-    (identifiants : airflow / airflow). Le backend accède à l'API Airflow via <code>host.docker.internal:8080</code>.
-  </div>
-
-  <h3>DAG 1 — Import Open Food Facts</h3>
-  <table>
-    <thead><tr><th>Attribut</th><th>Valeur</th></tr></thead>
-    <tbody>
-      <tr><td>Fichier</td><td><code>airflow/dags/fetch_openfoodfacts_france.py</code></td></tr>
-      <tr><td>Source</td><td>API OpenFoodFacts (produits alimentaires France)</td></tr>
-      <tr><td>Sortie</td><td><code>data/intermediate/import/import_YYYYMMDD_HHMMSS.csv</code> (validation admin requise)</td></tr>
-      <tr><td>Objectif</td><td>Collecter des aliments depuis l'API Open Food Facts vers un CSV intermédiaire</td></tr>
-    </tbody>
-  </table>
-
-  <h3>DAG 2 — Export base de données vers CSV</h3>
-  <table>
-    <thead><tr><th>Attribut</th><th>Valeur</th></tr></thead>
-    <tbody>
-      <tr><td>Fichier</td><td><code>airflow/dags/export_db_to_csv.py</code></td></tr>
-      <tr><td>Connexion DB</td><td><code>AIRFLOW_CONN_HEALTHAIM_POSTGRES</code></td></tr>
-      <tr><td>Sortie</td><td><code>data/intermediate/export/export_YYYYMMDD_HHMMSS.csv</code> (validation admin requise)</td></tr>
-      <tr><td>Objectif</td><td>Exporter les tables de healthdb vers un CSV intermédiaire</td></tr>
-    </tbody>
-  </table>
-
-  <h3>DAG 3 — Incorporation ML</h3>
-  <table>
-    <thead><tr><th>Attribut</th><th>Valeur</th></tr></thead>
-    <tbody>
-      <tr><td>Fichier</td><td><code>airflow/dags/incorporation_ml.py</code></td></tr>
-      <tr><td>Fréquence</td><td>Toutes les heures</td></tr>
-      <tr><td>Entrée</td><td>CSV validés dans <code>data/intermediate/import/</code> et <code>data/intermediate/export/</code></td></tr>
-      <tr><td>Sortie</td><td>Import → BDD healthdb ; Export → <code>data/ml/</code></td></tr>
-      <tr><td>Objectif</td><td>Charger les CSV validés par l'admin en base et copier les exports vers le dossier ML</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Flux de validation</h3>
-  <p>Les DAGs produisent des CSV horodatés. L'admin visualise, modifie et valide via la page <strong>Gestion des flux</strong> (onglets Import/Export). Seuls les CSV validés sont incorporés par l'DAG <code>incorporation_ml</code>.</p>
-
-  <h3>Infrastructure Airflow</h3>
-  <div class="card-grid">
-    <div class="stat-card" style="text-align:left">
-      <strong>airflow-init</strong>
-      <p style="font-size:8.5pt;margin-top:6px">Initialisation de la base Airflow et création du compte admin (exécution unique)</p>
-    </div>
-    <div class="stat-card" style="text-align:left">
-      <strong>airflow-webserver</strong>
-      <p style="font-size:8.5pt;margin-top:6px">Interface web de monitoring des DAGs (port 8080)</p>
-    </div>
-    <div class="stat-card" style="text-align:left">
-      <strong>airflow-scheduler</strong>
-      <p style="font-size:8.5pt;margin-top:6px">Planificateur d'exécution des DAGs (LocalExecutor)</p>
-    </div>
-  </div>
-</div>
-
-<!-- ============================================================ SECTION 10 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">10</div>
-    <h2>Déploiement Docker</h2>
-  </div>
-
-  <h3>Services Docker Compose</h3>
-  <table>
-    <thead><tr><th>Conteneur</th><th>Image</th><th>Port exposé</th><th>Rôle</th></tr></thead>
-    <tbody>
-      <tr><td><code>frontend_nginx</code></td><td>healthaimspr-frontend (custom)</td><td>89:80</td><td>Serveur Vue.js + proxy API</td></tr>
-      <tr><td><code>backend_api</code></td><td>healthaimspr-backend (custom)</td><td>8089:8000</td><td>API FastAPI + Uvicorn</td></tr>
-      <tr><td><code>postgres_health</code></td><td>postgres:17</td><td>5435:5432</td><td>Base de données applicative</td></tr>
-      <tr><td><code>airflow_webserver</code></td><td>apache/airflow:2.10.4-python3.11</td><td>8080:8080</td><td>UI monitoring Airflow</td></tr>
-      <tr><td><code>airflow_scheduler</code></td><td>apache/airflow:2.10.4-python3.11</td><td>—</td><td>Planificateur de DAGs</td></tr>
-      <tr><td><code>postgres_airflow</code></td><td>postgres:17</td><td>—</td><td>Métadonnées Airflow</td></tr>
-      <tr><td><code>export_init</code></td><td>alpine</td><td>—</td><td>Init permissions export folder</td></tr>
-    </tbody>
-  </table>
-
-  <h3>Variables d'environnement (.env)</h3>
-  <div class="code-block">
-<span class="cm"># Base de données principale</span>
-DATABASE_URL=postgresql://healthuser:healthpass@postgres:5432/healthdb
-
-<span class="cm"># Sécurité API</span>
-SECRET_KEY=<span class="str">votre-clé-secrète-forte</span>
-
-<span class="cm"># Ports (optionnels, valeurs par défaut)</span>
-FRONTEND_PORT=127.0.0.1:89
-BACKEND_PORT=127.0.0.1:8089
-POSTGRES_PORT=127.0.0.1:5435
-AIRFLOW_PORT=8080
-
-<span class="cm"># Frontend (URL de l'API depuis le navigateur)</span>
-VITE_API_URL=<span class="str">http://localhost:89</span>
-  </div>
-
-  <h3>Commandes de déploiement</h3>
-  <table>
-    <thead><tr><th>Commande</th><th>Action</th></tr></thead>
-    <tbody>
-      <tr><td><code>docker compose up -d</code></td><td>Démarrer tous les services en arrière-plan</td></tr>
-      <tr><td><code>docker compose build frontend backend</code></td><td>Reconstruire après modification du code source</td></tr>
-      <tr><td><code>docker compose --profile seed run --rm seed</code></td><td>Charger les données initiales (seed)</td></tr>
-      <tr><td><code>docker exec backend_api python -m app.create_admin</code></td><td>Créer/réinitialiser le compte admin</td></tr>
-      <tr><td><code>docker compose logs -f backend_api</code></td><td>Suivre les logs du backend en temps réel</td></tr>
-      <tr><td><code>docker compose down</code></td><td>Arrêter tous les services</td></tr>
-    </tbody>
-  </table>
-</div>
-
-<!-- ============================================================ SECTION 11 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">11</div>
-    <h2>Sécurité</h2>
-  </div>
-
-  <div class="card-grid card-grid-2">
-    <div>
-      <h3>Authentification &amp; Autorisation</h3>
-      <ul class="simple">
-        <li><strong>JWT HS256</strong> — Tokens signés, expiration 8h</li>
-        <li><strong>bcrypt</strong> — Hash adaptatif des mots de passe, jamais stockés en clair</li>
-        <li><strong>OAuth2 Password Flow</strong> — Standard RFC 6749</li>
-        <li><strong>RBAC</strong> — 2 rôles : <code>user</code> et <code>admin</code></li>
-        <li>Vérification du token à chaque endpoint protégé</li>
-        <li>Déconnexion automatique si token expiré (frontend)</li>
-      </ul>
-    </div>
-    <div>
-      <h3>Protection des endpoints</h3>
-      <ul class="simple">
-        <li>Routes publiques : <code>/login</code>, <code>/utilisateurs/register</code></li>
-        <li>Routes auth : lecture des données (GET)</li>
-        <li>Routes admin-only : suppressions (DELETE) et modifications globales</li>
-        <li>Validation stricte avec <strong>Pydantic v2</strong> sur toutes les entrées</li>
-        <li>Path parameters validés (<code>gt=0</code> pour les IDs)</li>
-      </ul>
-    </div>
-    <div>
-      <h3>Infrastructure</h3>
-      <ul class="simple">
-        <li>Ports DB exposés uniquement sur <code>127.0.0.1</code></li>
-        <li><code>SECRET_KEY</code> via variable d'environnement (jamais en dur)</li>
-        <li>Réseau Docker interne isolé (<code>health_net</code>)</li>
-        <li>CORS configuré (à restreindre en production)</li>
-      </ul>
-    </div>
-    <div>
-      <h3>Frontend</h3>
-      <ul class="simple">
-        <li>Guards de navigation empêchent l'accès non autorisé</li>
-        <li>Vérification expiration JWT côté client (champ <code>exp</code>)</li>
-        <li>Gestion des 401 : logout + redirection automatique</li>
-        <li>Pas de données sensibles exposées dans le DOM</li>
-      </ul>
-    </div>
-  </div>
-
-  <h3>Limites et améliorations recommandées</h3>
-  <table>
-    <thead><tr><th>Risque actuel</th><th>Recommandation</th></tr></thead>
-    <tbody>
-      <tr><td>Token stocké en <code>localStorage</code> (vulnérable XSS)</td><td>Migrer vers <code>httpOnly cookies</code> en production</td></tr>
-      <tr><td>CORS <code>allow_origins=["*"]</code></td><td>Restreindre à l'origine frontend réelle</td></tr>
-      <tr><td>Pas de refresh token</td><td>Implémenter un mécanisme de renouvellement silencieux</td></tr>
-      <tr><td>Pas de rate limiting sur <code>/login</code></td><td>Ajouter une limite de tentatives (brute force)</td></tr>
-    </tbody>
-  </table>
-</div>
-
-<!-- ============================================================ SECTION 12 -->
-<div class="page page-break">
-  <div class="section-header">
-    <div class="section-num">12</div>
-    <h2>Conclusion &amp; Perspectives</h2>
-  </div>
-
-  <h3>Bilan du projet</h3>
-  <p>
-    HealthAI MSPR est une plateforme de suivi santé complète, fonctionnelle et entièrement conteneurisée.
-    Elle couvre l'ensemble des besoins exprimés : gestion des utilisateurs, suivi des données physiologiques,
-    analyse statistique, détection d'anomalies, et orchestration de pipelines de données.
-  </p>
-
-  <div class="card-grid">
-    <div class="stat-card">
-      <div class="icon">✅</div>
-      <div class="label">Réalisé</div>
-      <div class="value" style="font-size:10pt;margin-top:8px;text-align:left;font-weight:500;color:var(--gray-700)">
-        API REST complète · Auth JWT · Dashboard admin · Profil utilisateur par onglets ·
-        Détection anomalies · Pipeline Airflow · Design system moderne · Footer global · Déploiement Docker
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="icon">🚀</div>
-      <div class="label">Perspectives</div>
-      <div class="value" style="font-size:10pt;margin-top:8px;text-align:left;font-weight:500;color:var(--gray-700)">
-        Recommandations IA personnalisées · Graphiques de tendances · Notifications temps réel ·
-        Application mobile · Export PDF des rapports · Refresh tokens · Tests automatisés complets
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="icon">📈</div>
-      <div class="label">Qualité technique</div>
-      <div class="value" style="font-size:10pt;margin-top:8px;text-align:left;font-weight:500;color:var(--gray-700)">
-        Architecture découplée · TypeScript strict · ORM typé ·
-        Validation Pydantic v2 · Tests backend disponibles · Documentation auto Swagger
-      </div>
-    </div>
-  </div>
-
-  <div style="margin-top:40px;padding:24px;background:linear-gradient(135deg,#0f2044,#1e3a5f);border-radius:14px;color:#fff;text-align:center">
-    <div style="font-size:28pt;margin-bottom:12px">❤️</div>
-    <div style="font-size:16pt;font-weight:800;margin-bottom:6px">HealthAI MSPR</div>
-    <div style="opacity:0.7;font-size:10pt">Plateforme de suivi santé intelligent — EPSI · 2026</div>
-    <div style="margin-top:16px;display:flex;justify-content:center;gap:24px;font-size:9pt;opacity:0.6">
-      <span>Vue 3 + TypeScript</span>
-      <span>·</span>
-      <span>FastAPI + Python</span>
-      <span>·</span>
-      <span>PostgreSQL 17</span>
-      <span>·</span>
-      <span>Docker Compose</span>
-      <span>·</span>
-      <span>Apache Airflow</span>
-    </div>
-  </div>
-</div>
-
-</body>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Documentation Technique — HealthAI MSPR</title>
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+            :root {
+                --navy: #0f2044;
+                --blue: #2563eb;
+                --blue-light: #eff6ff;
+                --blue-mid: #1e3a5f;
+                --gray-50: #f8fafc;
+                --gray-100: #f1f5f9;
+                --gray-200: #e2e8f0;
+                --gray-500: #64748b;
+                --gray-700: #334155;
+                --gray-900: #0f172a;
+                --success: #16a34a;
+                --danger: #dc2626;
+                --warning: #d97706;
+            }
+
+            * {
+                box-sizing: border-box;
+                margin: 0;
+                padding: 0;
+            }
+
+            body {
+                font-family: 'Inter', sans-serif;
+                font-size: 10pt;
+                color: var(--gray-900);
+                background: #fff;
+                line-height: 1.6;
+            }
+
+            /* ---- COVER PAGE ---- */
+            .cover {
+                height: 100vh;
+                display: flex;
+                flex-direction: column;
+                background: linear-gradient(
+                    135deg,
+                    #0f2044 0%,
+                    #1e3a5f 50%,
+                    #2563eb 100%
+                );
+                color: #fff;
+                padding: 60px;
+                position: relative;
+                overflow: hidden;
+                page-break-after: always;
+            }
+
+            .cover::before {
+                content: '';
+                position: absolute;
+                width: 500px;
+                height: 500px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.04);
+                top: -150px;
+                right: -100px;
+            }
+            .cover::after {
+                content: '';
+                position: absolute;
+                width: 300px;
+                height: 300px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.03);
+                bottom: -80px;
+                left: -60px;
+            }
+
+            .cover-logo {
+                font-size: 48pt;
+                margin-bottom: 24px;
+            }
+            .cover-tag {
+                display: inline-block;
+                background: rgba(255, 255, 255, 0.15);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                padding: 4px 16px;
+                border-radius: 20px;
+                font-size: 9pt;
+                font-weight: 600;
+                letter-spacing: 1px;
+                text-transform: uppercase;
+                margin-bottom: 20px;
+            }
+            .cover h1 {
+                font-size: 36pt;
+                font-weight: 800;
+                line-height: 1.1;
+                margin-bottom: 8px;
+                letter-spacing: -1px;
+            }
+            .cover h2 {
+                font-size: 16pt;
+                font-weight: 400;
+                opacity: 0.7;
+                margin-bottom: 40px;
+            }
+            .cover-divider {
+                width: 60px;
+                height: 3px;
+                background: rgba(255, 255, 255, 0.4);
+                border-radius: 2px;
+                margin: 32px 0;
+            }
+            .cover-meta {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+                font-size: 10pt;
+                opacity: 0.75;
+            }
+            .cover-meta strong {
+                color: #fff;
+                opacity: 1;
+            }
+            .cover-footer {
+                margin-top: auto;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-end;
+                font-size: 9pt;
+                opacity: 0.5;
+                border-top: 1px solid rgba(255, 255, 255, 0.2);
+                padding-top: 20px;
+            }
+
+            /* ---- CONTENT ---- */
+            .page {
+                padding: 48px 56px;
+                max-width: 210mm;
+                margin: 0 auto;
+            }
+
+            /* Section header */
+            .section-header {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                margin-bottom: 24px;
+                padding-bottom: 12px;
+                border-bottom: 2px solid var(--gray-200);
+            }
+            .section-num {
+                width: 32px;
+                height: 32px;
+                background: var(--blue);
+                color: #fff;
+                border-radius: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 13pt;
+                font-weight: 800;
+                flex-shrink: 0;
+            }
+            .section-header h2 {
+                font-size: 16pt;
+                font-weight: 700;
+                color: var(--navy);
+            }
+
+            h3 {
+                font-size: 11pt;
+                font-weight: 700;
+                color: var(--blue-mid);
+                margin: 20px 0 10px;
+                padding-left: 10px;
+                border-left: 3px solid var(--blue);
+            }
+
+            p {
+                color: var(--gray-700);
+                margin-bottom: 10px;
+                line-height: 1.65;
+            }
+
+            /* Cards / Boxes */
+            .info-box {
+                background: var(--blue-light);
+                border: 1px solid #bfdbfe;
+                border-left: 4px solid var(--blue);
+                border-radius: 8px;
+                padding: 14px 18px;
+                margin-bottom: 16px;
+                color: #1e40af;
+                font-size: 9.5pt;
+            }
+
+            .card-grid {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 14px;
+                margin-bottom: 20px;
+            }
+            .card-grid-2 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .card-grid-4 {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .stat-card {
+                background: var(--gray-50);
+                border: 1px solid var(--gray-200);
+                border-radius: 10px;
+                padding: 16px;
+                text-align: center;
+            }
+            .stat-card .icon {
+                font-size: 22pt;
+                margin-bottom: 6px;
+            }
+            .stat-card .label {
+                font-size: 8pt;
+                color: var(--gray-500);
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                font-weight: 600;
+            }
+            .stat-card .value {
+                font-size: 13pt;
+                font-weight: 700;
+                color: var(--navy);
+                margin-top: 4px;
+            }
+
+            /* Architecture diagram */
+            .arch-box {
+                background: var(--gray-50);
+                border: 1px solid var(--gray-200);
+                border-radius: 10px;
+                padding: 24px;
+                margin-bottom: 20px;
+                text-align: center;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 9pt;
+                line-height: 2;
+                color: var(--gray-700);
+            }
+
+            .layer {
+                display: flex;
+                justify-content: center;
+                gap: 12px;
+                margin-bottom: 6px;
+            }
+            .layer-box {
+                padding: 8px 16px;
+                border-radius: 8px;
+                font-family: 'Inter', sans-serif;
+                font-size: 9pt;
+                font-weight: 600;
+                min-width: 120px;
+                text-align: center;
+            }
+            .layer-arrow {
+                text-align: center;
+                color: var(--gray-500);
+                font-size: 11pt;
+                margin: 2px 0;
+            }
+            .lb-navy {
+                background: #0f2044;
+                color: #fff;
+            }
+            .lb-blue {
+                background: #2563eb;
+                color: #fff;
+            }
+            .lb-green {
+                background: #16a34a;
+                color: #fff;
+            }
+            .lb-orange {
+                background: #d97706;
+                color: #fff;
+            }
+            .lb-purple {
+                background: #7c3aed;
+                color: #fff;
+            }
+            .lb-gray {
+                background: var(--gray-200);
+                color: var(--gray-700);
+            }
+
+            /* Tables */
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin-bottom: 20px;
+                font-size: 9pt;
+            }
+            thead th {
+                background: var(--navy);
+                color: #fff;
+                padding: 9px 12px;
+                text-align: left;
+                font-weight: 600;
+                font-size: 8.5pt;
+                letter-spacing: 0.3px;
+            }
+            thead th:first-child {
+                border-radius: 6px 0 0 0;
+            }
+            thead th:last-child {
+                border-radius: 0 6px 0 0;
+            }
+            tbody td {
+                padding: 8px 12px;
+                border-bottom: 1px solid var(--gray-100);
+                color: var(--gray-700);
+                vertical-align: top;
+            }
+            tbody tr:nth-child(even) td {
+                background: var(--gray-50);
+            }
+
+            /* Badges */
+            .badge {
+                display: inline-block;
+                padding: 2px 8px;
+                border-radius: 12px;
+                font-size: 8pt;
+                font-weight: 700;
+                letter-spacing: 0.2px;
+            }
+            .b-get {
+                background: #dbeafe;
+                color: #1e40af;
+            }
+            .b-post {
+                background: #dcfce7;
+                color: #166534;
+            }
+            .b-put {
+                background: #fef9c3;
+                color: #854d0e;
+            }
+            .b-delete {
+                background: #fee2e2;
+                color: #991b1b;
+            }
+            .b-auth {
+                background: #f3e8ff;
+                color: #6b21a8;
+            }
+            .b-admin {
+                background: #fef3c7;
+                color: #92400e;
+            }
+            .b-public {
+                background: #d1fae5;
+                color: #065f46;
+            }
+
+            /* Code */
+            code {
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 8.5pt;
+                background: var(--gray-100);
+                color: #2563eb;
+                padding: 1px 5px;
+                border-radius: 4px;
+            }
+
+            .code-block {
+                background: #1e293b;
+                color: #e2e8f0;
+                border-radius: 8px;
+                padding: 16px;
+                font-family: 'JetBrains Mono', monospace;
+                font-size: 8.5pt;
+                line-height: 1.7;
+                margin-bottom: 16px;
+                overflow-x: auto;
+            }
+            .code-block .kw {
+                color: #93c5fd;
+            }
+            .code-block .str {
+                color: #86efac;
+            }
+            .code-block .cm {
+                color: #64748b;
+            }
+            .code-block .fn {
+                color: #fde68a;
+            }
+
+            /* Flow chart for auth */
+            .flow {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                flex-wrap: wrap;
+                margin: 16px 0;
+                font-size: 9pt;
+            }
+            .flow-step {
+                background: var(--gray-100);
+                border: 1px solid var(--gray-200);
+                border-radius: 8px;
+                padding: 8px 14px;
+                font-weight: 600;
+                color: var(--gray-700);
+                text-align: center;
+                font-size: 9pt;
+            }
+            .flow-step.blue {
+                background: var(--blue-light);
+                border-color: #93c5fd;
+                color: #1e40af;
+            }
+            .flow-step.green {
+                background: #dcfce7;
+                border-color: #86efac;
+                color: #166534;
+            }
+            .flow-arrow {
+                color: var(--gray-500);
+                font-size: 13pt;
+            }
+
+            /* List */
+            ul.feature-list {
+                list-style: none;
+                padding: 0;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+                margin-bottom: 16px;
+            }
+            ul.feature-list li {
+                display: flex;
+                align-items: flex-start;
+                gap: 8px;
+                font-size: 9.5pt;
+                color: var(--gray-700);
+                background: var(--gray-50);
+                border: 1px solid var(--gray-200);
+                border-radius: 8px;
+                padding: 10px 12px;
+            }
+            ul.feature-list li .check {
+                color: var(--success);
+                font-size: 11pt;
+                flex-shrink: 0;
+            }
+
+            ul.simple {
+                padding-left: 20px;
+                margin-bottom: 12px;
+            }
+            ul.simple li {
+                margin-bottom: 5px;
+                color: var(--gray-700);
+                font-size: 9.5pt;
+            }
+
+            /* Page break */
+            .page-break {
+                page-break-before: always;
+                padding-top: 48px;
+            }
+
+            /* TOC */
+            .toc {
+                background: var(--gray-50);
+                border: 1px solid var(--gray-200);
+                border-radius: 10px;
+                padding: 24px;
+                margin-bottom: 24px;
+            }
+            .toc h3 {
+                border: none;
+                padding: 0;
+                color: var(--navy);
+                margin-bottom: 14px;
+                font-size: 12pt;
+            }
+            .toc-item {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 5px 0;
+                border-bottom: 1px dashed var(--gray-200);
+                font-size: 9.5pt;
+                color: var(--gray-700);
+            }
+            .toc-item:last-child {
+                border-bottom: none;
+            }
+            .toc-num {
+                color: var(--blue);
+                font-weight: 700;
+                width: 24px;
+            }
+            .toc-dots {
+                flex: 1;
+                border-bottom: 1px dotted var(--gray-300);
+                margin: 0 8px;
+            }
+            .toc-pg {
+                color: var(--gray-500);
+                font-size: 9pt;
+            }
+
+            /* DB model */
+            .model-card {
+                background: var(--gray-50);
+                border: 1px solid var(--gray-200);
+                border-radius: 10px;
+                margin-bottom: 14px;
+                overflow: hidden;
+            }
+            .model-header {
+                background: var(--navy);
+                color: #fff;
+                padding: 10px 16px;
+                font-weight: 700;
+                font-size: 10pt;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+            .model-fields {
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 0;
+            }
+            .model-field {
+                padding: 7px 14px;
+                border-bottom: 1px solid var(--gray-200);
+                border-right: 1px solid var(--gray-200);
+                font-size: 8.5pt;
+            }
+            .model-field .fname {
+                font-weight: 600;
+                color: var(--navy);
+                font-family: 'JetBrains Mono', monospace;
+            }
+            .model-field .ftype {
+                color: var(--blue);
+                font-size: 8pt;
+            }
+            .model-field .fpk {
+                color: var(--warning);
+                font-size: 7.5pt;
+                font-weight: 700;
+            }
+
+            /* Print media */
+            @media print {
+                body {
+                    font-size: 10pt;
+                }
+                .cover {
+                    height: 100vh;
+                    page-break-after: always;
+                }
+                .page-break {
+                    page-break-before: always;
+                }
+                @page {
+                    size: A4;
+                    margin: 0;
+                }
+                .page {
+                    padding: 40px 48px;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <!-- ============================================================ COVER -->
+        <div class="cover">
+            <div class="cover-logo">❤️</div>
+            <div class="cover-tag">Documentation Technique</div>
+            <h1>HealthAI MSPR</h1>
+            <h2>Plateforme de suivi santé intelligent</h2>
+            <div class="cover-divider"></div>
+            <div class="cover-meta">
+                <div>
+                    <strong>Projet :</strong> HealthAI MSPR — Monitoring Santé &
+                    Recommandations Personnalisées
+                </div>
+                <div><strong>Organisation :</strong> EPSI</div>
+                <div><strong>Version :</strong> 1.0.0</div>
+                <div><strong>Date :</strong> Mars 2026</div>
+                <div>
+                    <strong>Stack :</strong> Vue 3 · FastAPI · PostgreSQL ·
+                    Docker · Apache Airflow
+                </div>
+            </div>
+            <div class="cover-footer">
+                <span>EPSI — Confidentiel</span>
+                <span>HealthAI MSPR v1.0.0</span>
+            </div>
+        </div>
+
+        <!-- ============================================================ TABLE OF CONTENTS -->
+        <div class="page">
+            <div class="section-header">
+                <div class="section-num">📋</div>
+                <h2>Table des matières</h2>
+            </div>
+
+            <div class="toc">
+                <div class="toc-item">
+                    <span class="toc-num">1</span>Présentation du projet
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">3</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">2</span>Architecture technique
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">4</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">3</span>Stack technologique
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">5</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">4</span>Structure du projet
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">6</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">5</span>Base de données
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">7</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">6</span>API REST — Endpoints
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">8</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">7</span>Authentification JWT
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">10</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">8</span>Frontend — Interface
+                    utilisateur
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">11</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">9</span>Pipeline de données — Apache
+                    Airflow
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">12</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">10</span>Déploiement Docker
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">13</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">11</span>Sécurité
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">14</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">12</span>Conclusion &amp; Perspectives
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">15</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ SECTION 1 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">1</div>
+                <h2>Présentation du projet</h2>
+            </div>
+
+            <div class="info-box">
+                HealthAI MSPR est une application web full-stack de suivi et
+                d'analyse de données de santé, conçue pour EPSI. Elle permet la
+                collecte, la visualisation et l'analyse des données
+                physiologiques des utilisateurs (activité physique,
+                alimentation, métriques santé, objectifs).
+            </div>
+
+            <h3>Objectifs</h3>
+            <ul class="feature-list">
+                <li>
+                    <span class="check">✓</span>Centraliser les données de santé
+                    des utilisateurs
+                </li>
+                <li>
+                    <span class="check">✓</span>Offrir un tableau de bord
+                    d'analyse pour les administrateurs
+                </li>
+                <li>
+                    <span class="check">✓</span>Permettre aux utilisateurs de
+                    consulter leur profil santé
+                </li>
+                <li>
+                    <span class="check">✓</span>Gérer les flux de données et
+                    leur validation
+                </li>
+                <li>
+                    <span class="check">✓</span>Détecter et nettoyer les données
+                    incohérentes
+                </li>
+                <li>
+                    <span class="check">✓</span>Automatiser les pipelines de
+                    données avec Airflow
+                </li>
+                <li>
+                    <span class="check">✓</span>Sécuriser l'accès via
+                    authentification JWT
+                </li>
+                <li>
+                    <span class="check">✓</span>Déploiement 100% conteneurisé
+                    avec Docker
+                </li>
+            </ul>
+
+            <h3>Indicateurs clés</h3>
+            <div class="card-grid card-grid-4">
+                <div class="stat-card">
+                    <div class="icon">🗄️</div>
+                    <div class="label">Tables DB</div>
+                    <div class="value">7</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🔌</div>
+                    <div class="label">Endpoints API</div>
+                    <div class="value">35+</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🖥️</div>
+                    <div class="label">Pages Frontend</div>
+                    <div class="value">8</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🐳</div>
+                    <div class="label">Services Docker</div>
+                    <div class="value">8</div>
+                </div>
+            </div>
+
+            <h3>Rôles utilisateurs</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Rôle</th>
+                        <th>Accès</th>
+                        <th>Fonctionnalités</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge b-admin">ADMIN</span></td>
+                        <td>Toutes les pages</td>
+                        <td>
+                            Dashboard global, Gestion des flux, Nettoyage des
+                            données, Test API, Gestion complète des utilisateurs
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-public">USER</span></td>
+                        <td>Page profil uniquement</td>
+                        <td>
+                            Consultation du profil personnel, métriques santé,
+                            activités, alimentation, objectifs
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================================ SECTION 2 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">2</div>
+                <h2>Architecture technique</h2>
+            </div>
+
+            <p>
+                L'application repose sur une architecture
+                <strong>3-tiers conteneurisée</strong> : présentation (Vue.js +
+                Nginx), logique métier (FastAPI), persistance (PostgreSQL). Un
+                pipeline Airflow orchestre les tâches de données en
+                arrière-plan.
+            </p>
+
+            <div class="arch-box">
+                <div class="layer">
+                    <div class="layer-box lb-gray">
+                        🌐 Navigateur (Chrome / Firefox)
+                    </div>
+                </div>
+                <div class="layer-arrow">↕ HTTP/HTTPS (port 89)</div>
+                <div class="layer">
+                    <div class="layer-box lb-blue">
+                        🖥️ Frontend — Vue 3 + Nginx
+                    </div>
+                </div>
+                <div class="layer-arrow">
+                    ↕ REST API (proxy interne port 8000)
+                </div>
+                <div class="layer">
+                    <div class="layer-box lb-navy">
+                        ⚙️ Backend — FastAPI (Python)
+                    </div>
+                    <div class="layer-box lb-purple">
+                        🔐 Auth — JWT / bcrypt
+                    </div>
+                </div>
+                <div class="layer-arrow">↕ SQLAlchemy ORM</div>
+                <div class="layer">
+                    <div class="layer-box lb-green">
+                        🗄️ PostgreSQL — Base de données santé
+                    </div>
+                </div>
+                <div class="layer-arrow" style="margin-top: 20px">
+                    ↕ Accès DB (port 5432 interne)
+                </div>
+                <div class="layer">
+                    <div class="layer-box lb-orange">
+                        🌀 Apache Airflow — Orchestration DAGs
+                    </div>
+                    <div class="layer-box lb-green">
+                        🗄️ PostgreSQL — Base Airflow
+                    </div>
+                </div>
+            </div>
+
+            <h3>Flux de communication</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Source</th>
+                        <th>Destination</th>
+                        <th>Protocole</th>
+                        <th>Port</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Navigateur</td>
+                        <td>Nginx (Frontend)</td>
+                        <td>HTTP</td>
+                        <td>89</td>
+                    </tr>
+                    <tr>
+                        <td>Nginx (proxy)</td>
+                        <td>FastAPI (Backend)</td>
+                        <td>HTTP interne</td>
+                        <td>8000</td>
+                    </tr>
+                    <tr>
+                        <td>FastAPI</td>
+                        <td>PostgreSQL Health</td>
+                        <td>TCP (SQLAlchemy)</td>
+                        <td>5432 interne</td>
+                    </tr>
+                    <tr>
+                        <td>Navigateur (admin)</td>
+                        <td>Airflow Webserver</td>
+                        <td>HTTP</td>
+                        <td>8080</td>
+                    </tr>
+                    <tr>
+                        <td>Airflow</td>
+                        <td>PostgreSQL Health</td>
+                        <td>TCP (psycopg2)</td>
+                        <td>5432 interne</td>
+                    </tr>
+                    <tr>
+                        <td>Client externe</td>
+                        <td>PostgreSQL Health</td>
+                        <td>TCP</td>
+                        <td>5435</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Réseau Docker</h3>
+            <p>
+                Tous les conteneurs communiquent via le réseau bridge interne
+                <code>health_net</code>. Seuls les ports nécessaires sont
+                exposés vers l'hôte.
+            </p>
+        </div>
+
+        <!-- ============================================================ SECTION 3 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">3</div>
+                <h2>Stack technologique</h2>
+            </div>
+
+            <div class="card-grid">
+                <div class="stat-card" style="text-align: left; padding: 18px">
+                    <div style="font-size: 20pt; margin-bottom: 8px">🖥️</div>
+                    <div
+                        style="
+                            font-weight: 700;
+                            color: #0f2044;
+                            margin-bottom: 8px;
+                            font-size: 11pt;
+                        "
+                    >
+                        Frontend
+                    </div>
+                    <ul class="simple">
+                        <li>
+                            <strong>Vue 3</strong> — Framework réactif (Options
+                            API)
+                        </li>
+                        <li><strong>TypeScript</strong> — Typage statique</li>
+                        <li><strong>Vite</strong> — Build tool ultra-rapide</li>
+                        <li><strong>Vue Router 4</strong> — Navigation SPA</li>
+                        <li><strong>Nginx</strong> — Serveur web + proxy</li>
+                    </ul>
+                </div>
+                <div class="stat-card" style="text-align: left; padding: 18px">
+                    <div style="font-size: 20pt; margin-bottom: 8px">⚙️</div>
+                    <div
+                        style="
+                            font-weight: 700;
+                            color: #0f2044;
+                            margin-bottom: 8px;
+                            font-size: 11pt;
+                        "
+                    >
+                        Backend
+                    </div>
+                    <ul class="simple">
+                        <li>
+                            <strong>FastAPI</strong> — Framework Python moderne
+                        </li>
+                        <li><strong>SQLAlchemy</strong> — ORM Python</li>
+                        <li>
+                            <strong>Pydantic v2</strong> — Validation des
+                            données
+                        </li>
+                        <li><strong>python-jose</strong> — Génération JWT</li>
+                        <li>
+                            <strong>passlib/bcrypt</strong> — Hash des mots de
+                            passe
+                        </li>
+                    </ul>
+                </div>
+                <div class="stat-card" style="text-align: left; padding: 18px">
+                    <div style="font-size: 20pt; margin-bottom: 8px">🗄️</div>
+                    <div
+                        style="
+                            font-weight: 700;
+                            color: #0f2044;
+                            margin-bottom: 8px;
+                            font-size: 11pt;
+                        "
+                    >
+                        Données
+                    </div>
+                    <ul class="simple">
+                        <li>
+                            <strong>PostgreSQL 17</strong> — Base de données
+                            principale
+                        </li>
+                        <li>
+                            <strong>Apache Airflow 2.10</strong> — Orchestration
+                            DAGs
+                        </li>
+                        <li>
+                            <strong>psycopg2</strong> — Driver Python/PostgreSQL
+                        </li>
+                        <li><strong>CSV seeds</strong> — Données initiales</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card-grid card-grid-2" style="margin-top: 8px">
+                <div class="stat-card" style="text-align: left; padding: 18px">
+                    <div style="font-size: 20pt; margin-bottom: 8px">🐳</div>
+                    <div
+                        style="
+                            font-weight: 700;
+                            color: #0f2044;
+                            margin-bottom: 8px;
+                            font-size: 11pt;
+                        "
+                    >
+                        Infrastructure
+                    </div>
+                    <ul class="simple">
+                        <li><strong>Docker</strong> — Conteneurisation</li>
+                        <li>
+                            <strong>Docker Compose</strong> — Orchestration
+                            multi-conteneurs
+                        </li>
+                        <li>
+                            <strong>Python 3.11-slim</strong> — Image base
+                            backend
+                        </li>
+                        <li>
+                            <strong>Node 20 + Alpine</strong> — Image build
+                            frontend
+                        </li>
+                    </ul>
+                </div>
+                <div class="stat-card" style="text-align: left; padding: 18px">
+                    <div style="font-size: 20pt; margin-bottom: 8px">🔒</div>
+                    <div
+                        style="
+                            font-weight: 700;
+                            color: #0f2044;
+                            margin-bottom: 8px;
+                            font-size: 11pt;
+                        "
+                    >
+                        Sécurité
+                    </div>
+                    <ul class="simple">
+                        <li>
+                            <strong>JWT (HS256)</strong> — Tokens d'accès (8h)
+                        </li>
+                        <li>
+                            <strong>bcrypt</strong> — Hash des mots de passe
+                        </li>
+                        <li>
+                            <strong>OAuth2 Password Flow</strong> — Standard
+                            d'auth
+                        </li>
+                        <li>
+                            <strong>RBAC</strong> — Contrôle d'accès par rôle
+                        </li>
+                        <li>
+                            <strong>CORS</strong> — Politique d'origine croisée
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ SECTION 4 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">4</div>
+                <h2>Structure du projet</h2>
+            </div>
+
+            <div class="card-grid card-grid-2">
+                <div>
+                    <h3>Backend (Python / FastAPI)</h3>
+                    <div class="code-block">
+                        <span class="cm">backend/</span>
+                        ├── Dockerfile ├── requirements.txt └── app/ ├──
+                        <span class="fn">main.py</span>
+                        <span class="cm"># Point d'entrée API</span> ├──
+                        <span class="fn">database.py</span>
+                        <span class="cm"># Connexion SQLAlchemy</span> ├──
+                        <span class="fn">security.py</span>
+                        <span class="cm"># JWT + bcrypt</span> ├──
+                        <span class="fn">create_admin.py</span>
+                        <span class="cm"># Init compte admin</span> ├── models/
+                        │ ├── utilisateur.py │ ├── activite.py │ ├── aliment.py
+                        │ ├── consommation.py │ ├── exercice.py │ ├──
+                        metrique_sante.py │ └── objectif.py ├── routers/ │ ├──
+                        utilisateurs.py │ ├── activites.py │ ├── aliments.py │
+                        ├── consommations.py │ ├── exercices.py │ ├──
+                        metriques_sante.py │ └── objectifs.py └── schemas/
+                        <span class="cm"># Pydantic schemas</span>
+                    </div>
+                </div>
+                <div>
+                    <h3>Frontend (Vue 3 / TypeScript)</h3>
+                    <div class="code-block">
+                        <span class="cm">Frontend/</span>
+                        ├── Dockerfile.nginx ├── vite.config.ts └── src/ ├──
+                        <span class="fn">main.ts</span>
+                        <span class="cm"># Entrée Vue App</span> ├──
+                        <span class="fn">App.vue</span>
+                        <span class="cm"># Layout root</span> ├──
+                        <span class="fn">router.ts</span>
+                        <span class="cm"># Navigation + guards</span> ├──
+                        <span class="fn">styles.css</span>
+                        <span class="cm"># Design System global</span> ├──
+                        components/ │ ├── Navbar.vue │ └── AppFooter.vue ├──
+                        pages/ │ ├── Connexion.vue │ ├── PageAccueil.vue
+                        <span class="cm"># Profil (tabs)</span> │ ├──
+                        Dashboard.vue │ ├── GestionFlux.vue │ ├── FluxDetail.vue
+                        │ ├── Nettoyage.vue │ ├── TestBackend.vue │ └──
+                        PageView.vue └── services/ ├── auth.ts
+                        <span class="cm"># JWT + localStorage</span> └── api.ts
+                        <span class="cm"># Appels API</span>
+                    </div>
+                </div>
+            </div>
+
+            <h3>Données &amp; Orchestration</h3>
+            <div class="code-block">
+                <span class="cm">airflow/dags/</span>
+                ├── export_db_to_csv.py
+                <span class="cm"># DAG : Export PostgreSQL → CSV</span> └──
+                fetch_openfoodfacts_france.py
+                <span class="cm"># DAG : Collecte données OpenFoodFacts</span>
+
+                <span class="cm">data/</span>
+                ├── seed_db.py
+                <span class="cm"># Chargement données initiales</span> └──
+                clean_csv_data.py
+                <span class="cm"># Nettoyage fichiers CSV</span>
+            </div>
+        </div>
+
+        <!-- ============================================================ SECTION 5 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">5</div>
+                <h2>Base de données</h2>
+            </div>
+
+            <p>
+                La base de données <code>healthdb</code> sur PostgreSQL 17
+                contient <strong>7 tables</strong> modélisant le domaine santé
+                utilisateur.
+            </p>
+
+            <div class="model-card">
+                <div class="model-header">
+                    👤 utilisateurs
+                    <span style="opacity: 0.6; font-weight: 400; font-size: 9pt"
+                        >— Table centrale des profils</span
+                    >
+                </div>
+                <div class="model-fields">
+                    <div class="model-field">
+                        <div class="fname">id_utilisateur</div>
+                        <div class="ftype">INTEGER</div>
+                        <div class="fpk">🔑 PK</div>
+                    </div>
+                    <div class="model-field">
+                        <div class="fname">username</div>
+                        <div class="ftype">VARCHAR(50) UNIQUE</div>
+                    </div>
+                    <div class="model-field">
+                        <div class="fname">password_hash</div>
+                        <div class="ftype">VARCHAR(255)</div>
+                    </div>
+                    <div class="model-field">
+                        <div class="fname">age</div>
+                        <div class="ftype">INTEGER</div>
+                    </div>
+                    <div class="model-field">
+                        <div class="fname">sexe</div>
+                        <div class="ftype">VARCHAR(1)</div>
+                    </div>
+                    <div class="model-field">
+                        <div class="fname">taille_cm</div>
+                        <div class="ftype">INTEGER</div>
+                    </div>
+                    <div class="model-field">
+                        <div class="fname">poids_kg</div>
+                        <div class="ftype">INTEGER</div>
+                    </div>
+                    <div class="model-field">
+                        <div class="fname">niveau_activite</div>
+                        <div class="ftype">INTEGER</div>
+                    </div>
+                    <div class="model-field">
+                        <div class="fname">type_abonnement</div>
+                        <div class="ftype">INTEGER</div>
+                    </div>
+                    <div class="model-field">
+                        <div class="fname">date_inscription</div>
+                        <div class="ftype">DATE</div>
+                    </div>
+                    <div class="model-field">
+                        <div class="fname">is_admin</div>
+                        <div class="ftype">BOOLEAN</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card-grid">
+                <div class="model-card" style="margin: 0">
+                    <div class="model-header">❤️ metriques_sante</div>
+                    <div
+                        style="
+                            padding: 10px 14px;
+                            font-size: 8.5pt;
+                            color: var(--gray-700);
+                        "
+                    >
+                        <code>id_metrique</code> PK · <code>date_mesure</code> ·
+                        <code>poids_kg</code> ·
+                        <code>frequence_cardiaque</code> ·
+                        <code>duree_sommeil_h</code> ·
+                        <code>calories_brulees</code> · <code>pas</code> ·
+                        <code>id_utilisateur</code> FK
+                    </div>
+                </div>
+                <div class="model-card" style="margin: 0">
+                    <div class="model-header">🏃 activites</div>
+                    <div
+                        style="
+                            padding: 10px 14px;
+                            font-size: 8.5pt;
+                            color: var(--gray-700);
+                        "
+                    >
+                        <code>id_activite</code> PK ·
+                        <code>date_activite</code> ·
+                        <code>duree_minutes</code> ·
+                        <code>calories_depensees</code> ·
+                        <code>intensite</code> · <code>id_exercice</code> FK ·
+                        <code>id_utilisateur</code> FK
+                    </div>
+                </div>
+                <div class="model-card" style="margin: 0">
+                    <div class="model-header">🎯 objectifs</div>
+                    <div
+                        style="
+                            padding: 10px 14px;
+                            font-size: 8.5pt;
+                            color: var(--gray-700);
+                        "
+                    >
+                        <code>id_objectif</code> PK ·
+                        <code>type_objectif</code> · <code>description</code> ·
+                        <code>date_debut</code> · <code>date_fin</code> ·
+                        <code>statut</code> · <code>id_utilisateur</code> FK
+                    </div>
+                </div>
+                <div class="model-card" style="margin: 0">
+                    <div class="model-header">🍽️ consommations</div>
+                    <div
+                        style="
+                            padding: 10px 14px;
+                            font-size: 8.5pt;
+                            color: var(--gray-700);
+                        "
+                    >
+                        <code>id_consommation</code> PK ·
+                        <code>date_consommation</code> ·
+                        <code>quantite_g</code> ·
+                        <code>calories_calculees</code> ·
+                        <code>id_aliment</code> FK ·
+                        <code>id_utilisateur</code> FK
+                    </div>
+                </div>
+                <div class="model-card" style="margin: 0">
+                    <div class="model-header">🍎 aliments</div>
+                    <div
+                        style="
+                            padding: 10px 14px;
+                            font-size: 8.5pt;
+                            color: var(--gray-700);
+                        "
+                    >
+                        <code>id_aliment</code> PK · <code>nom_aliment</code> ·
+                        <code>calories</code> · <code>proteines_g</code> ·
+                        <code>glucides_g</code> · <code>lipides_g</code> ·
+                        <code>categorie</code>
+                    </div>
+                </div>
+                <div class="model-card" style="margin: 0">
+                    <div class="model-header">💪 exercices</div>
+                    <div
+                        style="
+                            padding: 10px 14px;
+                            font-size: 8.5pt;
+                            color: var(--gray-700);
+                        "
+                    >
+                        <code>id_exercice</code> PK ·
+                        <code>nom_exercice</code> · <code>type_exercice</code> ·
+                        <code>niveau_difficulte</code> ·
+                        <code>equipement</code> · <code>muscle_principal</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ SECTION 6 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">6</div>
+                <h2>API REST — Endpoints</h2>
+            </div>
+
+            <div class="info-box">
+                L'API est documentée automatiquement via
+                <strong>Swagger UI</strong> à l'adresse
+                <code>http://localhost:8089/docs</code> (accès direct backend)
+                et proxifiée par Nginx sur le port 89. Toutes les routes (sauf
+                <code>/login</code>) requièrent un token JWT Bearer.
+            </div>
+
+            <h3>Authentification</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Méthode</th>
+                        <th>Route</th>
+                        <th>Accès</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge b-post">POST</span></td>
+                        <td><code>/login</code></td>
+                        <td><span class="badge b-public">Public</span></td>
+                        <td>
+                            Connexion — retourne un token JWT (OAuth2 Password
+                            Flow)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-post">POST</span></td>
+                        <td><code>/utilisateurs/register</code></td>
+                        <td><span class="badge b-public">Public</span></td>
+                        <td>Inscription d'un nouvel utilisateur</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Utilisateurs — <code>/utilisateurs</code></h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Méthode</th>
+                        <th>Route</th>
+                        <th>Accès</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/utilisateurs/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Liste tous les utilisateurs</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/utilisateurs/{id}</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Détail d'un utilisateur par ID</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-post">POST</span></td>
+                        <td><code>/utilisateurs/</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>Créer un utilisateur</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-put">PUT</span></td>
+                        <td><code>/utilisateurs/{id}</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>Modifier un utilisateur</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-delete">DELETE</span></td>
+                        <td><code>/utilisateurs/{id}</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>Supprimer un utilisateur</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>
+                Activités — <code>/activites</code> &amp; Métriques —
+                <code>/metriques-sante</code>
+            </h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Méthode</th>
+                        <th>Route</th>
+                        <th>Accès</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/activites/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Liste toutes les activités physiques</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/activites/{id}</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Détail d'une activité</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-post">POST</span></td>
+                        <td><code>/activites/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Enregistrer une activité</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-put">PUT</span></td>
+                        <td><code>/activites/{id}</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Modifier une activité</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-delete">DELETE</span></td>
+                        <td><code>/activites/{id}</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>Supprimer une activité</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/metriques-sante/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Liste toutes les métriques santé</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-post">POST</span></td>
+                        <td><code>/metriques-sante/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Enregistrer une mesure santé</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>
+                Alimentation — <code>/aliments</code> ·
+                <code>/consommations</code> · <code>/objectifs</code> ·
+                <code>/exercices</code>
+            </h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Méthode</th>
+                        <th>Route</th>
+                        <th>Accès</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/aliments/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Liste du catalogue d'aliments (OpenFoodFacts)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/consommations/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Historique des consommations alimentaires</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-post">POST</span></td>
+                        <td><code>/consommations/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Enregistrer une consommation</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/objectifs/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Liste les objectifs santé</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-post">POST</span></td>
+                        <td><code>/objectifs/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Créer un objectif</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/exercices/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Catalogue des exercices physiques</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p style="font-size: 9pt; color: var(--gray-500)">
+                Chaque ressource implémente complètement les opérations CRUD
+                (GET, GET/{id}, POST, PUT/{id}, DELETE/{id}). Seules les
+                suppressions sont réservées aux administrateurs.
+            </p>
+        </div>
+
+        <!-- ============================================================ SECTION 7 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">7</div>
+                <h2>Authentification JWT</h2>
+            </div>
+
+            <h3>Flux d'authentification</h3>
+            <div class="flow">
+                <div class="flow-step">1. Saisie<br />identifiants</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step blue">
+                    2. POST /login<br />form-urlencoded
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step">3. Vérification<br />bcrypt hash</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step blue">4. Génération<br />JWT HS256</div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step green">
+                    5. Token stocké<br />localStorage
+                </div>
+                <div class="flow-arrow">→</div>
+                <div class="flow-step green">
+                    6. Bearer token<br />dans chaque requête
+                </div>
+            </div>
+
+            <h3>Structure du token JWT</h3>
+            <div class="card-grid">
+                <div>
+                    <p><strong>Header</strong></p>
+                    <div class="code-block">
+                        { <span class="str">"alg"</span>:
+                        <span class="str">"HS256"</span>,
+                        <span class="str">"typ"</span>:
+                        <span class="str">"JWT"</span> }
+                    </div>
+                </div>
+                <div>
+                    <p><strong>Payload</strong></p>
+                    <div class="code-block">
+                        { <span class="str">"sub"</span>:
+                        <span class="str">"1001"</span>,
+                        <span class="cm">// ID utilisateur</span>
+                        <span class="str">"is_admin"</span>:
+                        <span class="kw">false</span>,
+                        <span class="cm">// Rôle</span>
+                        <span class="str">"exp"</span>: 1741945200
+                        <span class="cm">// +8 heures</span> }
+                    </div>
+                </div>
+                <div>
+                    <p><strong>Signature</strong></p>
+                    <div class="code-block">
+                        HMACSHA256( base64(header) + base64(payload),
+                        <span class="str">SECRET_KEY</span>
+                        <span class="cm">// .env</span> )
+                    </div>
+                </div>
+            </div>
+
+            <h3>Paramètres de sécurité</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Paramètre</th>
+                        <th>Valeur</th>
+                        <th>Rôle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ALGORITHM</code></td>
+                        <td>HS256</td>
+                        <td>Algorithme de signature symétrique</td>
+                    </tr>
+                    <tr>
+                        <td><code>ACCESS_TOKEN_EXPIRE_MINUTES</code></td>
+                        <td>480 (8h)</td>
+                        <td>Durée de validité du token</td>
+                    </tr>
+                    <tr>
+                        <td><code>SECRET_KEY</code></td>
+                        <td>Variable d'environnement</td>
+                        <td>Clé secrète de signature (non exposée)</td>
+                    </tr>
+                    <tr>
+                        <td><code>pwd_context</code></td>
+                        <td>bcrypt (rounds auto)</td>
+                        <td>Hash adaptatif des mots de passe</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Gestion côté frontend</h3>
+            <ul class="simple">
+                <li>
+                    Le token est décodé côté client pour extraire
+                    <code>sub</code> (user ID) et <code>is_admin</code>
+                </li>
+                <li>
+                    <code>isAuthenticated()</code> vérifie à la fois la présence
+                    du token ET son expiration (champ <code>exp</code>)
+                </li>
+                <li>
+                    Toute réponse <code>401</code> provoque un logout
+                    automatique et une redirection vers <code>/connexion</code>
+                </li>
+                <li>
+                    Le token est stocké dans <code>localStorage</code> sous la
+                    clé <code>app_token</code>
+                </li>
+                <li>
+                    Les guards de navigation Vue Router bloquent l'accès aux
+                    routes protégées si non authentifié
+                </li>
+            </ul>
+        </div>
+
+        <!-- ============================================================ SECTION 8 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">8</div>
+                <h2>Frontend — Interface utilisateur</h2>
+            </div>
+
+            <h3>Déploiement production (Docker)</h3>
+            <p>
+                Le frontend est servi en
+                <strong>production uniquement</strong> par le conteneur
+                <code>frontend_nginx</code>. Aucun serveur de développement Vite
+                ne tourne dans Docker.
+            </p>
+            <ul class="simple">
+                <li>
+                    <strong>Build :</strong> <code>Dockerfile.nginx</code> —
+                    Stage 1 : Vite build (Node 20). Stage 2 : Nginx Alpine sert
+                    les fichiers statiques de <code>dist/</code>
+                </li>
+                <li>
+                    <strong>Port :</strong> 89 (hôte) → 80 (conteneur). Accès :
+                    <code>http://localhost:89</code>
+                </li>
+                <li>
+                    <strong>Proxy API :</strong> Nginx proxifie
+                    <code>/login</code>, <code>/admin</code>,
+                    <code>/utilisateurs</code>, etc. vers le backend (même
+                    origine = pas de CORS)
+                </li>
+                <li>
+                    <strong>Variables build :</strong>
+                    <code>VITE_API_URL</code> (vide = proxy),
+                    <code>VITE_AIRFLOW_UI_URL</code> (lien vers Airflow)
+                </li>
+            </ul>
+
+            <h3>Pages et composants</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Page</th>
+                        <th>Route</th>
+                        <th>Accès</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Connexion</strong></td>
+                        <td><code>/connexion</code></td>
+                        <td><span class="badge b-public">Public</span></td>
+                        <td>
+                            Formulaire login avec gradient, spinner, toggle mot
+                            de passe
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Page Accueil</strong></td>
+                        <td><code>/page-accueil</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>
+                            Admin : 4 tuiles de nav. Utilisateur : profil avec 5
+                            onglets
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Dashboard</strong></td>
+                        <td><code>/dashboard</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>Top 3 exercices/aliments, moyennes utilisateurs</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Gestion Flux</strong></td>
+                        <td><code>/gestion-des-flux</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>
+                            CSV intermédiaires (import/export) à valider,
+                            métadonnées BDD, lien vers DAGs Airflow
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Flux Détail</strong></td>
+                        <td><code>/flux/:id</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>Détail d'un flux avec actions</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Nettoyage</strong></td>
+                        <td><code>/nettoyage</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>Détection automatique de données incohérentes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Test Backend</strong></td>
+                        <td><code>/test-backend</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>
+                            Exploration complète des endpoints et données brutes
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><strong>Utilisateurs</strong></td>
+                        <td><code>/utilisateurs</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>Gestion des utilisateurs (recherche, détail)</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Page View</strong></td>
+                        <td><code>/page-view/:id?</code></td>
+                        <td><span class="badge b-public">Public</span></td>
+                        <td>Maquette interactive des pages</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Profil utilisateur — Navigation par onglets</h3>
+            <div class="card-grid card-grid-4" style="margin-top: 10px">
+                <div class="stat-card">
+                    <div class="icon">👤</div>
+                    <div class="label">Onglet 1</div>
+                    <div class="value" style="font-size: 10pt">Profil</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">❤️</div>
+                    <div class="label">Onglet 2</div>
+                    <div class="value" style="font-size: 10pt">Santé</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🏃</div>
+                    <div class="label">Onglet 3</div>
+                    <div class="value" style="font-size: 10pt">Activités</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🍽️</div>
+                    <div class="label">Onglet 4</div>
+                    <div class="value" style="font-size: 10pt">
+                        Alimentation
+                    </div>
+                </div>
+            </div>
+
+            <h3>Design System</h3>
+            <ul class="simple">
+                <li>
+                    <strong>Police :</strong> Inter (Google Fonts) — 400, 500,
+                    600, 700, 800
+                </li>
+                <li>
+                    <strong>Couleurs primaires :</strong> Navy
+                    <code>#0f2044</code> / Blue <code>#2563eb</code> / Gray
+                    Scale
+                </li>
+                <li>
+                    <strong>Variables CSS :</strong> Système complet de tokens
+                    (radius, shadow, transition, couleurs)
+                </li>
+                <li>
+                    <strong>Responsive :</strong> Breakpoints à 500px, 768px,
+                    900px
+                </li>
+                <li>
+                    <strong>Navbar :</strong> Gradient navy → blue, sticky,
+                    liens actifs surlignés, badge rôle
+                </li>
+                <li>
+                    <strong>Footer :</strong> Global, marque + liens + version,
+                    fond navy
+                </li>
+            </ul>
+
+            <h3>Nettoyage automatique des données (page Admin)</h3>
+            <p>
+                La page Nettoyage analyse en temps réel les données via l'API et
+                signale :
+            </p>
+            <ul class="simple">
+                <li>Objectifs avec statut refusé ou rejeté</li>
+                <li>Objectifs sans description</li>
+                <li>Consommations avec calories ou quantité invalides (≤ 0)</li>
+                <li>
+                    Métriques avec fréquence cardiaque incohérente (&lt; 30 ou
+                    &gt; 220 bpm)
+                </li>
+                <li>
+                    Métriques avec poids incohérent (&lt; 20 ou &gt; 350 kg)
+                </li>
+            </ul>
+        </div>
+
+        <!-- ============================================================ SECTION 9 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">9</div>
+                <h2>Pipeline de données — Apache Airflow</h2>
+            </div>
+
+            <div class="info-box">
+                Apache Airflow 2.10 orchestre les pipelines de données
+                asynchrones. Interface web sur le port
+                <strong>8080</strong> (identifiants : airflow / airflow). Le
+                backend accède à l'API Airflow via
+                <code>host.docker.internal:8080</code>.
+            </div>
+
+            <h3>DAG 1 — Import Open Food Facts</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Attribut</th>
+                        <th>Valeur</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Fichier</td>
+                        <td>
+                            <code
+                                >airflow/dags/fetch_openfoodfacts_france.py</code
+                            >
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Source</td>
+                        <td>
+                            API OpenFoodFacts (produits alimentaires France)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Sortie</td>
+                        <td>
+                            <code
+                                >data/intermediate/import/import_YYYYMMDD_HHMMSS.csv</code
+                            >
+                            (validation admin requise)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Objectif</td>
+                        <td>
+                            Collecter des aliments depuis l'API Open Food Facts
+                            vers un CSV intermédiaire
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>DAG 2 — Export base de données vers CSV</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Attribut</th>
+                        <th>Valeur</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Fichier</td>
+                        <td><code>airflow/dags/export_db_to_csv.py</code></td>
+                    </tr>
+                    <tr>
+                        <td>Connexion DB</td>
+                        <td><code>AIRFLOW_CONN_HEALTHAIM_POSTGRES</code></td>
+                    </tr>
+                    <tr>
+                        <td>Sortie</td>
+                        <td>
+                            <code
+                                >data/intermediate/export/export_YYYYMMDD_HHMMSS.csv</code
+                            >
+                            (validation admin requise)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Objectif</td>
+                        <td>
+                            Exporter les tables de healthdb vers un CSV
+                            intermédiaire
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>DAG 3 — Incorporation ML</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Attribut</th>
+                        <th>Valeur</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Fichier</td>
+                        <td><code>airflow/dags/incorporation_ml.py</code></td>
+                    </tr>
+                    <tr>
+                        <td>Fréquence</td>
+                        <td>Toutes les heures</td>
+                    </tr>
+                    <tr>
+                        <td>Entrée</td>
+                        <td>
+                            CSV validés dans
+                            <code>data/intermediate/import/</code> et
+                            <code>data/intermediate/export/</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Sortie</td>
+                        <td>
+                            Import → BDD healthdb ; Export →
+                            <code>data/ml/</code>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Objectif</td>
+                        <td>
+                            Charger les CSV validés par l'admin en base et
+                            copier les exports vers le dossier ML
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Flux de validation</h3>
+            <p>
+                Les DAGs produisent des CSV horodatés. L'admin visualise,
+                modifie et valide via la page
+                <strong>Gestion des flux</strong> (onglets Import/Export). Seuls
+                les CSV validés sont incorporés par l'DAG
+                <code>incorporation_ml</code>.
+            </p>
+
+            <h3>Infrastructure Airflow</h3>
+            <div class="card-grid">
+                <div class="stat-card" style="text-align: left">
+                    <strong>airflow-init</strong>
+                    <p style="font-size: 8.5pt; margin-top: 6px">
+                        Initialisation de la base Airflow et création du compte
+                        admin (exécution unique)
+                    </p>
+                </div>
+                <div class="stat-card" style="text-align: left">
+                    <strong>airflow-webserver</strong>
+                    <p style="font-size: 8.5pt; margin-top: 6px">
+                        Interface web de monitoring des DAGs (port 8080)
+                    </p>
+                </div>
+                <div class="stat-card" style="text-align: left">
+                    <strong>airflow-scheduler</strong>
+                    <p style="font-size: 8.5pt; margin-top: 6px">
+                        Planificateur d'exécution des DAGs (LocalExecutor)
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================ SECTION 10 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">10</div>
+                <h2>Déploiement Docker</h2>
+            </div>
+
+            <h3>Services Docker Compose</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Conteneur</th>
+                        <th>Image</th>
+                        <th>Port exposé</th>
+                        <th>Rôle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>frontend_nginx</code></td>
+                        <td>healthaimspr-frontend (custom)</td>
+                        <td>89:80</td>
+                        <td>Serveur Vue.js + proxy API</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend_api</code></td>
+                        <td>healthaimspr-backend (custom)</td>
+                        <td>8089:8000</td>
+                        <td>API FastAPI + Uvicorn</td>
+                    </tr>
+                    <tr>
+                        <td><code>postgres_health</code></td>
+                        <td>postgres:17</td>
+                        <td>5435:5432</td>
+                        <td>Base de données applicative</td>
+                    </tr>
+                    <tr>
+                        <td><code>airflow_webserver</code></td>
+                        <td>apache/airflow:2.10.4-python3.11</td>
+                        <td>8080:8080</td>
+                        <td>UI monitoring Airflow</td>
+                    </tr>
+                    <tr>
+                        <td><code>airflow_scheduler</code></td>
+                        <td>apache/airflow:2.10.4-python3.11</td>
+                        <td>—</td>
+                        <td>Planificateur de DAGs</td>
+                    </tr>
+                    <tr>
+                        <td><code>postgres_airflow</code></td>
+                        <td>postgres:17</td>
+                        <td>—</td>
+                        <td>Métadonnées Airflow</td>
+                    </tr>
+                    <tr>
+                        <td><code>export_init</code></td>
+                        <td>alpine</td>
+                        <td>—</td>
+                        <td>Init permissions export folder</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Variables d'environnement (.env)</h3>
+            <div class="code-block">
+                <span class="cm"># Base de données principale</span>
+                DATABASE_URL=postgresql://healthuser:healthpass@postgres:5432/healthdb
+
+                <span class="cm"># Sécurité API</span>
+                SECRET_KEY=<span class="str">votre-clé-secrète-forte</span>
+
+                <span class="cm"># Ports (optionnels, valeurs par défaut)</span>
+                FRONTEND_PORT=127.0.0.1:89 BACKEND_PORT=127.0.0.1:8089
+                POSTGRES_PORT=127.0.0.1:5435 AIRFLOW_PORT=8080
+
+                <span class="cm"
+                    ># Frontend (URL de l'API depuis le navigateur)</span
+                >
+                VITE_API_URL=<span class="str">http://localhost:89</span>
+            </div>
+
+            <h3>Commandes de déploiement</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Commande</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>docker compose up -d postgres</code></td>
+                        <td>
+                            Démarre la base de données PostgreSQL utilisée par
+                            l'application
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <code
+                                >docker compose --profile seed run --rm
+                                seed</code
+                            >
+                        </td>
+                        <td>
+                            Charge les données initiales (utilisateurs,
+                            aliments, exercices, etc.) dans la base
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <code
+                                >docker compose --profile admin run --rm
+                                admin</code
+                            >
+                        </td>
+                        <td>
+                            Création d'un compte admin (identifiants : admin /
+                            admin) pour accéder à l'interface d'administration
+                            et valider les flux Airflow
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <code>
+                                docker compose --profile airflow run --rm
+                                airflow-init
+                            </code>
+                        </td>
+                        <td>
+                            Initialise la base de données Airflow et crée le
+                            compte administrateur (exécution unique)
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <code>docker compose --profile airflow up -d</code>
+                        </td>
+                        <td>
+                            Démarre l'ensemble des services : frontend, backend
+                            API, Airflow et base de données
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>docker compose up -d --build</code></td>
+                        <td>Démarrer tous les services en arrière-plan</td>
+                    </tr>
+                    <tr>
+                        <td><code>docker compose logs -f backend_api</code></td>
+                        <td>Suivre les logs du backend en temps réel</td>
+                    </tr>
+                    <tr>
+                        <td><code>docker compose down</code></td>
+                        <td>Arrêter tous les services</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================================ SECTION 11 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">11</div>
+                <h2>Sécurité</h2>
+            </div>
+
+            <div class="card-grid card-grid-2">
+                <div>
+                    <h3>Authentification &amp; Autorisation</h3>
+                    <ul class="simple">
+                        <li>
+                            <strong>JWT HS256</strong> — Tokens signés,
+                            expiration 8h
+                        </li>
+                        <li>
+                            <strong>bcrypt</strong> — Hash adaptatif des mots de
+                            passe, jamais stockés en clair
+                        </li>
+                        <li>
+                            <strong>OAuth2 Password Flow</strong> — Standard RFC
+                            6749
+                        </li>
+                        <li>
+                            <strong>RBAC</strong> — 2 rôles :
+                            <code>user</code> et <code>admin</code>
+                        </li>
+                        <li>Vérification du token à chaque endpoint protégé</li>
+                        <li>
+                            Déconnexion automatique si token expiré (frontend)
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Protection des endpoints</h3>
+                    <ul class="simple">
+                        <li>
+                            Routes publiques : <code>/login</code>,
+                            <code>/utilisateurs/register</code>
+                        </li>
+                        <li>Routes auth : lecture des données (GET)</li>
+                        <li>
+                            Routes admin-only : suppressions (DELETE) et
+                            modifications globales
+                        </li>
+                        <li>
+                            Validation stricte avec
+                            <strong>Pydantic v2</strong> sur toutes les entrées
+                        </li>
+                        <li>
+                            Path parameters validés (<code>gt=0</code> pour les
+                            IDs)
+                        </li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Infrastructure</h3>
+                    <ul class="simple">
+                        <li>
+                            Ports DB exposés uniquement sur
+                            <code>127.0.0.1</code>
+                        </li>
+                        <li>
+                            <code>SECRET_KEY</code> via variable d'environnement
+                            (jamais en dur)
+                        </li>
+                        <li>
+                            Réseau Docker interne isolé
+                            (<code>health_net</code>)
+                        </li>
+                        <li>CORS configuré (à restreindre en production)</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Frontend</h3>
+                    <ul class="simple">
+                        <li>
+                            Guards de navigation empêchent l'accès non autorisé
+                        </li>
+                        <li>
+                            Vérification expiration JWT côté client (champ
+                            <code>exp</code>)
+                        </li>
+                        <li>
+                            Gestion des 401 : logout + redirection automatique
+                        </li>
+                        <li>Pas de données sensibles exposées dans le DOM</li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3>Limites et améliorations recommandées</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Risque actuel</th>
+                        <th>Recommandation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>
+                            Token stocké en
+                            <code>localStorage</code> (vulnérable XSS)
+                        </td>
+                        <td>
+                            Migrer vers <code>httpOnly cookies</code> en
+                            production
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>CORS <code>allow_origins=["*"]</code></td>
+                        <td>Restreindre à l'origine frontend réelle</td>
+                    </tr>
+                    <tr>
+                        <td>Pas de refresh token</td>
+                        <td>
+                            Implémenter un mécanisme de renouvellement
+                            silencieux
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Pas de rate limiting sur <code>/login</code></td>
+                        <td>Ajouter une limite de tentatives (brute force)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================================ SECTION 12 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">12</div>
+                <h2>Conclusion &amp; Perspectives</h2>
+            </div>
+
+            <h3>Bilan du projet</h3>
+            <p>
+                HealthAI MSPR est une plateforme de suivi santé complète,
+                fonctionnelle et entièrement conteneurisée. Elle couvre
+                l'ensemble des besoins exprimés : gestion des utilisateurs,
+                suivi des données physiologiques, analyse statistique, détection
+                d'anomalies, et orchestration de pipelines de données.
+            </p>
+
+            <div class="card-grid">
+                <div class="stat-card">
+                    <div class="icon">✅</div>
+                    <div class="label">Réalisé</div>
+                    <div
+                        class="value"
+                        style="
+                            font-size: 10pt;
+                            margin-top: 8px;
+                            text-align: left;
+                            font-weight: 500;
+                            color: var(--gray-700);
+                        "
+                    >
+                        API REST complète · Auth JWT · Dashboard admin · Profil
+                        utilisateur par onglets · Détection anomalies · Pipeline
+                        Airflow · Design system moderne · Footer global ·
+                        Déploiement Docker
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">🚀</div>
+                    <div class="label">Perspectives</div>
+                    <div
+                        class="value"
+                        style="
+                            font-size: 10pt;
+                            margin-top: 8px;
+                            text-align: left;
+                            font-weight: 500;
+                            color: var(--gray-700);
+                        "
+                    >
+                        Recommandations IA personnalisées · Graphiques de
+                        tendances · Notifications temps réel · Application
+                        mobile · Export PDF des rapports · Refresh tokens ·
+                        Tests automatisés complets
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">📈</div>
+                    <div class="label">Qualité technique</div>
+                    <div
+                        class="value"
+                        style="
+                            font-size: 10pt;
+                            margin-top: 8px;
+                            text-align: left;
+                            font-weight: 500;
+                            color: var(--gray-700);
+                        "
+                    >
+                        Architecture découplée · TypeScript strict · ORM typé ·
+                        Validation Pydantic v2 · Tests backend disponibles ·
+                        Documentation auto Swagger
+                    </div>
+                </div>
+            </div>
+
+            <div
+                style="
+                    margin-top: 40px;
+                    padding: 24px;
+                    background: linear-gradient(135deg, #0f2044, #1e3a5f);
+                    border-radius: 14px;
+                    color: #fff;
+                    text-align: center;
+                "
+            >
+                <div style="font-size: 28pt; margin-bottom: 12px">❤️</div>
+                <div
+                    style="
+                        font-size: 16pt;
+                        font-weight: 800;
+                        margin-bottom: 6px;
+                    "
+                >
+                    HealthAI MSPR
+                </div>
+                <div style="opacity: 0.7; font-size: 10pt">
+                    Plateforme de suivi santé intelligent — EPSI · 2026
+                </div>
+                <div
+                    style="
+                        margin-top: 16px;
+                        display: flex;
+                        justify-content: center;
+                        gap: 24px;
+                        font-size: 9pt;
+                        opacity: 0.6;
+                    "
+                >
+                    <span>Vue 3 + TypeScript</span>
+                    <span>·</span>
+                    <span>FastAPI + Python</span>
+                    <span>·</span>
+                    <span>PostgreSQL 17</span>
+                    <span>·</span>
+                    <span>Docker Compose</span>
+                    <span>·</span>
+                    <span>Apache Airflow</span>
+                </div>
+            </div>
+        </div>
+    </body>
 </html>
