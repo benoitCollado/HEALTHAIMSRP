@@ -1,5 +1,7 @@
 <template>
   <div class="app-root">
+    <!-- RGAA : lien d'évitement pour accéder au contenu principal -->
+    <a href="#main-content" class="skip-link">Aller au contenu principal</a>
     <router-view />
     <AppFooter />
   </div>

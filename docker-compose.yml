@@ -16,6 +16,7 @@ services:
       - health_net
 
   backend:
+    image: healthaimsrp-backend
     build: ./backend
     env_file:
       - .env
@@ -25,28 +26,29 @@ services:
       - postgres
     ports:
       - "${BACKEND_PORT:-127.0.0.1:8089}:8000"
+    volumes:
+      - ./data:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       DATABASE_URL: postgresql://healthuser:healthpass@postgres:5432/healthdb
       SECRET_KEY: ${SECRET_KEY:-healthaim-secret-key-dev-change-in-production}
+      DATA_DIR: /data
+      AIRFLOW_API_URL: ${AIRFLOW_API_URL:-http://host.docker.internal:8080}
+      AIRFLOW_USER: ${AIRFLOW_USER:-airflow}
+      AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
+    command: >
+      bash -c "
+        python /data/seed_db.py && python /app/app/create_admin.py || true &&
+        exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+      "
     networks:
       - health_net
 
-  frontend:
-    build:
-      context: ./Frontend
-      dockerfile: Dockerfile.nginx
-      args:
-        VITE_API_URL: ${VITE_API_URL:-}
-    container_name: frontend_nginx
-    restart: always
-    depends_on:
-      - backend
-    ports:
-      - "${FRONTEND_PORT:-127.0.0.1:89}:80"
-    networks:
-      - health_net
-
+  # Seed des données initiales (CSV clean/ → PostgreSQL)
+  # Prérequis: postgres démarré, fichiers dans data/clean/
   seed:
+    image: healthaimsrp-backend
     build: ./backend
     env_file:
       - .env
@@ -55,22 +57,57 @@ services:
     volumes:
       - ./data:/data
     environment:
-      DATABASE_URL: postgresql://healthuser:healthpass@postgres:5432/healthdb
+      DATABASE_URL: postgresql://healthuser:healthpass@127.0.0.1:${POSTGRES_HOST_PORT:-5435}/healthdb
       DATA_DIR: /data
-    command: bash -c "python /data/seed_db.py && python /app/app/create_admin.py"
-    networks:
-      - health_net
+      SECRET_KEY: ${SECRET_KEY:-healthaim-secret-key-dev-change-in-production}
+    network_mode: host
     profiles:
       - seed
+    command: python /data/seed_db.py
 
-  # Init permissions pour le dossier export (Airflow doit pouvoir écrire, vous pourrez lire)
+  # Création du compte admin (via localhost)
+  # Port: 5435 par défaut, ou POSTGRES_HOST_PORT dans .env si différent
+  create-admin:
+    image: healthaimsrp-backend
+    build: ./backend
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql://healthuser:healthpass@127.0.0.1:${POSTGRES_HOST_PORT:-5435}/healthdb
+      SECRET_KEY: ${SECRET_KEY:-healthaim-secret-key-dev-change-in-production}
+    network_mode: host
+    profiles:
+      - admin
+    command: python -m app.create_admin
+
+  frontend:
+    build:
+      context: ./Frontend
+      dockerfile: Dockerfile.nginx
+      args:
+        VITE_API_URL: ${VITE_API_URL:-}
+        VITE_AIRFLOW_UI_URL: ${VITE_AIRFLOW_UI_URL:-http://localhost:8080}
+    container_name: frontend_nginx
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-89}:80"
+    networks:
+      - health_net
+
+  # Init permissions pour les dossiers export et intermediate (Airflow doit pouvoir écrire)
   export-init:
     image: alpine
     container_name: export_init
     user: root
     volumes:
       - ./data/export:/opt/airflow/export
-    command: sh -c "mkdir -p /opt/airflow/export && chmod 777 /opt/airflow/export"
+      - ./data/intermediate:/opt/airflow/intermediate
+      - ./data/ml:/opt/airflow/ml
+    command: sh -c "mkdir -p /opt/airflow/export /opt/airflow/intermediate/import /opt/airflow/intermediate/export /opt/airflow/ml && chmod -R 777 /opt/airflow/export /opt/airflow/intermediate /opt/airflow/ml"
     networks:
       - health_net
     restart: "no"
@@ -147,6 +184,8 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./data/export:/opt/airflow/export
+      - ./data/intermediate:/opt/airflow/intermediate
+      - ./data/ml:/opt/airflow/ml
     command: webserver
     networks:
       - health_net
@@ -180,6 +219,8 @@ services:
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./data/export:/opt/airflow/export
+      - ./data/intermediate:/opt/airflow/intermediate
+      - ./data/ml:/opt/airflow/ml
     command: scheduler
     networks:
       - health_net

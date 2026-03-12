@@ -1,205 +1,241 @@
 <template>
-  <div class="canvas">
+  <div class="canvas" role="main" aria-label="Tableau de bord d'administration">
     <Navbar title="Dashboard" />
-    <div style="padding:24px;max-width:1100px;width:100%;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:16px">
-      <section v-if="error" style="grid-column:1 / -1;background:#fff3f3;padding:16px;border-radius:8px;color:#b42318;">
+    <div id="main-content" class="dashboard-container">
+      <div v-if="loading" class="loading" role="status" aria-live="polite">
+        Chargement des indicateurs...
+      </div>
+      <div v-if="error" class="error" role="alert">
         {{ error }}
-      </section>
+      </div>
 
-      <section v-if="loading" style="grid-column:1 / -1;background:#fff;padding:16px;border-radius:8px;">
-        Chargement des données globales...
-      </section>
-
-      <section style="background:#fff;padding:16px;border-radius:8px;">
-        <h3>Top 3 exercices</h3>
-        <div v-if="!topExercises.length" style="color:#667085">Aucune activité disponible.</div>
-        <div v-else>
-          <div v-for="item in topExercises" :key="item.label" style="margin-bottom:12px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:14px">
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
+      <template v-if="data && !loading">
+        <!-- Qualité des données -->
+        <section class="card" aria-labelledby="qualite-title">
+          <h2 id="qualite-title">Qualité des données</h2>
+          <div class="kpi-grid">
+            <div class="kpi" aria-label="Score de qualité">
+              <span class="kpi-value">{{ data.qualite_donnees.score_pct }}%</span>
+              <span class="kpi-label">Score qualité</span>
             </div>
-            <div style="height:10px;background:#e9eef5;border-radius:999px;overflow:hidden">
-              <div :style="`height:100%;width:${exerciseBarPercent(item.value)}%;background:#5294E2`"></div>
+            <div class="kpi" aria-label="Total anomalies">
+              <span class="kpi-value">{{ data.qualite_donnees.total_anomalies }}</span>
+              <span class="kpi-label">Anomalies</span>
             </div>
-          </div>
-        </div>
-      </section>
-
-      <section style="background:#fff;padding:16px;border-radius:8px;">
-        <h3>Top 3 aliments</h3>
-        <div v-if="!topAliments.length" style="color:#667085">Aucune consommation disponible.</div>
-        <div v-else>
-          <div v-for="item in topAliments" :key="item.label" style="margin-bottom:12px">
-            <div style="display:flex;justify-content:space-between;margin-bottom:4px;font-size:14px">
-              <span>{{ item.label }}</span>
-              <strong>{{ item.value }}</strong>
+            <div class="kpi" aria-label="Objectifs refusés">
+              <span class="kpi-value">{{ data.qualite_donnees.objectifs_refuses }}</span>
+              <span class="kpi-label">Objectifs refusés</span>
             </div>
-            <div style="height:10px;background:#f8eddb;border-radius:999px;overflow:hidden">
-              <div :style="`height:100%;width:${foodBarPercent(item.value)}%;background:#E79A0F`"></div>
+            <div class="kpi" aria-label="Consommations invalides">
+              <span class="kpi-value">{{ data.qualite_donnees.consommations_invalides }}</span>
+              <span class="kpi-label">Consommations invalides</span>
+            </div>
+            <div class="kpi" aria-label="Métriques aberrantes">
+              <span class="kpi-value">{{ data.qualite_donnees.metriques_aberrantes }}</span>
+              <span class="kpi-label">Métriques aberrantes</span>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section style="grid-column:1 / -1;background:#fff;padding:16px;border-radius:8px;">
-        <h3>Moyennes utilisateurs</h3>
-        <div style="display:flex;gap:12px">
-          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Taille moyenne<br/><strong>{{ stats.tailleMoyenne }} cm</strong></div>
-          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Poids moyen<br/><strong>{{ stats.poidsMoyen }} kg</strong></div>
-          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Âge moyen<br/><strong>{{ stats.ageMoyen }} ans</strong></div>
-          <div style="flex:1;padding:12px;background:#f7f9fc;border-radius:6px">Exos / utilisateur<br/><strong>{{ stats.exosMoyensParUtilisateur }}</strong></div>
-        </div>
-      </section>
+        <!-- Progression utilisateurs -->
+        <section class="card" aria-labelledby="users-title">
+          <h2 id="users-title">Progression utilisateurs</h2>
+          <div class="kpi-grid">
+            <div class="kpi" aria-label="Total utilisateurs">
+              <span class="kpi-value">{{ data.progression_utilisateurs.total }}</span>
+              <span class="kpi-label">Total</span>
+            </div>
+            <div class="kpi" aria-label="Nouveaux utilisateurs 7 jours">
+              <span class="kpi-value">{{ data.progression_utilisateurs.nouveaux_7j }}</span>
+              <span class="kpi-label">Nouveaux (7j)</span>
+            </div>
+            <div class="kpi" aria-label="Nouveaux utilisateurs 30 jours">
+              <span class="kpi-value">{{ data.progression_utilisateurs.nouveaux_30j }}</span>
+              <span class="kpi-label">Nouveaux (30j)</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tendances nutrition -->
+        <section class="card" aria-labelledby="nutrition-title">
+          <h2 id="nutrition-title">Tendances nutrition</h2>
+          <div class="kpi-grid">
+            <div class="kpi" aria-label="Total consommations">
+              <span class="kpi-value">{{ data.tendances_nutrition.total_consommations }}</span>
+              <span class="kpi-label">Consommations</span>
+            </div>
+            <div class="kpi" aria-label="Consommations 7 derniers jours">
+              <span class="kpi-value">{{ data.tendances_nutrition.consommations_7j }}</span>
+              <span class="kpi-label">Derniers 7j</span>
+            </div>
+            <div class="kpi" aria-label="Calories moyennes">
+              <span class="kpi-value">{{ data.tendances_nutrition.calories_moyennes }}</span>
+              <span class="kpi-label">Cal. moyennes</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Tendances activité -->
+        <section class="card" aria-labelledby="activite-title">
+          <h2 id="activite-title">Tendances activité</h2>
+          <div class="kpi-grid">
+            <div class="kpi" aria-label="Total activités">
+              <span class="kpi-value">{{ data.tendances_activite.total_activites }}</span>
+              <span class="kpi-label">Activités</span>
+            </div>
+            <div class="kpi" aria-label="Activités 7 derniers jours">
+              <span class="kpi-value">{{ data.tendances_activite.activites_7j }}</span>
+              <span class="kpi-label">Derniers 7j</span>
+            </div>
+            <div class="kpi" aria-label="Durée totale en minutes">
+              <span class="kpi-value">{{ formatDuree(data.tendances_activite.duree_totale_minutes) }}</span>
+              <span class="kpi-label">Durée totale</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Objectifs -->
+        <section class="card" aria-labelledby="objectifs-title">
+          <h2 id="objectifs-title">Objectifs</h2>
+          <div class="kpi-grid">
+            <div class="kpi" aria-label="Objectifs validés">
+              <span class="kpi-value">{{ data.objectifs.valides }}</span>
+              <span class="kpi-label">Validés</span>
+            </div>
+            <div class="kpi" aria-label="Objectifs en cours">
+              <span class="kpi-value">{{ data.objectifs.encours }}</span>
+              <span class="kpi-label">En cours</span>
+            </div>
+            <div class="kpi" aria-label="Objectifs refusés">
+              <span class="kpi-value">{{ data.objectifs.refuses }}</span>
+              <span class="kpi-label">Refusés</span>
+            </div>
+            <div class="kpi" aria-label="Taux de validation">
+              <span class="kpi-value">{{ data.objectifs.taux_validation_pct }}%</span>
+              <span class="kpi-label">Taux validation</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- KPIs business -->
+        <section class="card" aria-labelledby="kpis-title">
+          <h2 id="kpis-title">KPIs business</h2>
+          <div class="kpi-grid">
+            <div class="kpi" aria-label="Utilisateurs actifs 30 jours">
+              <span class="kpi-value">{{ data.kpis_business.utilisateurs_actifs_30j }}</span>
+              <span class="kpi-label">Utilisateurs actifs (30j)</span>
+            </div>
+            <div class="kpi" aria-label="Données santé total">
+              <span class="kpi-value">{{ data.kpis_business.donnees_sante_total }}</span>
+              <span class="kpi-label">Données santé</span>
+            </div>
+          </div>
+        </section>
+      </template>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref, onMounted } from 'vue'
+import { defineComponent, ref, onMounted } from 'vue'
 import Navbar from '../components/Navbar.vue'
-import { auth } from '../services/auth'
-import { API_BASE_URL } from '../config'
-
-interface Activite {
-  id_exercice: number
-}
-
-interface Consommation {
-  id_aliment: number
-}
-
-interface Exercice {
-  id_exercice: number
-  nom_exercice: string
-}
-
-interface Aliment {
-  id_aliment: number
-  nom_aliment: string
-}
-
-interface Utilisateur {
-  id_utilisateur: number
-  age: number
-  taille_cm: number
-  poids_kg: number
-}
-
-interface RankedItem {
-  label: string
-  value: number
-}
+import { getDashboard, type DashboardData } from '../services/adminApi'
 
 export default defineComponent({
   components: { Navbar },
   setup() {
-    const loading = ref(false)
+    const data = ref<DashboardData | null>(null)
+    const loading = ref(true)
     const error = ref('')
-    const topExercises = ref<RankedItem[]>([])
-    const topAliments = ref<RankedItem[]>([])
-    const stats = ref({
-      tailleMoyenne: '0.0',
-      poidsMoyen: '0.0',
-      ageMoyen: '0.0',
-      exosMoyensParUtilisateur: '0.00'
-    })
 
-    const fetchJson = async (endpoint: string, token: string) => {
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error(`Erreur ${response.status} sur ${endpoint}`)
-      }
-
-      return response.json()
+    const formatDuree = (minutes: number) => {
+      if (minutes < 60) return `${minutes} min`
+      const h = Math.floor(minutes / 60)
+      const m = minutes % 60
+      return m ? `${h}h ${m}min` : `${h}h`
     }
 
-    const toTopThree = (countMap: Record<number, number>, labelMap: Map<number, string>): RankedItem[] => {
-      return Object.entries(countMap)
-        .map(([id, value]) => ({
-          label: labelMap.get(Number(id)) || `ID ${id}`,
-          value
-        }))
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 3)
-    }
-
-    const exerciseMax = computed(() => Math.max(...topExercises.value.map(item => item.value), 1))
-    const foodMax = computed(() => Math.max(...topAliments.value.map(item => item.value), 1))
-
-    const exerciseBarPercent = (value: number) => Math.max(5, Math.round((value / exerciseMax.value) * 100))
-    const foodBarPercent = (value: number) => Math.max(5, Math.round((value / foodMax.value) * 100))
-
-    onMounted(() => {
-      const loadDashboard = async () => {
-        const token = auth.getToken()
-        if (!token) return
-
-        try {
-          loading.value = true
-          error.value = ''
-
-          const [activites, utilisateurs, consommations, exercices, aliments] = await Promise.all([
-            fetchJson('/activites/', token) as Promise<Activite[]>,
-            fetchJson('/utilisateurs/', token) as Promise<Utilisateur[]>,
-            fetchJson('/consommations/', token) as Promise<Consommation[]>,
-            fetchJson('/exercices/', token) as Promise<Exercice[]>,
-            fetchJson('/aliments/', token) as Promise<Aliment[]>
-          ])
-
-          const exerciceNameById = new Map(exercices.map(item => [item.id_exercice, item.nom_exercice]))
-          const alimentNameById = new Map(aliments.map(item => [item.id_aliment, item.nom_aliment]))
-
-          const exerciceCountMap = activites.reduce((acc: Record<number, number>, activity) => {
-            acc[activity.id_exercice] = (acc[activity.id_exercice] || 0) + 1
-            return acc
-          }, {})
-
-          const alimentCountMap = consommations.reduce((acc: Record<number, number>, consommation) => {
-            acc[consommation.id_aliment] = (acc[consommation.id_aliment] || 0) + 1
-            return acc
-          }, {})
-
-          topExercises.value = toTopThree(exerciceCountMap, exerciceNameById)
-          topAliments.value = toTopThree(alimentCountMap, alimentNameById)
-
-          const userCount = utilisateurs.length
-          const totalHeight = utilisateurs.reduce((sum, user) => sum + (user.taille_cm || 0), 0)
-          const totalWeight = utilisateurs.reduce((sum, user) => sum + (user.poids_kg || 0), 0)
-          const totalAge = utilisateurs.reduce((sum, user) => sum + (user.age || 0), 0)
-
-          stats.value = {
-            tailleMoyenne: userCount ? (totalHeight / userCount).toFixed(1) : '0.0',
-            poidsMoyen: userCount ? (totalWeight / userCount).toFixed(1) : '0.0',
-            ageMoyen: userCount ? (totalAge / userCount).toFixed(1) : '0.0',
-            exosMoyensParUtilisateur: userCount ? (activites.length / userCount).toFixed(2) : '0.00'
-          }
-        } catch {
-          topExercises.value = []
-          topAliments.value = []
-          stats.value = {
-            tailleMoyenne: '0.0',
-            poidsMoyen: '0.0',
-            ageMoyen: '0.0',
-            exosMoyensParUtilisateur: '0.00'
-          }
-          error.value = 'Impossible de charger les données globales du dashboard.'
-        } finally {
-          loading.value = false
-        }
+    onMounted(async () => {
+      try {
+        loading.value = true
+        error.value = ''
+        data.value = await getDashboard()
+      } catch (e) {
+        error.value = e instanceof Error ? e.message : 'Erreur lors du chargement du tableau de bord.'
+        data.value = null
+      } finally {
+        loading.value = false
       }
-
-      loadDashboard()
     })
 
-    return { loading, error, topExercises, topAliments, stats, exerciseBarPercent, foodBarPercent }
+    return { data, loading, error, formatDuree }
   }
 })
 </script>
+
+<style scoped>
+.dashboard-container {
+  padding: 24px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+.card {
+  background: #fff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.card h2 {
+  font-size: 1rem;
+  margin: 0 0 12px 0;
+  color: #2f4b66;
+}
+
+.kpi-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.kpi {
+  flex: 1;
+  min-width: 80px;
+  padding: 12px;
+  background: #f7f9fc;
+  border-radius: 6px;
+}
+
+.kpi-value {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2f4b66;
+}
+
+.kpi-label {
+  font-size: 0.85rem;
+  color: #5a6c7d;
+}
+
+.loading, .error {
+  grid-column: 1 / -1;
+  padding: 12px;
+  border-radius: 6px;
+}
+
+.loading {
+  background: #f5f7fa;
+  color: #2f4b66;
+}
+
+.error {
+  background: #ffebee;
+  color: #c62828;
+}
+</style>
