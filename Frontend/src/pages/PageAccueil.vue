@@ -1,7 +1,7 @@
 <template>
   <div class="canvas nav-page">
     <Navbar title="Accueil" />
-    <div class="page-content">
+    <div id="main-content" class="page-content">
       <!-- Admin view: Navigation -->
       <div v-if="isAdmin">
         <h2>Page d'accueil</h2>
@@ -15,19 +15,47 @@
             <div class="nav-icon">📋</div>
             <div>Gestion des flux</div>
           </router-link>
+          <router-link to="/nettoyage" class="nav-card">
+            <div class="nav-icon">🧹</div>
+            <div>Nettoyage</div>
+          </router-link>
+          <router-link to="/utilisateurs" class="nav-card">
+            <div class="nav-icon">👥</div>
+            <div>Utilisateurs</div>
+          </router-link>
+          <router-link to="/test-backend" class="nav-card">
+            <div class="nav-icon">🧪</div>
+            <div>Test API</div>
+          </router-link>
         </div>
       </div>
 
       <!-- User view: Profile -->
       <div v-else class="user-view">
         <h2>Votre profil</h2>
+
+        <!-- Tab navigation -->
+        <div class="user-tabs">
+          <button
+            v-for="tab in tabs"
+            :key="tab.id"
+            class="user-tab"
+            :class="{ active: activeTab === tab.id }"
+            @click="activeTab = tab.id"
+          >
+            {{ tab.icon }} {{ tab.label }}
+            <span v-if="tab.count !== undefined" class="tab-count">{{ tab.count }}</span>
+          </button>
+        </div>
+
         <div class="user-panel">
           <div v-if="userLoading" class="user-loading">Chargement des données utilisateur...</div>
           <div v-else-if="userError" class="user-error">{{ userError }}</div>
 
           <template v-else>
-          <!-- Profile section -->
-          <div class="user-section">
+
+          <!-- Tab: Profil -->
+          <div v-if="activeTab === 'profil'" class="user-section">
             <h3>Informations personnelles</h3>
             <div class="user-grid">
               <div class="user-card">
@@ -69,34 +97,10 @@
             </div>
           </div>
 
-          <!-- Alimentation section -->
-          <div class="user-section">
-            <h3>Alimentation</h3>
-            <div class="user-subpanel">
-              <div class="user-grid user-grid-2">
-                <div>
-                  <div class="user-label">Calories consommées (total)</div>
-                  <div class="user-value">{{ totalCaloriesConsumed }} kcal</div>
-                </div>
-                <div>
-                  <div class="user-label">Consommations enregistrées</div>
-                  <div class="user-value">{{ userConsumptions.length }}</div>
-                </div>
-                <div>
-                  <div class="user-label">Dernière consommation</div>
-                  <div class="user-value">{{ lastConsumptionDate }}</div>
-                </div>
-                <div>
-                  <div class="user-label">Objectifs actifs</div>
-                  <div class="user-value">{{ activeGoals.length }}</div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="user-section">
-            <h3>Mesures santé récentes</h3>
-            <div v-if="!displayedMetrics.length" class="user-empty">Aucune mesure disponible.</div>
+          <!-- Tab: Santé -->
+          <div v-if="activeTab === 'sante'">
+            <h3>Mesures santé</h3>
+            <div v-if="!userMetrics.length" class="user-empty">Aucune mesure disponible.</div>
             <div v-else class="table-wrap">
               <table class="simple-table">
                 <thead>
@@ -110,7 +114,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="metric in displayedMetrics" :key="metric.id_metrique">
+                  <tr v-for="metric in userMetrics" :key="metric.id_metrique">
                     <td>{{ formatDate(metric.date_mesure) }}</td>
                     <td>{{ metric.poids_kg ?? '-' }}</td>
                     <td>{{ metric.frequence_cardiaque ?? '-' }}</td>
@@ -123,27 +127,96 @@
             </div>
           </div>
 
-          <div class="user-section user-grid user-grid-2">
-            <div class="user-subpanel">
-              <h3>Activités récentes</h3>
-              <div v-if="!recentActivities.length" class="user-empty">Aucune activité.</div>
-              <ul v-else class="user-list">
-                <li v-for="activity in recentActivities" :key="activity.id_activite">
-                  {{ formatDate(activity.date_activite) }} · {{ activity.duree_minutes }} min · {{ activity.calories_depensees }} kcal
-                </li>
-              </ul>
-            </div>
-
-            <div class="user-subpanel">
-              <h3>Objectifs</h3>
-              <div v-if="!userGoals.length" class="user-empty">Aucun objectif.</div>
-              <ul v-else class="user-list">
-                <li v-for="goal in userGoals" :key="goal.id_objectif">
-                  {{ goal.type_objectif }} · {{ goal.statut }} ({{ formatDate(goal.date_debut) }} → {{ formatDate(goal.date_fin) }})
-                </li>
-              </ul>
+          <!-- Tab: Activités -->
+          <div v-if="activeTab === 'activites'">
+            <h3>Activités physiques</h3>
+            <div v-if="!userActivities.length" class="user-empty">Aucune activité enregistrée.</div>
+            <div v-else class="table-wrap">
+              <table class="simple-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Durée (min)</th>
+                    <th>Calories dépensées</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="activity in userActivities" :key="activity.id_activite">
+                    <td>{{ formatDate(activity.date_activite) }}</td>
+                    <td>{{ activity.duree_minutes }}</td>
+                    <td>{{ activity.calories_depensees }} kcal</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </div>
+
+          <!-- Tab: Alimentation -->
+          <div v-if="activeTab === 'alimentation'">
+            <h3>Alimentation</h3>
+            <div class="user-grid user-grid-2" style="margin-bottom:16px">
+              <div class="user-card">
+                <div class="user-label">Calories consommées (total)</div>
+                <div class="user-value">{{ totalCaloriesConsumed }} kcal</div>
+              </div>
+              <div class="user-card">
+                <div class="user-label">Consommations enregistrées</div>
+                <div class="user-value">{{ userConsumptions.length }}</div>
+              </div>
+              <div class="user-card">
+                <div class="user-label">Dernière consommation</div>
+                <div class="user-value">{{ lastConsumptionDate }}</div>
+              </div>
+            </div>
+            <div v-if="!userConsumptions.length" class="user-empty">Aucune consommation enregistrée.</div>
+            <div v-else class="table-wrap">
+              <table class="simple-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Calories</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="c in userConsumptions" :key="c.id_consommation">
+                    <td>{{ formatDate(c.date_consommation) }}</td>
+                    <td>{{ c.calories_calculees }} kcal</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Tab: Objectifs -->
+          <div v-if="activeTab === 'objectifs'">
+            <h3>Objectifs</h3>
+            <div v-if="!userGoals.length" class="user-empty">Aucun objectif enregistré.</div>
+            <div v-else class="table-wrap">
+              <table class="simple-table">
+                <thead>
+                  <tr>
+                    <th>Type</th>
+                    <th>Statut</th>
+                    <th>Début</th>
+                    <th>Fin</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="goal in userGoals" :key="goal.id_objectif">
+                    <td>{{ goal.type_objectif }}</td>
+                    <td>
+                      <span class="goal-status" :class="goal.statut?.toLowerCase().replace(/\s+/g, '-')">
+                        {{ goal.statut }}
+                      </span>
+                    </td>
+                    <td>{{ formatDate(goal.date_debut) }}</td>
+                    <td>{{ formatDate(goal.date_fin) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           </template>
         </div>
       </div>
@@ -153,6 +226,7 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import Navbar from '../components/Navbar.vue'
 import { auth } from '../services/auth'
 import { API_BASE_URL } from '../config'
@@ -207,6 +281,7 @@ interface Objectif {
 export default defineComponent({
   components: { Navbar },
   setup() {
+    const router = useRouter()
     const isAdmin = computed(() => auth.isAdmin())
     const userProfile = ref<UserProfile | null>(null)
     const userMetrics = ref<Metrique[]>([])
@@ -215,6 +290,15 @@ export default defineComponent({
     const userGoals = ref<Objectif[]>([])
     const userLoading = ref(false)
     const userError = ref('')
+    const activeTab = ref('profil')
+
+    const tabs = computed(() => [
+      { id: 'profil', label: 'Profil', icon: '👤' },
+      { id: 'sante', label: 'Santé', icon: '❤️', count: userMetrics.value.length },
+      { id: 'activites', label: 'Activités', icon: '🏃', count: userActivities.value.length },
+      { id: 'alimentation', label: 'Alimentation', icon: '🍽️', count: userConsumptions.value.length },
+      { id: 'objectifs', label: 'Objectifs', icon: '🎯', count: userGoals.value.length }
+    ])
 
     const formatDate = (dateValue?: string) => {
       if (!dateValue) return '-'
@@ -249,6 +333,11 @@ export default defineComponent({
       })
 
       if (!response.ok) {
+        if (response.status === 401) {
+          auth.logout()
+          router.push('/connexion')
+          throw new Error('Session expirée. Veuillez vous reconnecter.')
+        }
         throw new Error(`Erreur ${response.status} sur ${endpoint}`)
       }
 
@@ -315,6 +404,8 @@ export default defineComponent({
       userGoals,
       userLoading,
       userError,
+      activeTab,
+      tabs,
       displayedMetrics,
       recentActivities,
       activeGoals,
@@ -343,6 +434,65 @@ export default defineComponent({
   margin-bottom: 24px;
   padding-bottom: 24px;
   border-bottom: 1px solid #eee;
+}
+
+.user-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.user-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px 6px 0 0;
+  background: #e8edf3;
+  color: #555;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.user-tab:hover {
+  background: #d0d8e4;
+  color: #333;
+}
+
+.user-tab.active {
+  background: #fff;
+  color: #1e3a5f;
+  font-weight: 700;
+  box-shadow: 0 -2px 0 #2563eb inset;
+}
+
+.tab-count {
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.user-tab.active .tab-count {
+  background: #2563eb;
+}
+
+.goal-status {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #e8edf3;
+  color: #555;
 }
 
 .user-grid {
@@ -427,8 +577,8 @@ export default defineComponent({
 
 .nav-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
   margin-top: 32px;
   max-width: 900px;
 }
@@ -457,7 +607,14 @@ export default defineComponent({
 
 @media (max-width: 900px) {
   .user-grid,
-  .user-grid-2,
+  .user-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .nav-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 500px) {
   .nav-grid {
     grid-template-columns: 1fr;
   }

@@ -36,8 +36,18 @@ Exécution **quotidienne** à 6h00 pour :
 ```
 airflow/
 ├── dags/
-│   └── fetch_openfoodfacts_france.py   # DAG quotidien
+│   ├── fetch_openfoodfacts_france.py   # Import quotidien Open Food Facts
+│   └── export_db_to_csv.py            # Export quotidien DB → CSV
 └── README.md
 ```
+
+## DAG : export_db_to_csv
+
+Exécution **quotidienne à minuit** (00:00) :
+
+- Récupère les données du jour précédent (consommation, activité, métriques santé)
+- Enregistre dans `data/export/export_journalier.csv`
+- Si le fichier existe déjà, les nouvelles lignes sont ajoutées à la fin
+- Chmod 644/755 automatique : le CSV est lisible par tous les utilisateurs de la machine
 
 > **Note** : L'image officielle `apache/airflow:2.10.4` est utilisée directement. Les providers (postgres, http) sont installés via `_PIP_ADDITIONAL_REQUIREMENTS`.

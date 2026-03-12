@@ -4,13 +4,17 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 
 # Clé secrète utilisée pour signer et vérifier les tokens JWT
-SECRET_KEY = os.getenv("SECRET_KEY") or "healthaim-secret-key-dev-change-in-production"
+SECRET_KEY = os.getenv("SECRET_KEY")
+
+# Vérification de la clé secrète
+if not SECRET_KEY:
+    raise ValueError("SECRET_KEY environment variable is not set")
 
 # Algorithme de signature du JWT
 ALGORITHM = "HS256"
 
 # Durée de validité du token en minutes
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 heures
 
 # Configuration du contexte de hash pour les mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

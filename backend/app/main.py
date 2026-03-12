@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, Query
+from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
@@ -13,7 +13,8 @@ from app.routers import (
     consommations,
     activites,
     metriques_sante,
-    objectifs
+    objectifs,
+    admin,
 )
 
 # Création de l'application FastAPI avec un titre
@@ -79,3 +80,4 @@ app.include_router(consommations.router)
 app.include_router(activites.router)
 app.include_router(metriques_sante.router)
 app.include_router(objectifs.router)
+app.include_router(admin.router)

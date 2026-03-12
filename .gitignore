@@ -35,3 +35,10 @@ Thumbs.db
 .turbo/
 
 .ipynb_checkpoints/
+
+database/db/
+data/export/
+data/intermediate/
+data/ml/
+
+database/db/
