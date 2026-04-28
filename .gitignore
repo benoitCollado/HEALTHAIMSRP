@@ -17,8 +17,7 @@ build/
 
 # Docker
 .env
-.env.local
-.env.example
+
 
 # IDE
 .vscode/
