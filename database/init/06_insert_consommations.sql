@@ -1,71 +1,67 @@
 -- Données de test : consommations alimentaires (7 derniers jours)
--- id_utilisateur : 1=testuser, 3=marie.dupont, 4=pierre.martin, 5=sophie.bernard
--- id_aliment : voir 03_insert_aliments.sql
---   1=Poulet grillé, 2=Saumon, 3=Oeuf, 4=Riz, 5=Pâtes, 6=Pain complet
---   7=Brocoli, 8=Tomate, 9=Banane, 10=Pomme, 11=Avocat
---   12=Yaourt 0%, 13=Fromage blanc, 14=Lentilles, 15=Amandes
+-- LIMIT 1 sur les sous-requêtes en sécurité contre d'éventuels doublons résiduels
 -- calories_calculees = (quantite_g / 100) * calories_aliment
 
 INSERT INTO consommation (date_consommation, quantite_g, calories_calculees, id_aliment, id_utilisateur)
 VALUES
-  -- testuser (id=1) - semaine du 21 au 27 avril 2026
-  ('2026-04-21', 150.00, 247.50,  1, 1),  -- Poulet grillé 150g
-  ('2026-04-21', 200.00, 260.00,  4, 1),  -- Riz blanc 200g
-  ('2026-04-21', 100.00,  35.00,  7, 1),  -- Brocoli 100g
-  ('2026-04-22', 100.00, 208.00,  2, 1),  -- Saumon 100g
-  ('2026-04-22', 200.00, 262.00,  5, 1),  -- Pâtes 200g
-  ('2026-04-22',  30.00,  26.70,  9, 1),  -- Banane 30g (demi)
-  ('2026-04-23', 120.00, 198.00,  1, 1),  -- Poulet 120g
-  ('2026-04-23', 150.00, 195.00,  4, 1),  -- Riz 150g
-  ('2026-04-23', 200.00,  36.00,  8, 1),  -- Tomate 200g
-  ('2026-04-24', 150.00, 247.50,  1, 1),  -- Poulet 150g
-  ('2026-04-24', 150.00, 196.50,  5, 1),  -- Pâtes 150g
-  ('2026-04-24', 100.00,  89.00,  9, 1),  -- Banane 100g
-  ('2026-04-25', 100.00, 116.00, 14, 1),  -- Lentilles 100g
-  ('2026-04-25', 200.00, 260.00,  4, 1),  -- Riz 200g
-  ('2026-04-25', 150.00,  52.50,  8, 1),  -- Tomate 150g
-  ('2026-04-26', 100.00, 208.00,  2, 1),  -- Saumon 100g
-  ('2026-04-26',  80.00, 197.60,  6, 1),  -- Pain complet 80g
-  ('2026-04-26',  50.00,  44.50, 12, 1),  -- Yaourt 50g
-  ('2026-04-27', 120.00, 198.00,  1, 1),  -- Poulet 120g
-  ('2026-04-27', 150.00, 195.00,  4, 1),  -- Riz 150g
-  ('2026-04-27',  30.00, 173.70, 15, 1),  -- Amandes 30g
+  -- testuser - semaine du 21 au 27 avril 2026
+  ('2026-04-21', 150.00, 247.50,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-21', 200.00, 260.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Riz blanc cuit'   LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-21', 100.00,  35.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Brocoli cuit'     LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-22', 100.00, 208.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Saumon grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-22', 200.00, 262.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Pâtes cuites'     LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-22', 100.00,  89.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Banane'           LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-23', 120.00, 198.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-23', 150.00, 195.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Riz blanc cuit'   LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-23', 200.00,  36.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Tomate'           LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-24', 150.00, 247.50,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-24', 150.00, 196.50,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Pâtes cuites'     LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-24', 100.00,  89.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Banane'           LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-25', 100.00, 116.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Lentilles cuites' LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-25', 200.00, 260.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Riz blanc cuit'   LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-25', 150.00,  27.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Tomate'           LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-26', 100.00, 208.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Saumon grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-26',  80.00, 197.60,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Pain complet'     LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-26',  50.00,  28.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Yaourt nature 0%' LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-27', 120.00, 198.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-27', 150.00, 195.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Riz blanc cuit'   LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
+  ('2026-04-27',  30.00, 173.70,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Amandes'          LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'testuser'       LIMIT 1)),
 
-  -- marie.dupont (id=3) - sportive, haute protéines
-  ('2026-04-21', 200.00, 330.00,  1, 3),  -- Poulet 200g
-  ('2026-04-21', 200.00, 260.00,  4, 3),  -- Riz 200g
-  ('2026-04-21', 150.00, 232.50, 13, 3),  -- Fromage blanc 150g
-  ('2026-04-23', 150.00, 312.00,  2, 3),  -- Saumon 150g
-  ('2026-04-23', 200.00, 262.00,  5, 3),  -- Pâtes 200g
-  ('2026-04-23',  30.00, 173.70, 15, 3),  -- Amandes 30g
-  ('2026-04-25', 200.00, 330.00,  1, 3),  -- Poulet 200g
-  ('2026-04-25', 150.00, 174.00, 14, 3),  -- Lentilles 150g
-  ('2026-04-25', 100.00, 155.00,  3, 3),  -- Oeuf 100g
-  ('2026-04-27', 150.00, 247.50,  1, 3),  -- Poulet 150g
-  ('2026-04-27', 100.00, 160.00, 11, 3),  -- Avocat 100g
-  ('2026-04-27', 200.00, 112.00, 12, 3),  -- Yaourt 200g
+  -- marie.dupont - haute protéines
+  ('2026-04-21', 200.00, 330.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
+  ('2026-04-21', 200.00, 260.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Riz blanc cuit'   LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
+  ('2026-04-21', 150.00,  69.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Fromage blanc 0%' LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
+  ('2026-04-23', 150.00, 312.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Saumon grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
+  ('2026-04-23', 200.00, 262.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Pâtes cuites'     LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
+  ('2026-04-23',  30.00, 173.70,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Amandes'          LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
+  ('2026-04-25', 200.00, 330.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
+  ('2026-04-25', 150.00, 174.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Lentilles cuites' LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
+  ('2026-04-25', 100.00, 155.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Oeuf entier'      LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
+  ('2026-04-27', 150.00, 247.50,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
+  ('2026-04-27', 100.00, 160.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Avocat'           LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
+  ('2026-04-27', 200.00, 112.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Yaourt nature 0%' LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'marie.dupont'   LIMIT 1)),
 
-  -- pierre.martin (id=4) - en perte de poids
-  ('2026-04-22', 120.00, 198.00,  1, 4),  -- Poulet 120g
-  ('2026-04-22', 100.00, 116.00, 14, 4),  -- Lentilles 100g
-  ('2026-04-22', 200.00,  36.00,  8, 4),  -- Tomate 200g
-  ('2026-04-24', 100.00, 208.00,  2, 4),  -- Saumon 100g
-  ('2026-04-24', 100.00,  35.00,  7, 4),  -- Brocoli 100g
-  ('2026-04-24',  52.00,  27.04, 10, 4),  -- Pomme 52g (une pomme)
-  ('2026-04-26', 130.00, 214.50,  1, 4),  -- Poulet 130g
-  ('2026-04-26', 150.00, 195.00,  4, 4),  -- Riz 150g
-  ('2026-04-26', 100.00,  35.00,  7, 4),  -- Brocoli 100g
+  -- pierre.martin - perte de poids, portions contrôlées
+  ('2026-04-22', 120.00, 198.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'pierre.martin'  LIMIT 1)),
+  ('2026-04-22', 100.00, 116.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Lentilles cuites' LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'pierre.martin'  LIMIT 1)),
+  ('2026-04-22', 200.00,  36.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Tomate'           LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'pierre.martin'  LIMIT 1)),
+  ('2026-04-24', 100.00, 208.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Saumon grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'pierre.martin'  LIMIT 1)),
+  ('2026-04-24', 100.00,  35.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Brocoli cuit'     LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'pierre.martin'  LIMIT 1)),
+  ('2026-04-24', 150.00,  78.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Pomme'            LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'pierre.martin'  LIMIT 1)),
+  ('2026-04-26', 130.00, 214.50,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'pierre.martin'  LIMIT 1)),
+  ('2026-04-26', 150.00, 195.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Riz blanc cuit'   LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'pierre.martin'  LIMIT 1)),
+  ('2026-04-26', 100.00,  35.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Brocoli cuit'     LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'pierre.martin'  LIMIT 1)),
 
-  -- sophie.bernard (id=5) - cardio endurance
-  ('2026-04-21', 100.00, 165.00,  1, 5),  -- Poulet 100g
-  ('2026-04-21', 150.00, 195.00,  5, 5),  -- Pâtes 150g
-  ('2026-04-21', 100.00,  89.00,  9, 5),  -- Banane 100g
-  ('2026-04-23', 100.00, 208.00,  2, 5),  -- Saumon 100g
-  ('2026-04-23', 200.00, 260.00,  4, 5),  -- Riz 200g
-  ('2026-04-23', 150.00,  78.00, 13, 5),  -- Fromage blanc 150g
-  ('2026-04-25', 100.00, 165.00,  1, 5),  -- Poulet 100g
-  ('2026-04-25',  80.00, 197.60,  6, 5),  -- Pain complet 80g
-  ('2026-04-25', 100.00, 160.00, 11, 5),  -- Avocat 100g
-  ('2026-04-27', 120.00, 198.00,  1, 5),  -- Poulet 120g
-  ('2026-04-27', 200.00, 262.00,  5, 5),  -- Pâtes 200g
-  ('2026-04-27',  30.00,  26.70,  9, 5);  -- Banane 30g
+  -- sophie.bernard - cardio endurance, glucides pré-effort
+  ('2026-04-21', 100.00, 165.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1)),
+  ('2026-04-21', 150.00, 196.50,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Pâtes cuites'     LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1)),
+  ('2026-04-21', 100.00,  89.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Banane'           LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1)),
+  ('2026-04-23', 100.00, 208.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Saumon grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1)),
+  ('2026-04-23', 200.00, 260.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Riz blanc cuit'   LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1)),
+  ('2026-04-23', 150.00,  69.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Fromage blanc 0%' LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1)),
+  ('2026-04-25', 100.00, 165.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1)),
+  ('2026-04-25',  80.00, 197.60,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Pain complet'     LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1)),
+  ('2026-04-25', 100.00, 160.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Avocat'           LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1)),
+  ('2026-04-27', 120.00, 198.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Poulet grillé'    LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1)),
+  ('2026-04-27', 200.00, 262.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Pâtes cuites'     LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1)),
+  ('2026-04-27', 100.00,  89.00,  (SELECT id_aliment FROM aliment WHERE nom_aliment = 'Banane'           LIMIT 1), (SELECT id_utilisateur FROM utilisateurs WHERE username = 'sophie.bernard' LIMIT 1));
