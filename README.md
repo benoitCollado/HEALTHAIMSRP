@@ -24,9 +24,9 @@ Ces datasets couvrent **au minimum deux sources** comme exigé, et représentent
 | Besoin             | Outil                       |
 | ------------------ | --------------------------- |
 | Ingestion & ETL    | Python (pandas, requests)   |
-| Orchestration      | Cron / Airflow (conceptuel) |
+| Orchestration      | Apache Airflow              |
 | Validation qualité | pandas + règles métiers     |
-| Stockage           | PostgreSQL                  |
+| Stockage           | PostgreSQL serverless (Neon)|
 | API                | FastAPI                     |
 | Visualisation      | Metabase / Superset         |
 | Conteneurisation   | Docker / Docker Compose     |
@@ -163,20 +163,32 @@ Ces entités constituent le socle des indicateurs exposés dans les tableaux de 
 
 # 8. Démarrage rapide
 
+## Prérequis — base de données Neon
+
+La base `healthdb` est hébergée sur [Neon](https://neon.tech) (PostgreSQL serverless).  
+Avant le premier lancement :
+
+1. Copier `.env.example` → `.env` et renseigner `DATABASE_URL` avec la connection string Neon
+2. Initialiser le schéma en exécutant dans l'ordre dans le **SQL Editor de Neon** :
+   - `database/init/01_create_tables.sql`
+   - `database/init/02_insert_test_data.sql`
+   - `database/init/03_add_nutriments_aliment.sql`
+
 ## Services Docker
 
 ```bash
-docker compose up -d                    # Backend, frontend, PostgreSQL
-docker compose --profile seed run --rm seed   # Import des données CSV
+docker compose up -d                              # Backend, frontend, Airflow
+docker compose --profile seed run --rm seed       # Import des données CSV
+docker compose --profile admin run --rm create-admin  # Création du compte admin
 ```
 
-## Airflow (import quotidien Open Food Facts France)
+## Airflow
 
 ```bash
-docker compose up -d postgres
-docker compose --profile airflow run --rm airflow-init   # Première fois
-docker compose --profile airflow up -d
+docker compose up -d                    # Démarre tout (Airflow inclus)
 ```
 
 Interface : http://localhost:8080 (airflow / airflow). Voir `airflow/README.md`.
+
+> **Note** : PostgreSQL local supprimé. Seule la base Airflow de métadonnées (`postgres_airflow`) reste en Docker. La base applicative `healthdb` est sur Neon.
 
