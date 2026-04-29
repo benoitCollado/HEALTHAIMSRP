@@ -18,21 +18,22 @@ Le backend est développé avec **FastAPI**, **PostgreSQL**, **JWT** et **Docker
 * Python 3.11
 * FastAPI
 * SQLAlchemy
-* PostgreSQL
+* Alembic (migrations de base de données)
+* PostgreSQL (Neon serverless)
 * JWT (JSON Web Token)
 * Docker / Docker Compose
-* Pytest
+* Pytest + pytest-cov
 
 ---
 
 ## Prérequis
 
-Avant de commencer, assure-toi d’avoir installé :
+Avant de commencer, assure-toi d'avoir installé :
 
 * Docker
 * Docker Compose
 
-Aucune installation Python locale n’est nécessaire.
+Aucune installation Python locale n'est nécessaire.
 
 ---
 
@@ -41,48 +42,34 @@ Aucune installation Python locale n’est nécessaire.
 À la **racine du projet** :
 
 ```bash
-docker compose down -v
-docker compose up --build
+docker compose up -d --build backend
 ```
 
-Le backend démarre automatiquement.
-
-Port utilisé : **8000**
+Au démarrage, le conteneur exécute automatiquement :
+1. `seed_db.py` — import des données CSV
+2. Migrations Alembic (`alembic upgrade head` ou `stamp head` si base existante)
+3. `uvicorn` — serveur API sur le port 8000
 
 ---
 
-## Accès à l’API
+## Accès à l'API
 
-* API :
-  [http://localhost:8000](http://localhost:8000)
-
-* Documentation interactive (Swagger / OpenAPI) :
-  [http://localhost:8000/docs](http://localhost:8000/docs)
+* API : [http://localhost:8000](http://localhost:8000)
+* Documentation interactive (Swagger / OpenAPI) : [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
 ## Authentification
 
-L’API est protégée par **JWT (Bearer Token)**.
+L'API est protégée par **JWT (Bearer Token)**.
 
 ### Connexion
-
-Endpoint :
 
 ```
 POST /login
 ```
 
 Les identifiants sont envoyés sous forme de **form-data** (OAuth2).
-
-Exemple :
-
-```json
-{
-  "username": "admin",
-  "password": "admin123"
-}
-```
 
 Réponse :
 
@@ -93,49 +80,64 @@ Réponse :
 }
 ```
 
-Le token doit être ajouté dans les requêtes protégées :
+Utilisation dans les requêtes protégées :
 
 ```
 Authorization: Bearer <token>
 ```
+
+**Identifiants par défaut** : `admin` / `password`
 
 ---
 
 ## Gestion des rôles
 
 * Chaque utilisateur possède le champ `is_admin`
-* Par défaut, un utilisateur n’est **pas administrateur**
-* Certaines routes sont **réservées aux administrateurs** :
+* Les routes d'administration sont réservées aux utilisateurs `is_admin = true`
+* Les autres routes sont accessibles aux utilisateurs authentifiés
 
-  * création d’utilisateurs
-  * modification
-  * suppression
+---
 
-Les autres routes sont accessibles aux utilisateurs authentifiés.
+## Migrations Alembic
+
+La base de données est versionnée avec **Alembic**.
+
+### Commandes utiles
+
+| Commande | Description |
+| -------- | ----------- |
+| `alembic current` | Voir la révision active |
+| `alembic history` | Historique des migrations |
+| `alembic upgrade head` | Appliquer toutes les migrations |
+| `alembic downgrade -1` | Revenir à la migration précédente |
+| `alembic revision --autogenerate -m "desc"` | Générer une migration depuis les modèles |
+
+### Depuis le conteneur Docker
+
+```bash
+docker exec backend_api alembic current
+docker exec backend_api alembic revision --autogenerate -m "ajout_colonne_x"
+docker exec backend_api alembic upgrade head
+```
+
+### Logique de démarrage (`start.sh`)
+
+| Situation | Action |
+| --------- | ------ |
+| Base vide (nouveau déploiement) | `alembic upgrade head` — crée toutes les tables |
+| Base existante sans `alembic_version` | `alembic stamp head` — marque sans rejouer |
+| Base avec `alembic_version` | `alembic upgrade head` — applique les nouvelles migrations |
 
 ---
 
 ## Tests automatisés
 
-Les tests sont exécutés avec **pytest** et le rapport de couverture est généré automatiquement par **pytest-cov**.
+Les tests utilisent **pytest** avec rapport de couverture **pytest-cov**.
 
 ### Lancer les tests (dans le conteneur Docker)
 
 ```bash
 docker exec -it backend_api python -m pytest
-```
-
-La configuration dans `pytest.ini` active automatiquement :
-- le rapport **terminal** avec les lignes non couvertes (`term-missing`)
-- le rapport **HTML** dans `coverage_html/index.html`
-- un seuil minimum de **70 %** de couverture (échec si non atteint)
-
-### Lancer les tests en local
-
-```bash
-cd backend
-pip install -r requirements.txt
-python -m pytest
 ```
 
 ### Options utiles
@@ -147,17 +149,19 @@ python -m pytest
 | `python -m pytest -v` | Affichage détaillé par test |
 | `python -m pytest -k test_securite` | Filtrer un module de test |
 
-### Rapport HTML
+### Configuration couverture
 
-Le rapport HTML est généré dans `backend/coverage_html/`.  
-Ouvrir `coverage_html/index.html` dans un navigateur pour naviguer ligne par ligne.
+* Seuil minimum : **70 %**
+* Rapport terminal : lignes non couvertes (`term-missing`)
+* Rapport HTML : `coverage_html/index.html`
+* Exclus du calcul : `app/test/`, `app/database.py`, `app/routers/admin.py`
 
 ### Les tests couvrent
 
-* l’authentification JWT
-* la sécurité des rôles (admin / non admin)
-* les en-têtes de sécurité HTTP
-* les routes principales de l’API
+* Authentification JWT
+* Sécurité des rôles (admin / non admin)
+* En-têtes de sécurité HTTP
+* Routes principales de l'API (aliments, exercices, utilisateurs)
 
 ---
 
@@ -167,18 +171,26 @@ Ouvrir `coverage_html/index.html` dans un navigateur pour naviguer ligne par lig
 backend/
 │
 ├── app/
-│   ├── main.py          # Point d’entrée FastAPI
-│   ├── database.py      # Connexion à PostgreSQL
-│   ├── security.py      # JWT et gestion des mots de passe
-│   ├── middleware.py    # En-têtes de sécurité HTTP
-│   ├── models/          # Modèles SQLAlchemy
-│   ├── schemas/         # Schémas Pydantic
-│   ├── routers/         # Routes de l’API
-│   └── test/            # Tests Pytest
+│   ├── main.py            # Point d'entrée FastAPI + exception handler global
+│   ├── database.py        # Connexion PostgreSQL (pool_pre_ping, pool_recycle)
+│   ├── security.py        # JWT et gestion des mots de passe
+│   ├── middleware.py      # En-têtes de sécurité HTTP
+│   ├── email_alert.py     # Alertes email sur erreurs 500
+│   ├── models/            # Modèles SQLAlchemy
+│   ├── schemas/           # Schémas Pydantic v2
+│   ├── routers/           # Routes de l'API
+│   └── test/              # Tests Pytest
 │
-├── coverage_html/       # Rapport de couverture HTML (généré)
-├── .coveragerc          # Configuration pytest-cov
-├── pytest.ini           # Configuration pytest
+├── migrations/
+│   ├── env.py             # Configuration Alembic
+│   ├── script.py.mako     # Template de migration
+│   └── versions/          # Fichiers de migration versionnés
+│
+├── coverage_html/         # Rapport de couverture HTML (généré)
+├── alembic.ini            # Configuration Alembic
+├── .coveragerc            # Configuration pytest-cov
+├── pytest.ini             # Configuration pytest
+├── start.sh               # Script de démarrage (migrations + uvicorn)
 ├── Dockerfile
 ├── requirements.txt
 └── README.md
@@ -205,17 +217,32 @@ Le middleware `SecurityHeadersMiddleware` (`app/middleware.py`) ajoute automatiq
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTPS pendant 1 an |
 | `Content-Security-Policy` | `default-src 'self'; ...` | Restriction des sources de contenu autorisées |
 
+### Alertes email (erreurs 500)
+
+`app/email_alert.py` envoie automatiquement un email à l'administrateur lors de toute erreur 500 non gérée :
+
+* Email HTML avec type d'erreur, message, stack trace, URL et timestamp
+* Cooldown de 60 s par type d'erreur pour éviter le flood
+* Désactivé silencieusement si les variables SMTP ne sont pas configurées
+
 ---
 
-## Variables d’environnement
-
-Exemple de fichier `.env` :
+## Variables d'environnement
 
 ```env
-DATABASE_URL=postgresql://healthuser:healthpass@postgres:5432/healthdb
+# Base de données
+DATABASE_URL=postgresql://<user>:<password>@<host>.neon.tech/<db>?sslmode=require
+
+# JWT
 SECRET_KEY=your_secret_key_here
 ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Alertes email (laisser vide pour désactiver)
+EMAIL_PASS=xxxx xxxx xxxx xxxx
+ADMIN_EMAIL=admin@example.com
 ```
+
+> **Gmail** : générer un mot de passe d'application sur [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
 
 ---
 
@@ -224,4 +251,3 @@ ACCESS_TOKEN_EXPIRE_MINUTES=30
 ```bash
 docker compose down
 ```
-

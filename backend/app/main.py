@@ -1,10 +1,17 @@
-from fastapi import FastAPI, Depends, HTTPException
+import asyncio
+
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.database import SessionLocal
-from app.middleware import SecurityHeadersMiddleware
+from app.database import SessionLocal, engine
+from app.observability.email_alert import send_error_alert
+from app.observability.logger import get_logger
+from app.middleware import SecurityHeadersMiddleware, RequestLoggingMiddleware
+from app.observability.monitoring import metrics
 from app.models.utilisateur import Utilisateur
 from app.security import create_access_token, verify_password
 from app.routers import (
@@ -18,13 +25,31 @@ from app.routers import (
     admin,
 )
 
-# Création de l'application FastAPI avec un titre
+_log = get_logger("main")
+
 app = FastAPI(title="HealthAI Coach API")
 
-# En-têtes de sécurité HTTP
-app.add_middleware(SecurityHeadersMiddleware)
 
-# CORS : autoriser les requêtes depuis le frontend
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    _log.error("500 %s %s — %s: %s", request.method, request.url.path, type(exc).__name__, exc)
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(
+        None,
+        send_error_alert,
+        exc,
+        request.method,
+        str(request.url),
+        None,
+    )
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Erreur interne du serveur."},
+    )
+
+
+app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -33,50 +58,59 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Dépendance pour fournir une session de base de données
+
 def get_db():
     db = SessionLocal()
     try:
-        # Fournit la session à la route
         yield db
     finally:
-        # Ferme la session après la requête
         db.close()
 
-# Route de connexion utilisateur
+
+@app.get("/health", tags=["monitoring"])
+def health():
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        db_status = "ok"
+    except Exception as e:
+        _log.warning("Health check DB failed: %s", e)
+        db_status = "error"
+
+    status = "ok" if db_status == "ok" else "degraded"
+    return {"status": status, "database": db_status}
+
+
+@app.get("/metrics", tags=["monitoring"])
+def get_metrics():
+    return metrics.snapshot()
+
+
 @app.post("/login")
 def login(
-    # Récupère username et password depuis un formulaire OAuth2
     form_data: OAuth2PasswordRequestForm = Depends(),
-    # Session de base de données
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    # Recherche de l’utilisateur par nom d’utilisateur
     utilisateur = db.query(Utilisateur).filter(
         Utilisateur.username == form_data.username
     ).first()
 
-    # Si l’utilisateur n’existe pas
     if utilisateur is None:
+        _log.warning("Login failed — user not found: %s", form_data.username)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # Vérification du mot de passe
     if not verify_password(form_data.password, utilisateur.password_hash):
+        _log.warning("Login failed — wrong password: %s", form_data.username)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    # Création du token JWT avec l’id utilisateur et le rôle admin
     token = create_access_token({
         "sub": str(utilisateur.id_utilisateur),
-        "is_admin": utilisateur.is_admin
+        "is_admin": utilisateur.is_admin,
     })
+    _log.info("Login OK — user %s (admin=%s)", utilisateur.username, utilisateur.is_admin)
+    return {"access_token": token, "token_type": "bearer"}
 
-    # Retour du token au client
-    return {
-        "access_token": token,
-        "token_type": "bearer"
-    }
 
-# Enregistrement des routeurs dans l’application
 app.include_router(utilisateurs.router)
 app.include_router(aliments.router)
 app.include_router(exercices.router)

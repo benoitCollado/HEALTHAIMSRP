@@ -11,7 +11,7 @@ from datetime import date
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.main import app, get_db
-from app.routers import utilisateurs
+from app.routers import utilisateurs, activites, consommations, metriques_sante, objectifs
 from app.database import Base
 from app.models.utilisateur import Utilisateur
 from app.security import hash_password
@@ -48,6 +48,10 @@ def client(db_session):
     
     app.dependency_overrides[get_db] = override_get_db
     app.dependency_overrides[utilisateurs.get_db] = override_get_db
+    app.dependency_overrides[activites.get_db] = override_get_db
+    app.dependency_overrides[consommations.get_db] = override_get_db
+    app.dependency_overrides[metriques_sante.get_db] = override_get_db
+    app.dependency_overrides[objectifs.get_db] = override_get_db
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
