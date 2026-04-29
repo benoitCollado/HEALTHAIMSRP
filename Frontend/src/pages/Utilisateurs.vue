@@ -26,11 +26,78 @@
         </div>
       </section>
 
+      <section class="card" aria-labelledby="create-title">
+        <div class="section-header">
+          <h2 id="create-title">Créer un utilisateur</h2>
+          <button
+            type="button"
+            class="btn btn-secondary"
+            @click="showCreateForm = !showCreateForm"
+          >
+            {{ showCreateForm ? 'Masquer le formulaire' : 'Nouvel utilisateur' }}
+          </button>
+        </div>
+
+        <form v-if="showCreateForm" class="user-form" @submit.prevent="submitCreate">
+          <div class="form-grid">
+            <label>
+              <span>Nom d'utilisateur</span>
+              <input v-model="createForm.username" type="text" required />
+            </label>
+            <label>
+              <span>Mot de passe</span>
+              <input v-model="createForm.password" type="password" required minlength="4" />
+            </label>
+            <label>
+              <span>Âge</span>
+              <input v-model.number="createForm.age" type="number" min="1" required />
+            </label>
+            <label>
+              <span>Sexe</span>
+              <select v-model="createForm.sexe" required>
+                <option value="H">H</option>
+                <option value="F">F</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </label>
+            <label>
+              <span>Taille (cm)</span>
+              <input v-model.number="createForm.taille_cm" type="number" min="1" required />
+            </label>
+            <label>
+              <span>Poids (kg)</span>
+              <input v-model.number="createForm.poids_kg" type="number" min="1" required />
+            </label>
+            <label>
+              <span>Niveau d'activité</span>
+              <input v-model.number="createForm.niveau_activite" type="number" min="1" max="5" required />
+            </label>
+            <label>
+              <span>Type d'abonnement</span>
+              <input v-model.number="createForm.type_abonnement" type="number" min="1" required />
+            </label>
+            <label>
+              <span>Date d'inscription</span>
+              <input v-model="createForm.date_inscription" type="date" required />
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button type="submit" class="btn" :disabled="submittingCreate">
+              {{ submittingCreate ? 'Création...' : 'Créer l’utilisateur' }}
+            </button>
+          </div>
+        </form>
+      </section>
+
       <div v-if="loading" class="loading" role="status" aria-live="polite">
         Chargement...
       </div>
       <div v-if="error" class="error" role="alert">
         {{ error }}
+      </div>
+      <div v-if="successMessage" class="success" role="status" aria-live="polite">
+        {{ successMessage }}
       </div>
 
       <section v-if="utilisateurs.length && !loading" class="card" aria-labelledby="list-title">
@@ -87,9 +154,28 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue'
 import Navbar from '../components/Navbar.vue'
-import { searchUtilisateurs, type UtilisateurAdmin } from '../services/adminApi'
+import {
+  createUtilisateur,
+  searchUtilisateurs,
+  type UtilisateurAdmin,
+  type UtilisateurCreatePayload
+} from '../services/adminApi'
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+function createInitialForm(): UtilisateurCreatePayload {
+  return {
+    username: '',
+    password: '',
+    age: 30,
+    sexe: 'H',
+    taille_cm: 170,
+    poids_kg: 70,
+    niveau_activite: 1,
+    type_abonnement: 1,
+    date_inscription: new Date().toISOString().slice(0, 10)
+  }
+}
 
 export default defineComponent({
   components: { Navbar },
@@ -99,6 +185,10 @@ export default defineComponent({
     const loading = ref(false)
     const error = ref('')
     const searchDone = ref(false)
+    const successMessage = ref('')
+    const showCreateForm = ref(false)
+    const submittingCreate = ref(false)
+    const createForm = ref<UtilisateurCreatePayload>(createInitialForm())
 
     const doSearch = async () => {
       try {
@@ -115,6 +205,23 @@ export default defineComponent({
       }
     }
 
+    const submitCreate = async () => {
+      try {
+        submittingCreate.value = true
+        error.value = ''
+        successMessage.value = ''
+        await createUtilisateur(createForm.value)
+        createForm.value = createInitialForm()
+        showCreateForm.value = false
+        successMessage.value = 'Utilisateur créé avec succès.'
+        await doSearch()
+      } catch (e) {
+        error.value = e instanceof Error ? e.message : 'Erreur lors de la création.'
+      } finally {
+        submittingCreate.value = false
+      }
+    }
+
     const debouncedSearch = () => {
       if (debounceTimer) clearTimeout(debounceTimer)
       debounceTimer = setTimeout(() => doSearch(), 300)
@@ -124,7 +231,20 @@ export default defineComponent({
       doSearch()
     })
 
-    return { utilisateurs, searchQuery, loading, error, searchDone, doSearch, debouncedSearch }
+    return {
+      utilisateurs,
+      searchQuery,
+      loading,
+      error,
+      searchDone,
+      successMessage,
+      showCreateForm,
+      submittingCreate,
+      createForm,
+      doSearch,
+      debouncedSearch,
+      submitCreate
+    }
   }
 })
 </script>
@@ -149,6 +269,14 @@ export default defineComponent({
   font-size: 1rem;
   margin: 0 0 12px 0;
   color: #2f4b66;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
 .search-bar {
@@ -182,9 +310,50 @@ export default defineComponent({
   background: #3d7bc7;
 }
 
+.btn-secondary {
+  background: #5a6c7d;
+}
+
+.btn-secondary:hover {
+  background: #4a5c6d;
+}
+
 .btn-small {
   padding: 6px 12px;
   font-size: 0.85rem;
+}
+
+.user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: #2f4b66;
+  font-size: 0.9rem;
+}
+
+.form-grid input,
+.form-grid select {
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .table-wrapper {
@@ -208,7 +377,7 @@ export default defineComponent({
   color: #2f4b66;
 }
 
-.loading, .error, .empty {
+.loading, .error, .empty, .success {
   padding: 12px;
   border-radius: 6px;
   margin-bottom: 12px;
@@ -222,6 +391,11 @@ export default defineComponent({
 .error {
   background: #ffebee;
   color: #c62828;
+}
+
+.success {
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 
 .empty {
