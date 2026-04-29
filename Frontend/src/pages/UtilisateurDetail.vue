@@ -13,11 +13,65 @@
         <section class="card" aria-labelledby="profil-title">
           <div class="header-row">
             <h2 id="profil-title">Profil : {{ data.utilisateur.username }}</h2>
-            <router-link to="/utilisateurs" class="btn btn-back" aria-label="Retour à la liste des utilisateurs">
-              ← Retour
-            </router-link>
+            <div class="header-actions">
+              <button type="button" class="btn btn-secondary" @click="toggleEdit">
+                {{ isEditing ? 'Annuler' : 'Modifier' }}
+              </button>
+              <button type="button" class="btn btn-danger" :disabled="deleting" @click="removeUser">
+                {{ deleting ? 'Suppression...' : 'Supprimer' }}
+              </button>
+              <router-link to="/utilisateurs" class="btn btn-back" aria-label="Retour à la liste des utilisateurs">
+                ← Retour
+              </router-link>
+            </div>
           </div>
-          <div class="profil-grid">
+          <div v-if="successMessage" class="success" role="status" aria-live="polite">
+            {{ successMessage }}
+          </div>
+
+          <form v-if="isEditing" class="edit-form" @submit.prevent="saveUser">
+            <div class="profil-grid">
+              <label class="profil-item">
+                <span class="label">Âge</span>
+                <input v-model.number="editForm.age" type="number" min="1" required />
+              </label>
+              <label class="profil-item">
+                <span class="label">Sexe</span>
+                <select v-model="editForm.sexe" required>
+                  <option value="H">H</option>
+                  <option value="F">F</option>
+                  <option value="Autre">Autre</option>
+                </select>
+              </label>
+              <label class="profil-item">
+                <span class="label">Taille</span>
+                <input v-model.number="editForm.taille_cm" type="number" min="1" required />
+              </label>
+              <label class="profil-item">
+                <span class="label">Poids</span>
+                <input v-model.number="editForm.poids_kg" type="number" min="1" required />
+              </label>
+              <label class="profil-item">
+                <span class="label">Niveau d'activité</span>
+                <input v-model.number="editForm.niveau_activite" type="number" min="1" max="5" required />
+              </label>
+              <label class="profil-item">
+                <span class="label">Type d'abonnement</span>
+                <input v-model.number="editForm.type_abonnement" type="number" min="1" required />
+              </label>
+              <label class="profil-item">
+                <span class="label">Inscription</span>
+                <input v-model="editForm.date_inscription" type="date" required />
+              </label>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn" :disabled="saving">
+                {{ saving ? 'Enregistrement...' : 'Enregistrer' }}
+              </button>
+            </div>
+          </form>
+
+          <div v-else class="profil-grid">
             <div class="profil-item"><span class="label">ID</span><span class="value">{{ data.utilisateur.id_utilisateur }}</span></div>
             <div class="profil-item"><span class="label">Âge</span><span class="value">{{ data.utilisateur.age }} ans</span></div>
             <div class="profil-item"><span class="label">Sexe</span><span class="value">{{ data.utilisateur.sexe }}</span></div>
@@ -138,8 +192,26 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted, watch, computed } from 'vue'
 import Navbar from '../components/Navbar.vue'
-import { useRoute } from 'vue-router'
-import { getUtilisateurDonnees, type UtilisateurDonnees } from '../services/adminApi'
+import { useRoute, useRouter } from 'vue-router'
+import {
+  deleteUtilisateur,
+  getUtilisateurDonnees,
+  updateUtilisateur,
+  type UtilisateurDonnees,
+  type UtilisateurUpdatePayload
+} from '../services/adminApi'
+
+function toEditForm(data: UtilisateurDonnees): UtilisateurUpdatePayload {
+  return {
+    age: data.utilisateur.age,
+    sexe: data.utilisateur.sexe,
+    taille_cm: data.utilisateur.taille_cm,
+    poids_kg: data.utilisateur.poids_kg,
+    niveau_activite: data.utilisateur.niveau_activite,
+    type_abonnement: data.utilisateur.type_abonnement,
+    date_inscription: data.utilisateur.date_inscription
+  }
+}
 
 async function loadUser(id: number, data: { value: UtilisateurDonnees | null }, loading: { value: boolean }, error: { value: string }) {
   if (!Number.isFinite(id)) {
@@ -163,6 +235,7 @@ export default defineComponent({
   components: { Navbar },
   setup() {
     const route = useRoute()
+    const router = useRouter()
     const id = computed(() => {
       const p = route.params.id
       return Number(Array.isArray(p) ? p[0] : p)
@@ -170,13 +243,76 @@ export default defineComponent({
     const data = ref<UtilisateurDonnees | null>(null)
     const loading = ref(true)
     const error = ref('')
+    const successMessage = ref('')
+    const isEditing = ref(false)
+    const saving = ref(false)
+    const deleting = ref(false)
+    const editForm = ref<UtilisateurUpdatePayload>({})
 
-    const fetchData = () => loadUser(id.value, data, loading, error)
+    const fetchData = async () => {
+      await loadUser(id.value, data, loading, error)
+      if (data.value) {
+        editForm.value = toEditForm(data.value)
+      }
+    }
+
+    const toggleEdit = () => {
+      isEditing.value = !isEditing.value
+      successMessage.value = ''
+      if (data.value) {
+        editForm.value = toEditForm(data.value)
+      }
+    }
+
+    const saveUser = async () => {
+      try {
+        saving.value = true
+        error.value = ''
+        successMessage.value = ''
+        await updateUtilisateur(id.value, editForm.value)
+        await fetchData()
+        isEditing.value = false
+        successMessage.value = 'Utilisateur mis à jour avec succès.'
+      } catch (e) {
+        error.value = e instanceof Error ? e.message : 'Erreur lors de la modification.'
+      } finally {
+        saving.value = false
+      }
+    }
+
+    const removeUser = async () => {
+      if (!window.confirm('Supprimer cet utilisateur ? Cette action est irréversible.')) {
+        return
+      }
+
+      try {
+        deleting.value = true
+        error.value = ''
+        await deleteUtilisateur(id.value)
+        router.push('/utilisateurs')
+      } catch (e) {
+        error.value = e instanceof Error ? e.message : 'Erreur lors de la suppression.'
+      } finally {
+        deleting.value = false
+      }
+    }
 
     onMounted(fetchData)
     watch(id, fetchData)
 
-    return { data, loading, error }
+    return {
+      data,
+      loading,
+      error,
+      successMessage,
+      isEditing,
+      saving,
+      deleting,
+      editForm,
+      toggleEdit,
+      saveUser,
+      removeUser
+    }
   }
 })
 </script>
@@ -204,6 +340,12 @@ export default defineComponent({
   margin-bottom: 12px;
 }
 
+.header-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 .card h2 {
   font-size: 1rem;
   margin: 0;
@@ -220,6 +362,17 @@ export default defineComponent({
   padding: 8px 12px;
   background: #f7f9fc;
   border-radius: 6px;
+}
+
+.profil-item input,
+.profil-item select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  color: #2f4b66;
+  background: #fff;
 }
 
 .profil-item .label {
@@ -240,6 +393,47 @@ export default defineComponent({
   color: #fff;
   text-decoration: none;
   font-size: 0.9rem;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: #5294E2;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.btn:hover {
+  background: #3d7bc7;
+}
+
+.btn-secondary {
+  background: #5a6c7d;
+}
+
+.btn-secondary:hover {
+  background: #4a5c6d;
+}
+
+.btn-danger {
+  background: #d32f2f;
+}
+
+.btn-danger:hover {
+  background: #b71c1c;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .btn-back:hover {
@@ -273,7 +467,7 @@ export default defineComponent({
   font-style: italic;
 }
 
-.loading, .error {
+.loading, .error, .success {
   padding: 12px;
   border-radius: 6px;
   margin-bottom: 12px;
@@ -287,5 +481,10 @@ export default defineComponent({
 .error {
   background: #ffebee;
   color: #c62828;
+}
+
+.success {
+  background: #e8f5e9;
+  color: #2e7d32;
 }
 </style>
