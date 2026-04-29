@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.database import SessionLocal
+from app.middleware import SecurityHeadersMiddleware
 from app.models.utilisateur import Utilisateur
 from app.security import create_access_token, verify_password
 from app.routers import (
@@ -19,6 +20,9 @@ from app.routers import (
 
 # Création de l'application FastAPI avec un titre
 app = FastAPI(title="HealthAI Coach API")
+
+# En-têtes de sécurité HTTP
+app.add_middleware(SecurityHeadersMiddleware)
 
 # CORS : autoriser les requêtes depuis le frontend
 app.add_middleware(

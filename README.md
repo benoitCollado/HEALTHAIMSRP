@@ -65,6 +65,19 @@ Cette séparation **raw / cleaned / exposed** garantit traçabilité, qualité e
 * Contrôle d’accès par rôle (admin / lecture)
 * Journalisation des traitements sans données personnelles
 * Données fictives → conformité RGPD respectée par design
+* En-têtes de sécurité HTTP sur toutes les réponses (voir ci-dessous)
+
+### En-têtes de sécurité HTTP
+
+Le middleware backend ajoute automatiquement les en-têtes OWASP recommandés à chaque réponse :
+
+| En-tête | Valeur | Protection |
+| ------- | ------ | ---------- |
+| `X-Frame-Options` | `DENY` | Clickjacking |
+| `X-Content-Type-Options` | `nosniff` | MIME sniffing |
+| `X-XSS-Protection` | `1; mode=block` | XSS (navigateurs legacy) |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTPS (1 an) |
+| `Content-Security-Policy` | `default-src ‘self’; ...` | Sources de contenu autorisées |
 
 ## 3.2 Automatisation
 
@@ -149,15 +162,16 @@ Ces entités constituent le socle des indicateurs exposés dans les tableaux de 
 
 # 7. Conformité aux attendus E6.1
 
-| Exigence RNCP         | Couverture |
-| --------------------- | ---------- |
-| Sources hétérogènes   | Oui        |
-| Collecte sécurisée    | Oui        |
-| ETL automatisé        | Oui        |
-| Nettoyage & qualité   | Oui        |
-| Modèle de données     | Oui        |
-| Visualisation         | Oui        |
-| Exploitation IA-ready | Oui        |
+| Exigence RNCP              | Couverture |
+| -------------------------- | ---------- |
+| Sources hétérogènes        | Oui        |
+| Collecte sécurisée         | Oui        |
+| ETL automatisé             | Oui        |
+| Nettoyage & qualité        | Oui        |
+| Modèle de données          | Oui        |
+| Visualisation              | Oui        |
+| Exploitation IA-ready      | Oui        |
+| En-têtes sécurité HTTP     | Oui        |
 
 ---
 
@@ -179,8 +193,9 @@ Avant le premier lancement :
 ```bash
 docker compose up -d                              # Backend, frontend, Airflow
 docker compose --profile seed run --rm seed       # Import des données CSV
-docker compose --profile admin run --rm create-admin  # Création du compte admin
 ```
+
+Le compte `admin` est inclus dans `database/init/02_insert_test_data.sql` (mot de passe : **`password`**). Aucune étape supplémentaire n'est nécessaire.
 
 ## Airflow
 

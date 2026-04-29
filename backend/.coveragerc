@@ -1,0 +1,13 @@
+[run]
+source = app
+omit =
+    app/test/*
+    app/create_admin.py
+
+[report]
+show_missing = true
+skip_empty = true
+
+[html]
+directory = coverage_html
+title = HealthAI Coach – Rapport de couverture

@@ -10,7 +10,14 @@ Base = declarative_base()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Création du moteur de connexion à la base de données
-engine = create_engine(DATABASE_URL)
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=300,
+    pool_size=2,
+    max_overflow=5,
+    connect_args={"connect_timeout": 5},
+)
 
 # Fabrique de sessions pour interagir avec la base de données
 SessionLocal = sessionmaker(

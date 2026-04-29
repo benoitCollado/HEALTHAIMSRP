@@ -117,18 +117,46 @@ Les autres routes sont accessibles aux utilisateurs authentifiés.
 
 ## Tests automatisés
 
-Les tests sont exécutés **dans le conteneur Docker**.
+Les tests sont exécutés avec **pytest** et le rapport de couverture est généré automatiquement par **pytest-cov**.
 
-Commande :
+### Lancer les tests (dans le conteneur Docker)
 
 ```bash
-docker exec -it backend_api python -m pytest app/test
+docker exec -it backend_api python -m pytest
 ```
 
-Les tests couvrent :
+La configuration dans `pytest.ini` active automatiquement :
+- le rapport **terminal** avec les lignes non couvertes (`term-missing`)
+- le rapport **HTML** dans `coverage_html/index.html`
+- un seuil minimum de **70 %** de couverture (échec si non atteint)
 
-* l’authentification
-* la sécurité (admin / non admin)
+### Lancer les tests en local
+
+```bash
+cd backend
+pip install -r requirements.txt
+python -m pytest
+```
+
+### Options utiles
+
+| Commande | Description |
+| -------- | ----------- |
+| `python -m pytest` | Tests + couverture (config `pytest.ini`) |
+| `python -m pytest --cov-report=xml` | Rapport XML (compatible CI/CD) |
+| `python -m pytest -v` | Affichage détaillé par test |
+| `python -m pytest -k test_securite` | Filtrer un module de test |
+
+### Rapport HTML
+
+Le rapport HTML est généré dans `backend/coverage_html/`.  
+Ouvrir `coverage_html/index.html` dans un navigateur pour naviguer ligne par ligne.
+
+### Les tests couvrent
+
+* l’authentification JWT
+* la sécurité des rôles (admin / non admin)
+* les en-têtes de sécurité HTTP
 * les routes principales de l’API
 
 ---
@@ -142,11 +170,15 @@ backend/
 │   ├── main.py          # Point d’entrée FastAPI
 │   ├── database.py      # Connexion à PostgreSQL
 │   ├── security.py      # JWT et gestion des mots de passe
+│   ├── middleware.py    # En-têtes de sécurité HTTP
 │   ├── models/          # Modèles SQLAlchemy
 │   ├── schemas/         # Schémas Pydantic
 │   ├── routers/         # Routes de l’API
 │   └── test/            # Tests Pytest
 │
+├── coverage_html/       # Rapport de couverture HTML (généré)
+├── .coveragerc          # Configuration pytest-cov
+├── pytest.ini           # Configuration pytest
 ├── Dockerfile
 ├── requirements.txt
 └── README.md
@@ -160,6 +192,18 @@ backend/
 * JWT signé avec une clé secrète (`SECRET_KEY`)
 * Vérification des rôles côté backend
 * Accès aux routes protégé par dépendances FastAPI
+
+### En-têtes de sécurité HTTP
+
+Le middleware `SecurityHeadersMiddleware` (`app/middleware.py`) ajoute automatiquement les en-têtes suivants à chaque réponse :
+
+| En-tête | Valeur | Rôle |
+| ------- | ------ | ---- |
+| `X-Frame-Options` | `DENY` | Protection contre le clickjacking |
+| `X-Content-Type-Options` | `nosniff` | Blocage du MIME sniffing |
+| `X-XSS-Protection` | `1; mode=block` | Filtre XSS (navigateurs legacy) |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTPS pendant 1 an |
+| `Content-Security-Policy` | `default-src 'self'; ...` | Restriction des sources de contenu autorisées |
 
 ---
 
