@@ -251,6 +251,28 @@ export interface UtilisateursResponse {
   total: number
 }
 
+export interface UtilisateurCreatePayload {
+  username: string
+  password: string
+  age: number
+  sexe: string
+  taille_cm: number
+  poids_kg: number
+  niveau_activite: number
+  type_abonnement: number
+  date_inscription: string
+}
+
+export interface UtilisateurUpdatePayload {
+  age?: number
+  sexe?: string
+  taille_cm?: number
+  poids_kg?: number
+  niveau_activite?: number
+  type_abonnement?: number
+  date_inscription?: string
+}
+
 export async function searchUtilisateurs(q?: string): Promise<UtilisateursResponse> {
   const url = q
     ? `${API_BASE_URL}/admin/utilisateurs?q=${encodeURIComponent(q)}`
@@ -258,6 +280,37 @@ export async function searchUtilisateurs(q?: string): Promise<UtilisateursRespon
   const res = await fetch(url, { method: 'GET', headers: getHeaders() })
   if (!res.ok) throw new Error(`Erreur ${res.status} sur /admin/utilisateurs`)
   return res.json()
+}
+
+export async function createUtilisateur(payload: UtilisateurCreatePayload): Promise<UtilisateurAdmin> {
+  const res = await fetch(`${API_BASE_URL}/utilisateurs/`, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(payload)
+  })
+
+  if (!res.ok) throw new Error(`Erreur ${res.status} sur création utilisateur`)
+  return res.json()
+}
+
+export async function updateUtilisateur(id: number, payload: UtilisateurUpdatePayload): Promise<UtilisateurAdmin> {
+  const res = await fetch(`${API_BASE_URL}/utilisateurs/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(payload)
+  })
+
+  if (!res.ok) throw new Error(`Erreur ${res.status} sur modification utilisateur`)
+  return res.json()
+}
+
+export async function deleteUtilisateur(id: number): Promise<void> {
+  const res = await fetch(`${API_BASE_URL}/utilisateurs/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders()
+  })
+
+  if (!res.ok) throw new Error(`Erreur ${res.status} sur suppression utilisateur`)
 }
 
 export interface UtilisateurDonnees {
