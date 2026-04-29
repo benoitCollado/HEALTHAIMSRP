@@ -10,6 +10,7 @@
         <router-link to="/dashboard"        class="nav-link">📊 Dashboard</router-link>
         <router-link to="/gestion-des-flux" class="nav-link">📋 Flux</router-link>
         <router-link to="/nettoyage"        class="nav-link">🧹 Nettoyage</router-link>
+        <router-link to="/utilisateurs"     class="nav-link">👥 Utilisateurs</router-link>
         <router-link to="/test-backend"     class="nav-link">🧪 Test API</router-link>
       </nav>
 
