@@ -73,7 +73,7 @@ def admin_token(client, db_session):
 
     response = client.post(
         "/login",
-        params={
+        data={
             "username": "admin",
             "password": "admin123"
         }

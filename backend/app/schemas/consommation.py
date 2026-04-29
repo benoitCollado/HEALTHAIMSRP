@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import date
 from typing import Optional
 
@@ -37,6 +37,4 @@ class ConsommationResponse(ConsommationBase):
     # Identifiant unique de la consommation
     id_consommation: int
 
-    class Config:
-        # Autorise la conversion depuis un objet ORM (SQLAlchemy)
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

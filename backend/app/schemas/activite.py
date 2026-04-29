@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import date
 from typing import Optional
 
@@ -41,6 +41,4 @@ class ActiviteResponse(ActiviteBase):
     # Identifiant unique de l’activité
     id_activite: int
 
-    class Config:
-        # Permet la conversion automatique depuis un objet SQLAlchemy
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

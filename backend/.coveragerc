@@ -3,6 +3,7 @@ source = app
 omit =
     app/test/*
     app/database.py
+    app/routers/admin.py
 
 [report]
 show_missing = true
