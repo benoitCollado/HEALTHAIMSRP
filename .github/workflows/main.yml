@@ -1,0 +1,30 @@
+# Nom du workflow (affiché dans l'onglet Actions de GitHub)
+name: CI-CD Pipeline
+
+# Déclencheurs (Events)
+on:
+  pull_request:
+    branches: [ "main" ]   
+
+# Liste des tâches à accomplir
+jobs:
+  build-and-test:
+    # Environnement d'exécution (Runner)
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Récupérer le code du dépôt sur le runner
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # 2. permet d'installer l'environnement et de lancer les test à faire ulterieurement quand les tests seront fini 
+
+  # deploy:
+  #   # Cette tâche ne se lance que si 'build-and-test' a réussi
+  #   needs: build-and-test
+  #   if: github.ref == 'refs/heads/main' # Uniquement si on est sur la branche main
+  #   runs-on: ubuntu-latest
+    
+  #   steps:
+  #     - name: Deploy to Production
+  #       run: echo "Déploiement en cours sur le serveur..."
