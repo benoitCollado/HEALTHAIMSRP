@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 # Schéma de base pour un exercice
@@ -36,6 +36,4 @@ class ExerciceResponse(ExerciceBase):
     # Identifiant unique de l’exercice
     id_exercice: int
 
-    class Config:
-        # Autorise la conversion depuis un objet ORM (SQLAlchemy)
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

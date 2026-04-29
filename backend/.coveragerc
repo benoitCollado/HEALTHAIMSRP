@@ -1,0 +1,17 @@
+[run]
+source = app
+omit =
+    app/test/*
+    app/database.py
+    app/routers/admin.py
+
+[report]
+show_missing = true
+skip_empty = true
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+
+[html]
+directory = coverage_html
+title = HealthAI Coach – Rapport de couverture

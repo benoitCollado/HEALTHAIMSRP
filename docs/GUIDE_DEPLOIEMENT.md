@@ -132,8 +132,7 @@ docker compose up -d backend frontend
 
 Le backend exécute automatiquement au démarrage :
 1. `seed_db.py` (import des CSV vers PostgreSQL)
-2. `create_admin.py` (création du compte admin)
-3. `uvicorn` (serveur API)
+2. `uvicorn` (serveur API)
 
 ### Étape 6 : Vérifier l’application (2 min)
 
@@ -141,7 +140,7 @@ Le backend exécute automatiquement au démarrage :
 - **API** : http://localhost:8089
 - **Documentation API** : http://localhost:8089/docs
 
-**Identifiants admin** : `admin` / `admin123` (créés par `create_admin.py`)
+**Identifiants admin** : `admin` / `password` (insérés par `database/init/02_insert_test_data.sql`)
 
 ### Étape 7 (optionnel) : Démarrer Airflow (10 min)
 

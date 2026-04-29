@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import date
 from typing import Optional
 
@@ -48,6 +48,4 @@ class UtilisateurResponse(UtilisateurBase):
     # Identifiant unique de l’utilisateur
     id_utilisateur: int
 
-    class Config:
-        # Autorise la conversion depuis un objet ORM (SQLAlchemy)
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

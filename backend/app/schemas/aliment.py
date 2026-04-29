@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional
 
 # Schéma de base pour un aliment (champs communs)
@@ -44,6 +44,4 @@ class AlimentResponse(AlimentBase):
     # Identifiant unique de l’aliment
     id_aliment: int
 
-    class Config:
-        # Permet la conversion automatique depuis un objet SQLAlchemy
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)

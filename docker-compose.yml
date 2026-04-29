@@ -13,7 +13,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      DATABASE_URL: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      DATABASE_URL: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require
       SECRET_KEY: ${SECRET_KEY:-healthaim-secret-key-dev-change-in-production}
       DATA_DIR: /data
       AIRFLOW_API_URL: ${AIRFLOW_API_URL:-http://host.docker.internal:8080}
@@ -21,7 +21,7 @@ services:
       AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
     command: >
       bash -c "
-        python /data/seed_db.py && python /app/app/create_admin.py || true &&
+        python /data/seed_db.py || true &&
         exec uvicorn app.main:app --host 0.0.0.0 --port 8000
       "
     networks:
@@ -37,28 +37,13 @@ services:
     volumes:
       - ./data:/data
     environment:
-      DATABASE_URL: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      DATABASE_URL: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require
       DATA_DIR: /data
       SECRET_KEY: ${SECRET_KEY:-healthaim-secret-key-dev-change-in-production}
     network_mode: host
     profiles:
       - seed
     command: python /data/seed_db.py
-
-  # Création du compte admin (via localhost)
-  # Port: 5435 par défaut, ou POSTGRES_HOST_PORT dans .env si différent
-  create-admin:
-    image: healthaimsrp-backend
-    build: ./backend
-    env_file:
-      - .env
-    environment:
-      DATABASE_URL: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
-      SECRET_KEY: ${SECRET_KEY:-healthaim-secret-key-dev-change-in-production}
-    network_mode: host
-    profiles:
-      - admin
-    command: python -m app.create_admin
 
   frontend:
     build:
@@ -156,7 +141,7 @@ services:
       NO_PROXY: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
       no_proxy: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
       _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-http apache-airflow-providers-postgres requests"
-      AIRFLOW_CONN_HEALTHAIM_POSTGRES: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      AIRFLOW_CONN_HEALTHAIM_POSTGRES: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./data/export:/opt/airflow/export
@@ -189,7 +174,7 @@ services:
       NO_PROXY: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
       no_proxy: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
       _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-http apache-airflow-providers-postgres requests"
-      AIRFLOW_CONN_HEALTHAIM_POSTGRES: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+      AIRFLOW_CONN_HEALTHAIM_POSTGRES: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./data/export:/opt/airflow/export
@@ -205,3 +190,6 @@ volumes:
 
 networks:
   health_net:
+    driver: bridge
+    driver_opts:
+      com.docker.network.driver.mtu: "1450"
