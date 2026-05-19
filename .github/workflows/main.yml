@@ -17,7 +17,23 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. permet d'installer l'environnement et de lancer les test à faire ulterieurement quand les tests seront fini 
+      # 2. Configurer Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: Frontend/package-lock.json
+
+      # 3. Installer les dépendances frontend
+      - name: Install frontend dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      # 4. Build le frontend (vérifie qu'il n'y a pas d'erreurs de compilation)
+      - name: Build frontend
+        working-directory: Frontend
+        run: npm run build
 
   # deploy:
   #   # Cette tâche ne se lance que si 'build-and-test' a réussi
