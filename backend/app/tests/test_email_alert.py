@@ -90,7 +90,7 @@ def test_send_blocked_by_cooldown():
     key = f"{type(error).__name__}:/api/route"
     email_alert_module._last_sent[key] = datetime.utcnow()
 
-    with patch.dict("os.environ", ENV_VARS):
+    with patch.dict("os.environ", ENV_VARS, clear=True):
         with patch("smtplib.SMTP") as mock_smtp:
             send_error_alert(error, url="/api/route")
             mock_smtp.assert_not_called()
@@ -108,7 +108,7 @@ def test_send_calls_smtp_correctly(capsys):
     mock_smtp_cls.return_value.__enter__ = MagicMock(return_value=mock_server)
     mock_smtp_cls.return_value.__exit__ = MagicMock(return_value=False)
 
-    with patch.dict("os.environ", ENV_VARS):
+    with patch.dict("os.environ", ENV_VARS, clear=True):
         with patch("smtplib.SMTP", mock_smtp_cls):
             send_error_alert(ValueError("db error"), method="GET", url="/api/aliments", user_id=42)
 
@@ -134,7 +134,7 @@ def test_send_email_contains_error_details(capsys):
     mock_smtp_cls.return_value.__enter__ = MagicMock(return_value=mock_server)
     mock_smtp_cls.return_value.__exit__ = MagicMock(return_value=False)
 
-    with patch.dict("os.environ", ENV_VARS):
+    with patch.dict("os.environ", ENV_VARS, clear=True):
         with patch("smtplib.SMTP", mock_smtp_cls):
             send_error_alert(TypeError("bad type"), method="POST", url="/api/login")
 
@@ -166,7 +166,7 @@ def test_send_records_cooldown_timestamp():
     error = OSError("disk full")
     key = f"{type(error).__name__}:/api/data"
 
-    with patch.dict("os.environ", ENV_VARS):
+    with patch.dict("os.environ", ENV_VARS, clear=True):
         with patch("smtplib.SMTP", mock_smtp_cls):
             send_error_alert(error, url="/api/data")
 
@@ -185,7 +185,7 @@ def test_send_smtp_exception_does_not_raise(capsys):
     mock_smtp_cls.return_value.__enter__ = MagicMock(side_effect=Exception("connection refused"))
     mock_smtp_cls.return_value.__exit__ = MagicMock(return_value=False)
 
-    with patch.dict("os.environ", ENV_VARS):
+    with patch.dict("os.environ", ENV_VARS, clear=True):
         with patch("smtplib.SMTP", mock_smtp_cls):
             send_error_alert(ValueError("trigger"), url="/api/fail")
 

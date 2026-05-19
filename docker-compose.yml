@@ -10,18 +10,20 @@ services:
       - "${BACKEND_PORT:-127.0.0.1:8089}:8000"
     volumes:
       - ./data:/data
+      - ./data/logs/backend:/app/logs
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
-      DATABASE_URL: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require
-      SECRET_KEY: ${SECRET_KEY:-healthaim-secret-key-dev-change-in-production}
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
       DATA_DIR: /data
+      LOG_DIR: /app/logs
       AIRFLOW_API_URL: ${AIRFLOW_API_URL:-http://host.docker.internal:8080}
       AIRFLOW_USER: ${AIRFLOW_USER:-airflow}
       AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
     command: >
       bash -c "
-        python /data/seed_db.py || true &&
+        if [ -f /data/seed_db.py ]; then python /data/seed_db.py || true; fi &&
         exec ./start.sh
       "
     networks:
@@ -37,9 +39,9 @@ services:
     volumes:
       - ./data:/data
     environment:
-      DATABASE_URL: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL must be set}
       DATA_DIR: /data
-      SECRET_KEY: ${SECRET_KEY:-healthaim-secret-key-dev-change-in-production}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
     network_mode: host
     profiles:
       - seed
@@ -141,7 +143,7 @@ services:
       NO_PROXY: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
       no_proxy: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
       _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-http apache-airflow-providers-postgres requests"
-      AIRFLOW_CONN_HEALTHAIM_POSTGRES: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require
+      AIRFLOW_CONN_HEALTHAIM_POSTGRES: ${DATABASE_URL:?DATABASE_URL must be set}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./data/export:/opt/airflow/export
@@ -174,7 +176,7 @@ services:
       NO_PROXY: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
       no_proxy: "localhost,127.0.0.1,airflow-scheduler,airflow-webserver,.health_net"
       _PIP_ADDITIONAL_REQUIREMENTS: "apache-airflow-providers-http apache-airflow-providers-postgres requests"
-      AIRFLOW_CONN_HEALTHAIM_POSTGRES: postgresql://neondb_owner:npg_8PCUiRnyhIZ5@ep-late-mouse-alf0ci3t-pooler.c-3.eu-central-1.aws.neon.tech/neondb?sslmode=require
+      AIRFLOW_CONN_HEALTHAIM_POSTGRES: ${DATABASE_URL:?DATABASE_URL must be set}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - ./data/export:/opt/airflow/export

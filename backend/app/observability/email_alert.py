@@ -47,8 +47,11 @@ def send_error_alert(
     """
 
     # === ENV ===
-    smtp_user = os.getenv("EMAIL_USER") or os.getenv("ADMIN_EMAIL")
-    smtp_password = os.getenv("EMAIL_PASS")
+    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes")
+    smtp_user = os.getenv("SMTP_USER") or os.getenv("EMAIL_USER") or os.getenv("ADMIN_EMAIL")
+    smtp_password = os.getenv("SMTP_PASS") or os.getenv("EMAIL_PASS")
     admin_email = os.getenv("ADMIN_EMAIL")
 
     if not all([smtp_user, smtp_password, admin_email]):
@@ -142,8 +145,9 @@ def send_error_alert(
 
     # === SEND ===
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
-            server.starttls()
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+            if smtp_use_tls:
+                server.starttls()
             server.login(smtp_user, smtp_password)
             server.sendmail(smtp_user, admin_email, msg.as_string())
 

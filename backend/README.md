@@ -137,6 +137,12 @@ Les tests utilisent **pytest** avec rapport de couverture **pytest-cov**.
 ### Lancer les tests (dans le conteneur Docker)
 
 ```bash
+docker compose exec backend python -m pytest
+```
+
+Alternative avec le nom du conteneur :
+
+```bash
 docker exec -it backend_api python -m pytest
 ```
 
@@ -238,8 +244,15 @@ SECRET_KEY=your_secret_key_here
 ACCESS_TOKEN_EXPIRE_MINUTES=30
 
 # Alertes email (laisser vide pour désactiver)
-EMAIL_PASS=xxxx xxxx xxxx xxxx
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USE_TLS=true
+SMTP_USER=sender@example.com
+SMTP_PASS=xxxx xxxx xxxx xxxx
 ADMIN_EMAIL=admin@example.com
+
+# Logs applicatifs
+LOG_DIR=logs
 ```
 
 > **Gmail** : générer un mot de passe d'application sur [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords)
