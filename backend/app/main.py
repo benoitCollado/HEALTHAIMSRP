@@ -7,7 +7,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal, engine
+from app.database import engine
+from app.dependencies import get_db, require_admin
 from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
 from app.models.utilisateur import Utilisateur
 from app.observability.email_alert import send_error_alert
@@ -31,6 +32,7 @@ app = FastAPI(title="HealthAI Coach API")
 
 
 def _get_request_user_id(request: Request):
+    """Best-effort user extraction for logs and alert emails."""
     auth = request.headers.get("authorization", "")
     scheme, _, token = auth.partition(" ")
     if scheme.lower() != "bearer" or not token:
@@ -47,6 +49,8 @@ def _get_request_user_id(request: Request):
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    # Unhandled errors are logged with their traceback, then the admin alert is
+    # sent in a thread so the HTTP response is not blocked by SMTP latency.
     user_id = _get_request_user_id(request)
     _log.error(
         "500 %s %s - %s: %s",
@@ -82,16 +86,9 @@ app.add_middleware(
 )
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 @app.get("/health", tags=["monitoring"])
 def health():
+    """Health endpoint used by operators to verify API and database availability."""
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -105,7 +102,8 @@ def health():
 
 
 @app.get("/metrics", tags=["monitoring"])
-def get_metrics(user: dict = Depends(admin.require_admin)):
+def get_metrics(user: dict = Depends(require_admin)):
+    """Return in-memory request metrics. This endpoint is admin-only."""
     return metrics.snapshot()
 
 
@@ -114,6 +112,7 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
+    """Authenticate a user and return the JWT used by protected endpoints."""
     utilisateur = db.query(Utilisateur).filter(
         Utilisateur.username == form_data.username
     ).first()

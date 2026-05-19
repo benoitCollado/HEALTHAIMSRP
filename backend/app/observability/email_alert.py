@@ -19,6 +19,7 @@ _COOLDOWN_SECONDS = 60
 # ==============================
 
 def _is_on_cooldown(error_key: str) -> bool:
+    """Avoid flooding the admin with repeated alerts for the same route/error."""
     last = _last_sent.get(error_key)
     if last is None:
         return False
@@ -26,6 +27,7 @@ def _is_on_cooldown(error_key: str) -> bool:
 
 
 def _get_stacktrace(error: Exception) -> str:
+    """Return the active traceback, or the error message when called outside except."""
     tb = traceback.format_exc()
     if tb.strip() == "NoneType: None":
         return str(error)
@@ -58,7 +60,8 @@ def send_error_alert(
         print("[ERROR ALERT] SMTP non configuré")
         return
 
-    # === Anti spam ===
+    # Group alerts by exception type and URL so one noisy endpoint cannot flood
+    # the mailbox while unrelated errors still produce their own alert.
     error_key = f"{type(error).__name__}:{url}"
     if _is_on_cooldown(error_key):
         return
