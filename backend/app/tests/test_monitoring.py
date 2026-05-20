@@ -45,8 +45,13 @@ def test_health_has_security_headers(client):
 # /metrics
 # ──────────────────────────────────────────────
 
-def test_metrics_initial_state(client):
+def test_metrics_requires_admin(client):
     response = client.get("/metrics")
+    assert response.status_code == 401
+
+
+def test_metrics_initial_state(client, admin_headers):
+    response = client.get("/metrics", headers=admin_headers)
     assert response.status_code == 200
     body = response.json()
     assert "uptime_seconds" in body
@@ -61,30 +66,30 @@ def test_metrics_counts_requests(client, admin_headers):
     client.get("/aliments", headers=admin_headers)
     client.get("/aliments", headers=admin_headers)
 
-    response = client.get("/metrics")
+    response = client.get("/metrics", headers=admin_headers)
     body = response.json()
     assert body["requests_total"] >= 3
     assert "/aliments" in body["requests_by_route"]
     assert body["requests_by_route"]["/aliments"] >= 3
 
 
-def test_metrics_counts_errors(client):
+def test_metrics_counts_errors(client, admin_headers):
     client.get("/utilisateurs")  # 401 — not authenticated
 
-    response = client.get("/metrics")
+    response = client.get("/metrics", headers=admin_headers)
     body = response.json()
     assert body["errors_total"] == 0  # 401 is not a 5xx
 
 
 def test_metrics_avg_duration_positive(client, admin_headers):
     client.get("/exercices", headers=admin_headers)
-    response = client.get("/metrics")
+    response = client.get("/metrics", headers=admin_headers)
     body = response.json()
     assert body["avg_duration_ms"] >= 0
 
 
-def test_metrics_uptime_non_negative(client):
-    response = client.get("/metrics")
+def test_metrics_uptime_non_negative(client, admin_headers):
+    response = client.get("/metrics", headers=admin_headers)
     body = response.json()
     assert body["uptime_seconds"] >= 0
 

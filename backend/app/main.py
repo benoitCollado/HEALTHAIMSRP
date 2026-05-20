@@ -1,38 +1,65 @@
 import asyncio
 
-from fastapi import FastAPI, Depends, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from sqlalchemy.orm import Session
-from sqlalchemy import text
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
-from app.database import SessionLocal, engine
+from app.database import engine
+from app.dependencies import get_db, require_admin
+from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
+from app.models.utilisateur import Utilisateur
 from app.observability.email_alert import send_error_alert
 from app.observability.logger import get_logger
-from app.middleware import SecurityHeadersMiddleware, RequestLoggingMiddleware
 from app.observability.monitoring import metrics
-from app.models.utilisateur import Utilisateur
-from app.security import create_access_token, verify_password
 from app.routers import (
-    utilisateurs,
-    aliments,
-    exercices,
-    consommations,
     activites,
+    admin,
+    aliments,
+    consommations,
+    exercices,
     metriques_sante,
     objectifs,
-    admin,
+    utilisateurs,
 )
+from app.security import create_access_token, verify_password, verify_token
 
 _log = get_logger("main")
 
 app = FastAPI(title="HealthAI Coach API")
 
 
+def _get_request_user_id(request: Request):
+    """Best-effort user extraction for logs and alert emails."""
+    auth = request.headers.get("authorization", "")
+    scheme, _, token = auth.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        return None
+    payload = verify_token(token)
+    if not payload:
+        return None
+    sub = payload.get("sub")
+    try:
+        return int(sub)
+    except (TypeError, ValueError):
+        return sub
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
-    _log.error("500 %s %s — %s: %s", request.method, request.url.path, type(exc).__name__, exc)
+    # Unhandled errors are logged with their traceback, then the admin alert is
+    # sent in a thread so the HTTP response is not blocked by SMTP latency.
+    user_id = _get_request_user_id(request)
+    _log.error(
+        "500 %s %s - %s: %s",
+        request.method,
+        request.url.path,
+        type(exc).__name__,
+        exc,
+        exc_info=(type(exc), exc, exc.__traceback__),
+    )
     loop = asyncio.get_event_loop()
     loop.run_in_executor(
         None,
@@ -40,7 +67,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         exc,
         request.method,
         str(request.url),
-        None,
+        user_id,
     )
     return JSONResponse(
         status_code=500,
@@ -59,16 +86,9 @@ app.add_middleware(
 )
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 @app.get("/health", tags=["monitoring"])
 def health():
+    """Health endpoint used by operators to verify API and database availability."""
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
@@ -82,7 +102,8 @@ def health():
 
 
 @app.get("/metrics", tags=["monitoring"])
-def get_metrics():
+def get_metrics(user: dict = Depends(require_admin)):
+    """Return in-memory request metrics. This endpoint is admin-only."""
     return metrics.snapshot()
 
 
@@ -91,23 +112,24 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
 ):
+    """Authenticate a user and return the JWT used by protected endpoints."""
     utilisateur = db.query(Utilisateur).filter(
         Utilisateur.username == form_data.username
     ).first()
 
     if utilisateur is None:
-        _log.warning("Login failed — user not found: %s", form_data.username)
+        _log.warning("Login failed - user not found: %s", form_data.username)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if not verify_password(form_data.password, utilisateur.password_hash):
-        _log.warning("Login failed — wrong password: %s", form_data.username)
+        _log.warning("Login failed - wrong password: %s", form_data.username)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     token = create_access_token({
         "sub": str(utilisateur.id_utilisateur),
         "is_admin": utilisateur.is_admin,
     })
-    _log.info("Login OK — user %s (admin=%s)", utilisateur.username, utilisateur.is_admin)
+    _log.info("Login OK - user %s (admin=%s)", utilisateur.username, utilisateur.is_admin)
     return {"access_token": token, "token_type": "bearer"}
 
 
