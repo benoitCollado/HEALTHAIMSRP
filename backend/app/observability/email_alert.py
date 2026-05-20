@@ -19,6 +19,7 @@ _COOLDOWN_SECONDS = 60
 # ==============================
 
 def _is_on_cooldown(error_key: str) -> bool:
+    """Avoid flooding the admin with repeated alerts for the same route/error."""
     last = _last_sent.get(error_key)
     if last is None:
         return False
@@ -26,6 +27,7 @@ def _is_on_cooldown(error_key: str) -> bool:
 
 
 def _get_stacktrace(error: Exception) -> str:
+    """Return the active traceback, or the error message when called outside except."""
     tb = traceback.format_exc()
     if tb.strip() == "NoneType: None":
         return str(error)
@@ -47,15 +49,19 @@ def send_error_alert(
     """
 
     # === ENV ===
-    smtp_user = os.getenv("EMAIL_USER") or os.getenv("ADMIN_EMAIL")
-    smtp_password = os.getenv("EMAIL_PASS")
+    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes")
+    smtp_user = os.getenv("SMTP_USER") or os.getenv("EMAIL_USER") or os.getenv("ADMIN_EMAIL")
+    smtp_password = os.getenv("SMTP_PASS") or os.getenv("EMAIL_PASS")
     admin_email = os.getenv("ADMIN_EMAIL")
 
     if not all([smtp_user, smtp_password, admin_email]):
         print("[ERROR ALERT] SMTP non configuré")
         return
 
-    # === Anti spam ===
+    # Group alerts by exception type and URL so one noisy endpoint cannot flood
+    # the mailbox while unrelated errors still produce their own alert.
     error_key = f"{type(error).__name__}:{url}"
     if _is_on_cooldown(error_key):
         return
@@ -142,8 +148,9 @@ def send_error_alert(
 
     # === SEND ===
     try:
-        with smtplib.SMTP("smtp.gmail.com", 587, timeout=10) as server:
-            server.starttls()
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
+            if smtp_use_tls:
+                server.starttls()
             server.login(smtp_user, smtp_password)
             server.sendmail(smtp_user, admin_email, msg.as_string())
 

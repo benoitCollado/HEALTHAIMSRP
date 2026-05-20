@@ -2,7 +2,7 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
-_LOG_DIR = "logs"
+_LOG_DIR = os.getenv("LOG_DIR", "logs")
 os.makedirs(_LOG_DIR, exist_ok=True)
 
 _FMT = logging.Formatter(

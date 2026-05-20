@@ -136,8 +136,8 @@
 
             /* ---- CONTENT ---- */
             .page {
-                padding: 48px 56px;
-                max-width: 210mm;
+                padding: 10px 15px;
+                max-width: 1100px;
                 margin: 0 auto;
             }
 
@@ -596,16 +596,16 @@
                     Recommandations Personnalisées
                 </div>
                 <div><strong>Organisation :</strong> EPSI</div>
-                <div><strong>Version :</strong> 1.0.0</div>
-                <div><strong>Date :</strong> Mars 2026</div>
+                <div><strong>Version :</strong> 2.1.0</div>
+                <div><strong>Date :</strong> Mai 2026</div>
                 <div>
                     <strong>Stack :</strong> Vue 3 · FastAPI · PostgreSQL ·
-                    Docker · Apache Airflow
+                    Docker · Apache Airflow · Alembic · pytest-cov
                 </div>
             </div>
             <div class="cover-footer">
                 <span>EPSI — Confidentiel</span>
-                <span>HealthAI MSPR v1.0.0</span>
+                <span>HealthAI MSPR v2.1.0</span>
             </div>
         </div>
 
@@ -1069,18 +1069,18 @@
                         <span class="fn">main.py</span>
                         <span class="cm"># Point d'entrée API</span> ├──
                         <span class="fn">database.py</span>
-                        <span class="cm"># Connexion SQLAlchemy</span> ├──
+                        <span class="cm"># Connexion SQLAlchemy Neon</span> ├──
                         <span class="fn">security.py</span>
                         <span class="cm"># JWT + bcrypt</span> ├──
-                        <span class="fn">create_admin.py</span>
-                        <span class="cm"># Init compte admin</span> ├── models/
+                        <span class="fn">dependencies.py</span>
+                        <span class="cm"># DB, JWT, admin-only</span> ├── models/
                         │ ├── utilisateur.py │ ├── activite.py │ ├── aliment.py
                         │ ├── consommation.py │ ├── exercice.py │ ├──
                         metrique_sante.py │ └── objectif.py ├── routers/ │ ├──
                         utilisateurs.py │ ├── activites.py │ ├── aliments.py │
                         ├── consommations.py │ ├── exercices.py │ ├──
                         metriques_sante.py │ └── objectifs.py └── schemas/
-                        <span class="cm"># Pydantic schemas</span>
+                        <span class="cm"># Pydantic schemas - tests pytest</span>
                     </div>
                 </div>
                 <div>
@@ -1117,10 +1117,10 @@
                 <span class="cm"># DAG : Collecte données OpenFoodFacts</span>
 
                 <span class="cm">data/</span>
-                ├── seed_db.py
-                <span class="cm"># Chargement données initiales</span> └──
-                clean_csv_data.py
-                <span class="cm"># Nettoyage fichiers CSV</span>
+                ├── export/
+                <span class="cm"># Exports CSV</span> └──
+                intermediate/ et logs/backend/
+                <span class="cm"># Fichiers Airflow et logs persistés</span>
             </div>
         </div>
 
@@ -1304,8 +1304,11 @@
                 L'API est documentée automatiquement via
                 <strong>Swagger UI</strong> à l'adresse
                 <code>http://localhost:8089/docs</code> (accès direct backend)
-                et proxifiée par Nginx sur le port 89. Toutes les routes (sauf
-                <code>/login</code>) requièrent un token JWT Bearer.
+                et proxifiée par Nginx sur le port 89. Les routes publiques
+                sont <code>/login</code>, <code>/utilisateurs/register</code>
+                et <code>/health</code>. Les routes métier requièrent un token
+                JWT Bearer, et <code>/metrics</code> est réservé aux
+                administrateurs.
             </div>
 
             <h3>Authentification</h3>
@@ -2010,10 +2013,10 @@
                         <td>API FastAPI + Uvicorn</td>
                     </tr>
                     <tr>
-                        <td><code>postgres_health</code></td>
-                        <td>postgres:17</td>
-                        <td>5435:5432</td>
-                        <td>Base de données applicative</td>
+                        <td><code>Neon PostgreSQL</code></td>
+                        <td>Service cloud externe</td>
+                        <td>Non exposé par Docker</td>
+                        <td>Base applicative principale via <code>DATABASE_URL</code></td>
                     </tr>
                     <tr>
                         <td><code>airflow_webserver</code></td>
@@ -2044,21 +2047,53 @@
 
             <h3>Variables d'environnement (.env)</h3>
             <div class="code-block">
-                <span class="cm"># Base de données principale</span>
-                DATABASE_URL=postgresql://healthuser:healthpass@postgres:5432/healthdb
+                <span class="cm"># Base de données principale (Neon)</span>
+                DATABASE_URL=postgresql://&lt;user&gt;:&lt;password&gt;@&lt;host&gt;.neon.tech/&lt;db&gt;?sslmode=require
 
                 <span class="cm"># Sécurité API</span>
                 SECRET_KEY=<span class="str">votre-clé-secrète-forte</span>
 
+                <span class="cm"># Alertes email critiques (erreurs 500)</span>
+                SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_USE_TLS=true
+                SMTP_USER=sender@example.com SMTP_PASS=mot-de-passe-app
+                ADMIN_EMAIL=admin@example.com
+
+                <span class="cm"># Logs applicatifs</span>
+                LOG_DIR=logs
+
                 <span class="cm"># Ports (optionnels, valeurs par défaut)</span>
                 FRONTEND_PORT=127.0.0.1:89 BACKEND_PORT=127.0.0.1:8089
-                POSTGRES_PORT=127.0.0.1:5435 AIRFLOW_PORT=8080
+                AIRFLOW_PORT=8080
 
                 <span class="cm"
                     ># Frontend (URL de l'API depuis le navigateur)</span
                 >
                 VITE_API_URL=<span class="str">http://localhost:89</span>
             </div>
+
+            <h3>Notes de configuration récentes</h3>
+            <ul class="simple">
+                <li>
+                    La base applicative n'est pas un conteneur Docker :
+                    <code>DATABASE_URL</code> pointe vers Neon PostgreSQL.
+                </li>
+                <li>
+                    Les secrets applicatifs (<code>DATABASE_URL</code>,
+                    <code>SECRET_KEY</code>, SMTP) sont fournis par
+                    <code>.env</code> et ne sont plus écrits en dur dans
+                    <code>docker-compose.yml</code>.
+                </li>
+                <li>
+                    Les logs fichier du backend sont persistés dans
+                    <code>./data/logs/backend</code> via le montage
+                    <code>/app/logs</code>.
+                </li>
+                <li>
+                    Le Dockerfile backend normalise <code>start.sh</code> en
+                    fins de ligne Linux pour éviter les erreurs d'exécution sous
+                    Docker.
+                </li>
+            </ul>
 
             <h3>Commandes de déploiement</h3>
             <table>
@@ -2070,69 +2105,32 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>docker compose up -d postgres</code></td>
-                        <td>
-                            Démarre la base de données PostgreSQL utilisée par
-                            l'application
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <code
-                                >docker compose --profile seed run --rm
-                                seed</code
-                            >
-                        </td>
-                        <td>
-                            Charge les données initiales (utilisateurs,
-                            aliments, exercices, etc.) dans la base
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <code
-                                >docker compose --profile admin run --rm
-                                admin</code
-                            >
-                        </td>
-                        <td>
-                            Création d'un compte admin (identifiants : admin /
-                            admin) pour accéder à l'interface d'administration
-                            et valider les flux Airflow
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <code>
-                                docker compose --profile airflow run --rm
-                                airflow-init
-                            </code>
-                        </td>
-                        <td>
-                            Initialise la base de données Airflow et crée le
-                            compte administrateur (exécution unique)
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <code>docker compose --profile airflow up -d</code>
-                        </td>
-                        <td>
-                            Démarre l'ensemble des services : frontend, backend
-                            API, Airflow et base de données
-                        </td>
-                    </tr>
-                    <tr>
                         <td><code>docker compose up -d --build</code></td>
-                        <td>Démarrer tous les services en arrière-plan</td>
+                        <td>Démarre frontend, backend, Airflow et PostgreSQL Airflow</td>
                     </tr>
                     <tr>
-                        <td><code>docker compose logs -f backend_api</code></td>
-                        <td>Suivre les logs du backend en temps réel</td>
+                        <td><code>docker compose up -d --build backend frontend</code></td>
+                        <td>Reconstruit et redémarre uniquement l'API et le frontend</td>
+                    </tr>
+                    <tr>
+                        <td><code>docker compose exec backend python -m pytest</code></td>
+                        <td>Lance les tests backend dans le conteneur</td>
+                    </tr>
+                    <tr>
+                        <td><code>docker compose exec backend python -m pytest app/tests/test_monitoring.py</code></td>
+                        <td>Lance un fichier de tests ciblé</td>
+                    </tr>
+                    <tr>
+                        <td><code>docker compose logs -f backend</code></td>
+                        <td>Suit les logs du service backend</td>
+                    </tr>
+                    <tr>
+                        <td><code>docker compose exec backend python -m compileall app</code></td>
+                        <td>Vérifie rapidement la syntaxe Python</td>
                     </tr>
                     <tr>
                         <td><code>docker compose down</code></td>
-                        <td>Arrêter tous les services</td>
+                        <td>Arrête tous les services</td>
                     </tr>
                 </tbody>
             </table>
@@ -2184,6 +2182,10 @@
                             modifications globales
                         </li>
                         <li>
+                            Endpoint <code>/metrics</code> protégé par le rôle
+                            administrateur
+                        </li>
+                        <li>
                             Validation stricte avec
                             <strong>Pydantic v2</strong> sur toutes les entrées
                         </li>
@@ -2203,6 +2205,10 @@
                         <li>
                             <code>SECRET_KEY</code> via variable d'environnement
                             (jamais en dur)
+                        </li>
+                        <li>
+                            <code>DATABASE_URL</code> Neon et paramètres SMTP
+                            chargés depuis <code>.env</code>
                         </li>
                         <li>
                             Réseau Docker interne isolé
@@ -2228,6 +2234,34 @@
                     </ul>
                 </div>
             </div>
+
+            <h3>Observabilité backend</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Élément</th>
+                        <th>Implémentation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>/health</code></td>
+                        <td>Vérifie l'état API + connexion PostgreSQL Neon</td>
+                    </tr>
+                    <tr>
+                        <td><code>/metrics</code></td>
+                        <td>Métriques en mémoire : requêtes, erreurs 5xx, durée moyenne, routes appelées. Accès admin requis.</td>
+                    </tr>
+                    <tr>
+                        <td>Logs</td>
+                        <td>Console + fichier rotatif <code>app.log</code>, persisté dans <code>data/logs/backend</code>.</td>
+                    </tr>
+                    <tr>
+                        <td>Alertes email</td>
+                        <td>Email HTML sur erreur 500 non gérée, SMTP configurable, cooldown anti-spam de 60 secondes.</td>
+                    </tr>
+                </tbody>
+            </table>
 
             <h3>Limites et améliorations recommandées</h3>
             <table>
@@ -2319,7 +2353,7 @@
                         Recommandations IA personnalisées · Graphiques de
                         tendances · Notifications temps réel · Application
                         mobile · Export PDF des rapports · Refresh tokens ·
-                        Tests automatisés complets
+                        Tests backend automatisés
                     </div>
                 </div>
                 <div class="stat-card">
@@ -2336,8 +2370,8 @@
                         "
                     >
                         Architecture découplée · TypeScript strict · ORM typé ·
-                        Validation Pydantic v2 · Tests backend disponibles ·
-                        Documentation auto Swagger
+                        Validation Pydantic v2 · 89 tests pytest · Couverture
+                        backend 94 % · Documentation auto Swagger
                     </div>
                 </div>
             </div>
@@ -2389,3 +2423,4 @@
         </div>
     </body>
 </html>
+
