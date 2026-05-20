@@ -1,5 +1,13 @@
+import logging
+import time
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
+
+from app.observability.logger import get_logger
+from app.observability.monitoring import metrics
+
+_access_log = get_logger("access")
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -19,4 +27,27 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "connect-src 'self'; "
             "frame-ancestors 'none'"
         )
+        return response
+
+
+class RequestLoggingMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        start = time.perf_counter()
+        response = await call_next(request)
+        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+
+        route = request.url.path
+        status = response.status_code
+        metrics.record(route, duration_ms, status)
+
+        level = logging.WARNING if status >= 400 else logging.INFO
+        _access_log.log(
+            level,
+            "%s %s → %d (%.1f ms)",
+            request.method,
+            route,
+            status,
+            duration_ms,
+        )
+
         return response

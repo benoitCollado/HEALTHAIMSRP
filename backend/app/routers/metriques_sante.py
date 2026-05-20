@@ -1,15 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Path
-from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal
+from app.dependencies import get_current_user, get_db, require_admin
 from app.models.metrique_sante import MetriqueSante
 from app.schemas.metrique_sante import (
     MetriqueSanteCreate,
     MetriqueSanteResponse,
     MetriqueSanteUpdate,
 )
-from app.security import verify_token
 
 # Routeur pour les endpoints liés aux métriques de santé
 router = APIRouter(
@@ -18,28 +16,12 @@ router = APIRouter(
 )
 
 # Schéma OAuth2 pour récupérer le token JWT depuis /login
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
 
 # Dépendance pour ouvrir et fermer une session de base de données
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 # Récupère l’utilisateur courant à partir du token JWT
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    payload = verify_token(token)
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid token")
-    return payload
 
 # Vérifie que l’utilisateur est administrateur
-def require_admin(user: dict = Depends(get_current_user)):
-    if not user.get("is_admin", False):
-        raise HTTPException(status_code=403, detail="Admin only")
-    return user
 
 # Création d’une nouvelle métrique de santé
 @router.post("/", response_model=MetriqueSanteResponse, status_code=201)

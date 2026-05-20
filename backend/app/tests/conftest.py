@@ -7,16 +7,15 @@ from sqlalchemy.orm import sessionmaker
 
 from datetime import date
 
-# Add project root to path
+# Make imports work when tests are executed from the backend container root.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from app.main import app, get_db
-from app.routers import utilisateurs
 from app.database import Base
 from app.models.utilisateur import Utilisateur
 from app.security import hash_password
 
-# Setup in-memory SQLite database for tests
+# Tests use an in-memory SQLite database to avoid touching the real Neon DB.
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(
@@ -45,9 +44,9 @@ def client(db_session):
             yield db_session
         finally:
             pass
-    
+
+    # All routers import the same get_db dependency, so one override is enough.
     app.dependency_overrides[get_db] = override_get_db
-    app.dependency_overrides[utilisateurs.get_db] = override_get_db
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()

@@ -27,6 +27,7 @@ Ces datasets couvrent **au minimum deux sources** comme exigé, et représentent
 | Orchestration      | Apache Airflow              |
 | Validation qualité | pandas + règles métiers     |
 | Stockage           | PostgreSQL serverless (Neon)|
+| Migrations BDD     | Alembic                     |
 | API                | FastAPI                     |
 | Visualisation      | Metabase / Superset         |
 | Conteneurisation   | Docker / Docker Compose     |
@@ -66,6 +67,7 @@ Cette séparation **raw / cleaned / exposed** garantit traçabilité, qualité e
 * Journalisation des traitements sans données personnelles
 * Données fictives → conformité RGPD respectée par design
 * En-têtes de sécurité HTTP sur toutes les réponses (voir ci-dessous)
+* Alertes email automatiques à l’administrateur sur toute erreur 500
 
 ### En-têtes de sécurité HTTP
 
@@ -78,6 +80,10 @@ Le middleware backend ajoute automatiquement les en-têtes OWASP recommandés à
 | `X-XSS-Protection` | `1; mode=block` | XSS (navigateurs legacy) |
 | `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTPS (1 an) |
 | `Content-Security-Policy` | `default-src ‘self’; ...` | Sources de contenu autorisées |
+
+### Alertes email
+
+En cas d’erreur 500 non gérée, un email HTML est envoyé automatiquement à l’administrateur (configurable via `SMTP_*` et `ADMIN_EMAIL` dans `.env`). Un cooldown de 60 s par type d’erreur évite le flood.
 
 ## 3.2 Automatisation
 
@@ -172,6 +178,9 @@ Ces entités constituent le socle des indicateurs exposés dans les tableaux de 
 | Visualisation              | Oui        |
 | Exploitation IA-ready      | Oui        |
 | En-têtes sécurité HTTP     | Oui        |
+| Migrations versionnées     | Oui        |
+| Alertes erreurs admin      | Oui        |
+| Tests + couverture ≥ 70 %  | Oui        |
 
 ---
 
@@ -179,23 +188,23 @@ Ces entités constituent le socle des indicateurs exposés dans les tableaux de 
 
 ## Prérequis — base de données Neon
 
-La base `healthdb` est hébergée sur [Neon](https://neon.tech) (PostgreSQL serverless).  
+La base est hébergée sur [Neon](https://neon.tech) (PostgreSQL serverless).  
 Avant le premier lancement :
 
 1. Copier `.env.example` → `.env` et renseigner `DATABASE_URL` avec la connection string Neon
-2. Initialiser le schéma en exécutant dans l'ordre dans le **SQL Editor de Neon** :
-   - `database/init/01_create_tables.sql`
+2. (Optionnel) Insérer les données de test via le **SQL Editor Neon** :
    - `database/init/02_insert_test_data.sql`
-   - `database/init/03_add_nutriments_aliment.sql`
+
+> Les tables sont créées automatiquement par **Alembic** au premier démarrage du backend (`alembic upgrade head`). L'exécution manuelle de `01_create_tables.sql` n'est plus nécessaire.
 
 ## Services Docker
 
 ```bash
-docker compose up -d                              # Backend, frontend, Airflow
+docker compose up -d                              # Backend (+ migrations auto), frontend, Airflow
 docker compose --profile seed run --rm seed       # Import des données CSV
 ```
 
-Le compte `admin` est inclus dans `database/init/02_insert_test_data.sql` (mot de passe : **`password`**). Aucune étape supplémentaire n'est nécessaire.
+**Identifiants par défaut** : `admin` / `password`
 
 ## Airflow
 
