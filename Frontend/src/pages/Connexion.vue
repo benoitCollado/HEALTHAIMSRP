@@ -51,6 +51,23 @@
             </div>
           </div>
 
+          <div class="form-group">
+            <label for="otp">Code 2FA (Google Authenticator / Authy)</label>
+            <div class="input-wrapper">
+              <span class="input-icon">🔢</span>
+              <input
+                id="otp"
+                v-model="otp"
+                :disabled="isLoading"
+                type="text"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                placeholder="Code 6 chiffres (si active)"
+                maxlength="6"
+              />
+            </div>
+          </div>
+
           <div v-if="error" class="login-error">
             <span>⚠️</span> {{ error }}
           </div>
@@ -80,6 +97,7 @@ export default defineComponent({
   setup() {
     const username = ref('')
     const password = ref('')
+    const otp = ref('')
     const error = ref('')
     const isLoading = ref(false)
     const showPassword = ref(false)
@@ -89,7 +107,7 @@ export default defineComponent({
     async function submit() {
       error.value = ''
       isLoading.value = true
-      const result = await auth.login(username.value, password.value)
+      const result = await auth.login(username.value, password.value, otp.value)
 
       if (result.success) {
         router.push('/page-accueil')
@@ -100,7 +118,7 @@ export default defineComponent({
       isLoading.value = false
     }
 
-    return { username, password, error, isLoading, showPassword, year, submit }
+    return { username, password, otp, error, isLoading, showPassword, year, submit }
   }
 })
 </script>

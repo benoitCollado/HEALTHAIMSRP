@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+import pyotp
 
 # Clé secrète utilisée pour signer et vérifier les tokens JWT
 SECRET_KEY = os.getenv("SECRET_KEY")
@@ -16,6 +17,7 @@ ALGORITHM = "HS256"
 
 # Durée de validité du token en minutes
 ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 heures
+TOTP_ISSUER = os.getenv("TOTP_ISSUER", "HealthAI MSPR")
 
 # Configuration du contexte de hash pour les mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -55,3 +57,21 @@ def verify_token(token: str):
     except JWTError:
         # Token invalide ou expiré
         return None
+
+
+def generate_totp_secret() -> str:
+    """Generate a base32 secret compatible with Google Authenticator and Authy."""
+    return pyotp.random_base32()
+
+
+def build_totp_provisioning_uri(username: str, secret: str) -> str:
+    """Return otpauth URI to enroll the account in authenticator applications."""
+    return pyotp.TOTP(secret).provisioning_uri(name=username, issuer_name=TOTP_ISSUER)
+
+
+def verify_totp_code(secret: str, code: str) -> bool:
+    """Validate a 6-digit TOTP code with a small tolerance for clock drift."""
+    if not secret or not code:
+        return False
+    normalized_code = code.strip().replace(" ", "")
+    return pyotp.TOTP(secret).verify(normalized_code, valid_window=1)

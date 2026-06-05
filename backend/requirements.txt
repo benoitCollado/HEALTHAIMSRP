@@ -5,6 +5,7 @@ sqlalchemy
 pandas
 psycopg2-binary
 python-jose
+pyotp
 passlib[bcrypt]
 bcrypt==3.2.2
 pytest
