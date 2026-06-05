@@ -41,3 +41,5 @@ data/intermediate/
 data/ml/
 
 database/db/
+
+.cursor
