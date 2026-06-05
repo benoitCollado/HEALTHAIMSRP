@@ -131,6 +131,22 @@ jobs:
           test -f Frontend/coverage/lcov.info || (echo "Frontend/coverage/lcov.info manquant" && exit 1)
           echo "Sources analysées : backend/, Frontend/src/, airflow/dags/, scripts/, .github/"
 
+      - name: Vérifier la configuration SonarQube (serveur auto-hébergé)
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::error::SONAR_TOKEN manquant — SonarQube → My Account → Security → Generate Token"
+            exit 1
+          fi
+          if [ -z "$SONAR_HOST_URL" ]; then
+            echo "::error::SONAR_HOST_URL manquant — URL de base du serveur (ex. https://sonarqube.mondomaine.fr), PAS l'URL du projet"
+            exit 1
+          fi
+          echo "SONAR_HOST_URL=$SONAR_HOST_URL"
+          grep -E '^sonar\.projectKey=' sonar-project.properties
+
       - name: SonarQube Scan (dépôt complet)
         uses: SonarSource/sonarqube-scan-action@v7
         env:
