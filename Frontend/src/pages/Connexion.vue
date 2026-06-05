@@ -59,6 +59,10 @@
             <span v-if="isLoading" class="spinner"></span>
             {{ isLoading ? 'Connexion en cours...' : 'Se connecter' }}
           </button>
+
+          <router-link to="/inscription" class="register-link">
+            Creer un compte
+          </router-link>
         </form>
       </div>
 
@@ -269,6 +273,19 @@ export default defineComponent({
   box-shadow: 0 8px 20px rgba(37,99,235,0.40);
 }
 .login-btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+
+.register-link {
+  display: block;
+  margin-top: 12px;
+  text-align: center;
+  color: #1d4ed8;
+  font-size: 0.9rem;
+  text-decoration: none;
+}
+
+.register-link:hover {
+  text-decoration: underline;
+}
 
 .spinner {
   display: inline-block;

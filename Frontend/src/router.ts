@@ -4,6 +4,7 @@ import { auth } from './services/auth'
 const routes = [
   { path: '/', redirect: '/connexion' },
   { path: '/connexion', name: 'Connexion', component: () => import('./pages/Connexion.vue'), meta: { requiresAuth: false } },
+  { path: '/inscription', name: 'Inscription', component: () => import('./pages/Inscription.vue'), meta: { requiresAuth: false } },
   { path: '/page-accueil', name: 'PageAccueil', component: () => import('./pages/PageAccueil.vue'), meta: { requiresAuth: true } },
   { path: '/dashboard', name: 'Dashboard', component: () => import('./pages/Dashboard.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/gestion-des-flux', name: 'GestionFlux', component: () => import('./pages/GestionFlux.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
