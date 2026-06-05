@@ -1,5 +1,6 @@
-import pytest
 from datetime import date
+
+import pytest
 from app.models.utilisateur import Utilisateur
 from app.security import hash_password
 
@@ -17,10 +18,16 @@ _METRIQUE = {
 @pytest.fixture
 def user_headers(client, db_session):
     user = Utilisateur(
-        username="usermet", password_hash=hash_password("pass"),
-        age=30, sexe="H", taille_cm=180, poids_kg=80,
-        niveau_activite=1, type_abonnement=1,
-        date_inscription=date(2026, 1, 1), is_admin=False,
+        username="usermet",
+        password_hash=hash_password("pass"),
+        age=30,
+        sexe="H",
+        taille_cm=180,
+        poids_kg=80,
+        niveau_activite=1,
+        type_abonnement=1,
+        date_inscription=date(2026, 1, 1),
+        is_admin=False,
     )
     db_session.add(user)
     db_session.commit()
@@ -33,6 +40,7 @@ def _create(client, headers):
 
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
+
 
 def test_create_metrique(client, admin_headers):
     r = client.post("/metriques-sante/", json=_METRIQUE, headers=admin_headers)
@@ -87,6 +95,7 @@ def test_delete_metrique_not_found(client, admin_headers):
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
+
 
 def test_metriques_requires_auth(client):
     r = client.get("/metriques-sante/")

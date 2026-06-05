@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, Date, Numeric, ForeignKey
 from app.database import Base
+from sqlalchemy import Column, Date, ForeignKey, Integer, Numeric
+
 
 # Modèle SQLAlchemy représentant une consommation alimentaire
 class Consommation(Base):

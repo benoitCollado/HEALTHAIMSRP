@@ -4,15 +4,17 @@ Charge les CSV intermédiaires validés par l'admin :
 - Import : alimente la table aliment
 - Export : copie vers data/ml/ pour usage ML
 """
+
 import csv
 import json
 import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+
+from airflow import DAG
 
 HEALTH_DB_CONN_ID = "healthaim_postgres"
 INTERMEDIATE_IMPORT = Path("/opt/airflow/intermediate/import")
@@ -30,7 +32,7 @@ def incorporate_imports(**context):
     total_inserted = 0
     for meta_path in sorted(INTERMEDIATE_IMPORT.glob("import_*.json")):
         try:
-            with open(meta_path, "r", encoding="utf-8") as f:
+            with open(meta_path, encoding="utf-8") as f:
                 meta = json.load(f)
             if meta.get("status") != "validated":
                 continue
@@ -39,7 +41,7 @@ def incorporate_imports(**context):
             if not csv_path.exists():
                 continue
 
-            with open(csv_path, "r", encoding="utf-8") as f:
+            with open(csv_path, encoding="utf-8") as f:
                 reader = csv.DictReader(f)
                 inserted = 0
                 for row in reader:
@@ -79,6 +81,7 @@ def incorporate_imports(**context):
 
         except Exception as e:
             import logging
+
             logging.error("Erreur incorporation import %s: %s", meta_path.name, e)
 
     cur.close()
@@ -93,7 +96,7 @@ def incorporate_exports(**context):
 
     for meta_path in sorted(INTERMEDIATE_EXPORT.glob("export_*.json")):
         try:
-            with open(meta_path, "r", encoding="utf-8") as f:
+            with open(meta_path, encoding="utf-8") as f:
                 meta = json.load(f)
             if meta.get("status") != "validated":
                 continue
@@ -112,6 +115,7 @@ def incorporate_exports(**context):
 
         except Exception as e:
             import logging
+
             logging.error("Erreur incorporation export %s: %s", meta_path.name, e)
 
     return {"export_files_copied": total_copied}

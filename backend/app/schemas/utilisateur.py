@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict
 from datetime import date
-from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+
 
 # Schéma de base pour un utilisateur
 class UtilisateurBase(BaseModel):
@@ -19,6 +20,7 @@ class UtilisateurBase(BaseModel):
     # Date d’inscription
     date_inscription: date
 
+
 # Schéma utilisé lors de la création d’un utilisateur
 class UtilisateurCreate(UtilisateurBase):
     # Nom d’utilisateur (unique)
@@ -26,22 +28,24 @@ class UtilisateurCreate(UtilisateurBase):
     # Mot de passe en clair (sera hashé côté backend)
     password: str
 
+
 # Schéma utilisé pour la mise à jour partielle d’un utilisateur
 class UtilisateurUpdate(BaseModel):
     # Nouvel âge
-    age: Optional[int] = None
+    age: int | None = None
     # Nouveau sexe
-    sexe: Optional[str] = None
+    sexe: str | None = None
     # Nouvelle taille
-    taille_cm: Optional[int] = None
+    taille_cm: int | None = None
     # Nouveau poids
-    poids_kg: Optional[int] = None
+    poids_kg: int | None = None
     # Nouveau niveau d’activité
-    niveau_activite: Optional[int] = None
+    niveau_activite: int | None = None
     # Nouveau type d’abonnement
-    type_abonnement: Optional[int] = None
+    type_abonnement: int | None = None
     # Nouvelle date d’inscription
-    date_inscription: Optional[date] = None
+    date_inscription: date | None = None
+
 
 # Schéma de réponse renvoyé par l’API
 class UtilisateurResponse(UtilisateurBase):

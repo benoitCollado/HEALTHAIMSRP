@@ -2,6 +2,7 @@
 DAG fetch_openfoodfacts_france : import Open Food Facts → CSV intermédiaire (pas de BDD directe).
 Le CSV est horodaté pour traçabilité. L'admin valide puis incorporation_ml charge en BDD.
 """
+
 import csv
 import json
 import logging
@@ -10,8 +11,9 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import requests
-from airflow import DAG
 from airflow.operators.python import PythonOperator
+
+from airflow import DAG
 
 # Configuration
 OFF_API_BASE = "https://world.openfoodfacts.org/api/v2"
@@ -103,25 +105,34 @@ def fetch_to_csv(**context):
                     skipped += 1
                     continue
 
-                categorie = sanitize_str(
-                    p.get("categories", "").split(",")[0] if p.get("categories") else "Aliment"
-                )
+                categorie = sanitize_str(p.get("categories", "").split(",")[0] if p.get("categories") else "Aliment")
 
-                rows.append({
-                    "nom_aliment": nom,
-                    "calories": calories,
-                    "proteines_g": proteines,
-                    "glucides_g": glucides,
-                    "lipides_g": lipides,
-                    "sucres_g": sucres,
-                    "acides_gras_satures_g": acides_gras_satures,
-                    "categorie": categorie,
-                })
+                rows.append(
+                    {
+                        "nom_aliment": nom,
+                        "calories": calories,
+                        "proteines_g": proteines,
+                        "glucides_g": glucides,
+                        "lipides_g": lipides,
+                        "sucres_g": sucres,
+                        "acides_gras_satures_g": acides_gras_satures,
+                        "categorie": categorie,
+                    }
+                )
             except Exception as e:
                 logging.warning("Produit ignoré %s: %s", p.get("code"), e)
                 errors += 1
 
-    fieldnames = ["nom_aliment", "calories", "proteines_g", "glucides_g", "lipides_g", "sucres_g", "acides_gras_satures_g", "categorie"]
+    fieldnames = [
+        "nom_aliment",
+        "calories",
+        "proteines_g",
+        "glucides_g",
+        "lipides_g",
+        "sucres_g",
+        "acides_gras_satures_g",
+        "categorie",
+    ]
     with open(csv_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()

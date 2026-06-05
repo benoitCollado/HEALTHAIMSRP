@@ -1,17 +1,17 @@
-import sys
 import os
+import sys
+from datetime import date
+
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine, StaticPool
+from sqlalchemy import StaticPool, create_engine
 from sqlalchemy.orm import sessionmaker
-
-from datetime import date
 
 # Make imports work when tests are executed from the backend container root.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.main import app, get_db
 from app.database import Base
+from app.main import app, get_db
 from app.models.utilisateur import Utilisateur
 from app.security import hash_password
 
@@ -25,6 +25,7 @@ engine = create_engine(
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 @pytest.fixture(scope="function")
 def db_session():
     """Create a fresh database for each test."""
@@ -36,9 +37,11 @@ def db_session():
         db.close()
         Base.metadata.drop_all(bind=engine)
 
+
 @pytest.fixture(scope="function")
 def client(db_session):
     """Create a test client with dependency overrides."""
+
     def override_get_db():
         try:
             yield db_session
@@ -50,6 +53,7 @@ def client(db_session):
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+
 
 @pytest.fixture
 def admin_token(client, db_session):
@@ -65,23 +69,16 @@ def admin_token(client, db_session):
         niveau_activite=1,
         type_abonnement=1,
         date_inscription=date(2026, 2, 5),
-        is_admin=True
+        is_admin=True,
     )
     db_session.add(admin_user)
     db_session.commit()
 
-    response = client.post(
-        "/login",
-        data={
-            "username": "admin",
-            "password": "admin123"
-        }
-    )
+    response = client.post("/login", data={"username": "admin", "password": "admin123"})
     assert response.status_code == 200
     return response.json()["access_token"]
 
+
 @pytest.fixture
 def admin_headers(admin_token):
-    return {
-        "Authorization": f"Bearer {admin_token}"
-    }
+    return {"Authorization": f"Bearer {admin_token}"}

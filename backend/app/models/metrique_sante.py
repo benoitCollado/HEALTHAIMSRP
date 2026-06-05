@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, Date, Numeric, SmallInteger, ForeignKey
 from app.database import Base
+from sqlalchemy import Column, Date, ForeignKey, Integer, Numeric, SmallInteger
+
 
 # Modèle SQLAlchemy représentant des métriques de santé d’un utilisateur
 class MetriqueSante(Base):

@@ -1,12 +1,5 @@
 import asyncio
 
-from fastapi import Depends, FastAPI, HTTPException, Request
-from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import text
-from sqlalchemy.orm import Session
-
 from app.database import engine
 from app.dependencies import get_db, require_admin
 from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
@@ -25,6 +18,12 @@ from app.routers import (
     utilisateurs,
 )
 from app.security import create_access_token, verify_password, verify_token
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 _log = get_logger("main")
 
@@ -113,9 +112,7 @@ def login(
     db: Session = Depends(get_db),
 ):
     """Authenticate a user and return the JWT used by protected endpoints."""
-    utilisateur = db.query(Utilisateur).filter(
-        Utilisateur.username == form_data.username
-    ).first()
+    utilisateur = db.query(Utilisateur).filter(Utilisateur.username == form_data.username).first()
 
     if utilisateur is None:
         _log.warning("Login failed - user not found: %s", form_data.username)
@@ -125,10 +122,12 @@ def login(
         _log.warning("Login failed - wrong password: %s", form_data.username)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    token = create_access_token({
-        "sub": str(utilisateur.id_utilisateur),
-        "is_admin": utilisateur.is_admin,
-    })
+    token = create_access_token(
+        {
+            "sub": str(utilisateur.id_utilisateur),
+            "is_admin": utilisateur.is_admin,
+        }
+    )
     _log.info("Login OK - user %s (admin=%s)", utilisateur.username, utilisateur.is_admin)
     return {"access_token": token, "token_type": "bearer"}
 

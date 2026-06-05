@@ -2,6 +2,12 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+backend/coverage.xml
+backend/coverage_html/
+
+# SonarQube / couverture frontend
+.scannerwork/
+Frontend/coverage/
 .env
 .venv/
 venv/

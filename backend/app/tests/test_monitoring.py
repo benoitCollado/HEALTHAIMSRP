@@ -1,9 +1,8 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from sqlalchemy.exc import OperationalError
+from unittest.mock import patch
 
-import app.observability.monitoring as monitoring_module
+import pytest
 from app.observability.monitoring import metrics
+from sqlalchemy.exc import OperationalError
 
 
 @pytest.fixture(autouse=True)
@@ -16,6 +15,7 @@ def reset_metrics():
 # ──────────────────────────────────────────────
 # /health
 # ──────────────────────────────────────────────
+
 
 def test_health_ok(client):
     response = client.get("/health")
@@ -44,6 +44,7 @@ def test_health_has_security_headers(client):
 # ──────────────────────────────────────────────
 # /metrics
 # ──────────────────────────────────────────────
+
 
 def test_metrics_requires_admin(client):
     response = client.get("/metrics")
@@ -97,6 +98,7 @@ def test_metrics_uptime_non_negative(client, admin_headers):
 # ──────────────────────────────────────────────
 # _Metrics unit tests
 # ──────────────────────────────────────────────
+
 
 def test_metrics_record_increments_total():
     metrics.record("/api/test", 50.0, 200)
