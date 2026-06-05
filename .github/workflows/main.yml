@@ -134,14 +134,14 @@ jobs:
       - name: Vérifier la configuration SonarQube (serveur auto-hébergé)
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
         run: |
           if [ -z "$SONAR_TOKEN" ]; then
-            echo "::error::SONAR_TOKEN manquant — SonarQube → My Account → Security → Generate Token"
+            echo "::error::SONAR_TOKEN manquant — Repository secret (SonarQube → My Account → Security → Generate Token)"
             exit 1
           fi
           if [ -z "$SONAR_HOST_URL" ]; then
-            echo "::error::SONAR_HOST_URL manquant — URL de base du serveur (ex. https://sonarqube.mondomaine.fr), PAS l'URL du projet"
+            echo "::error::SONAR_HOST_URL manquant — Repository variable ou secret (URL de base du serveur, ex. https://sonarqube.mondomaine.fr)"
             exit 1
           fi
           echo "SONAR_HOST_URL=$SONAR_HOST_URL"
@@ -151,7 +151,7 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@v7
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
 
   # Déploiement SSH : le serveur utilise son .env (DATABASE_URL Neon, SECRET_KEY, etc.).
   # Aucune base locale n'est démarrée — seuls backend + frontend sont relancés.
