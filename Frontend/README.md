@@ -10,4 +10,18 @@ npm install
 npm run dev
 ```
 
+Useful shortcuts:
+
+```bash
+npm run build
+npm run cap:sync:android
+npm run cap:open:android
+```
+
+For a full Android refresh after a frontend change, run:
+
+```bash
+npm run android:build
+```
+
 The app uses `src/data/maquette.json` (parsed from the original `Divers/Maquette/index.html`) to render pages and clickable areas. It does not depend on embedding the original images; overlays are positioned from the original coordinates.

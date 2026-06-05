@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: postgres_health
+    restart: always
+    environment:
+      POSTGRES_USER: healthuser
+      POSTGRES_PASSWORD: healthpass
+      POSTGRES_DB: healthdb
+    volumes:
+      - health_db_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthuser -d healthdb"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - health_net
+
+  backend:
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  seed:
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  health_db_data:
