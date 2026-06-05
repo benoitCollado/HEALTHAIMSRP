@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict
 from datetime import date
-from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+
 
 # Schéma de base pour une activité (champs communs)
 class ActiviteBase(BaseModel):
@@ -11,30 +12,33 @@ class ActiviteBase(BaseModel):
     # Nombre de calories dépensées pendant l’activité
     calories_depensees: float
     # Intensité de l’activité (optionnelle)
-    intensite: Optional[str] = None
+    intensite: str | None = None
     # Identifiant de l’exercice associé
     id_exercice: int
     # Identifiant de l’utilisateur ayant réalisé l’activité
     id_utilisateur: int
 
+
 # Schéma utilisé lors de la création d’une activité
 class ActiviteCreate(ActiviteBase):
     pass
 
+
 # Schéma utilisé pour la mise à jour partielle d’une activité
 class ActiviteUpdate(BaseModel):
     # Nouvelle date de l’activité (optionnelle)
-    date_activite: Optional[date] = None
+    date_activite: date | None = None
     # Nouvelle durée en minutes (optionnelle)
-    duree_minutes: Optional[int] = None
+    duree_minutes: int | None = None
     # Nouvelle valeur de calories dépensées (optionnelle)
-    calories_depensees: Optional[float] = None
+    calories_depensees: float | None = None
     # Nouvelle intensité (optionnelle)
-    intensite: Optional[str] = None
+    intensite: str | None = None
     # Nouvel exercice associé (optionnel)
-    id_exercice: Optional[int] = None
+    id_exercice: int | None = None
     # Nouvel utilisateur associé (optionnel)
-    id_utilisateur: Optional[int] = None
+    id_utilisateur: int | None = None
+
 
 # Schéma utilisé pour les réponses de l’API
 class ActiviteResponse(ActiviteBase):

@@ -1,30 +1,191 @@
-# Nom du workflow (affiché dans l'onglet Actions de GitHub)
 name: CI-CD Pipeline
 
-# Déclencheurs (Events)
 on:
+  push:
+    branches: [main]
   pull_request:
-    branches: [ "main" ]   
+    branches: [main]
 
-# Liste des tâches à accomplir
 jobs:
-  build-and-test:
-    # Environnement d'exécution (Runner)
+  # Les tests CI utilisent un PostgreSQL éphémère local (isolé).
+  # En production, le backend se connecte à PostgreSQL managé (Neon)
+  # via DATABASE_URL défini dans le .env du serveur — jamais touché par la CI.
+  test-backend:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: healthdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d healthdb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/healthdb
+      SECRET_KEY: ci-test-secret-key
+
     steps:
-      # 1. Récupérer le code du dépôt sur le runner
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # 2. permet d'installer l'environnement et de lancer les test à faire ulterieurement quand les tests seront fini 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
 
-  # deploy:
-  #   # Cette tâche ne se lance que si 'build-and-test' a réussi
-  #   needs: build-and-test
-  #   if: github.ref == 'refs/heads/main' # Uniquement si on est sur la branche main
-  #   runs-on: ubuntu-latest
-    
-  #   steps:
-  #     - name: Deploy to Production
-  #       run: echo "Déploiement en cours sur le serveur..."
+      - name: Install dependencies
+        working-directory: backend
+        run: pip install -r requirements-dev.txt
+
+      - name: Lint Python (ruff)
+        run: |
+          ruff check backend/app backend/migrations airflow/dags
+          ruff format --check backend/app backend/migrations airflow/dags
+
+      - name: Run backend tests
+        working-directory: backend
+        run: python -m pytest
+
+      - name: Upload backend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/coverage.xml
+          retention-days: 1
+
+  test-frontend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: Frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: Frontend
+        run: npm ci
+
+      - name: Lint TypeScript / Vue (ESLint)
+        working-directory: Frontend
+        run: npm run lint
+
+      - name: Run frontend tests with coverage
+        working-directory: Frontend
+        run: npm run test:coverage
+
+      - name: Build frontend
+        working-directory: Frontend
+        run: npm run build
+
+      - name: Upload frontend coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: Frontend/coverage/lcov.info
+          retention-days: 1
+
+  # Analyse SonarQube complète du dépôt (backend, frontend, Airflow, scripts, CI)
+  # à chaque push sur main, après génération des rapports de couverture.
+  sonarqube:
+    needs: [test-backend, test-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download backend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend
+
+      - name: Download frontend coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-coverage
+          path: Frontend/coverage
+
+      - name: Vérifier les rapports de couverture
+        run: |
+          test -f backend/coverage.xml || (echo "backend/coverage.xml manquant" && exit 1)
+          test -f Frontend/coverage/lcov.info || (echo "Frontend/coverage/lcov.info manquant" && exit 1)
+          echo "Sources analysées : backend/, Frontend/src/, airflow/dags/, scripts/, .github/"
+
+      - name: Vérifier la configuration SonarQube (serveur auto-hébergé)
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
+        run: |
+          if [ -z "$SONAR_TOKEN" ]; then
+            echo "::error::SONAR_TOKEN manquant — Repository secret (SonarQube → My Account → Security → Generate Token)"
+            exit 1
+          fi
+          if [ -z "$SONAR_HOST_URL" ]; then
+            echo "::error::SONAR_HOST_URL manquant — Repository variable ou secret (URL de base du serveur, ex. https://sonarqube.mondomaine.fr)"
+            exit 1
+          fi
+          echo "SONAR_HOST_URL=$SONAR_HOST_URL"
+          grep -E '^sonar\.projectKey=' sonar-project.properties
+
+      - name: SonarQube Scan (dépôt complet)
+        uses: SonarSource/sonarqube-scan-action@v7
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
+
+  # Déploiement SSH : le serveur utilise son .env (DATABASE_URL Neon, SECRET_KEY, etc.).
+  # Aucune base locale n'est démarrée — seuls backend + frontend sont relancés.
+  deploy:
+    needs: [test-backend, test-frontend]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known hosts
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          PORT="${SSH_PORT:-22}"
+          ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+      - name: Deploy to production
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          PORT="${SSH_PORT:-22}"
+          PATH_ON_SERVER="${DEPLOY_PATH:-/opt/HEALTHAIMSRP}"
+          ssh -p "$PORT" "$SSH_USER@$SSH_HOST" \
+            "DEPLOY_PATH='$PATH_ON_SERVER' bash -s" < scripts/deploy.sh

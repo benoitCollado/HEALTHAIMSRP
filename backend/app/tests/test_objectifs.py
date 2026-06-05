@@ -1,5 +1,6 @@
-import pytest
 from datetime import date
+
+import pytest
 from app.models.utilisateur import Utilisateur
 from app.security import hash_password
 
@@ -16,10 +17,16 @@ _OBJECTIF = {
 @pytest.fixture
 def user_headers(client, db_session):
     user = Utilisateur(
-        username="userobj", password_hash=hash_password("pass"),
-        age=28, sexe="F", taille_cm=170, poids_kg=65,
-        niveau_activite=2, type_abonnement=1,
-        date_inscription=date(2026, 1, 1), is_admin=False,
+        username="userobj",
+        password_hash=hash_password("pass"),
+        age=28,
+        sexe="F",
+        taille_cm=170,
+        poids_kg=65,
+        niveau_activite=2,
+        type_abonnement=1,
+        date_inscription=date(2026, 1, 1),
+        is_admin=False,
     )
     db_session.add(user)
     db_session.commit()
@@ -32,6 +39,7 @@ def _create(client, headers):
 
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
+
 
 def test_create_objectif(client, admin_headers):
     r = client.post("/objectifs/", json=_OBJECTIF, headers=admin_headers)
@@ -85,6 +93,7 @@ def test_delete_objectif_not_found(client, admin_headers):
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
+
 
 def test_objectifs_requires_auth(client):
     r = client.get("/objectifs/")

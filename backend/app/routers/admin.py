@@ -2,24 +2,26 @@
 Routeur admin : tableau de bord, flux de données (Airflow), anomalies, export.
 Réservé aux utilisateurs avec is_admin=True.
 """
+
+import json as _json
 import os
 from datetime import date, timedelta
 from io import StringIO
-from typing import Any, Optional
+from pathlib import Path as _Path
+from typing import Any
 
 import httpx
-from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel
-from sqlalchemy import func
-from sqlalchemy.orm import Session
-
 from app.dependencies import get_db, require_admin
 from app.models.activite import Activite
 from app.models.consommation import Consommation
 from app.models.metrique_sante import MetriqueSante
 from app.models.objectif import Objectif
 from app.models.utilisateur import Utilisateur
+from fastapi import APIRouter, Body, Depends, HTTPException, Path, Query
+from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
+from sqlalchemy import func
+from sqlalchemy.orm import Session
 
 router = APIRouter(
     prefix="/admin",
@@ -27,23 +29,16 @@ router = APIRouter(
 )
 
 
-
-
-
-
-
-
-
 class CorrectionBody(BaseModel):
-    statut: Optional[str] = None
-    quantite_g: Optional[float] = None
-    calories_calculees: Optional[float] = None
-    poids_kg: Optional[float] = None
-    frequence_cardiaque: Optional[int] = None
-    duree_sommeil_h: Optional[float] = None
+    statut: str | None = None
+    quantite_g: float | None = None
+    calories_calculees: float | None = None
+    poids_kg: float | None = None
+    frequence_cardiaque: int | None = None
+    duree_sommeil_h: float | None = None
 
 
-def _normalize_statut(s: Optional[str]) -> str:
+def _normalize_statut(s: str | None) -> str:
     if not s:
         return "refuse"
     s = s.lower()
@@ -56,7 +51,7 @@ def _normalize_statut(s: Optional[str]) -> str:
     return "encours"
 
 
-def _float_or_none(v: Any) -> Optional[float]:
+def _float_or_none(v: Any) -> float | None:
     if v is None:
         return None
     try:
@@ -94,26 +89,18 @@ def get_dashboard(
 
     # Utilisateurs
     nb_utilisateurs = db.query(Utilisateur).count()
-    nouveaux_7j = db.query(Utilisateur).filter(
-        Utilisateur.date_inscription >= last_7
-    ).count()
-    nouveaux_30j = db.query(Utilisateur).filter(
-        Utilisateur.date_inscription >= last_30
-    ).count()
+    nouveaux_7j = db.query(Utilisateur).filter(Utilisateur.date_inscription >= last_7).count()
+    nouveaux_30j = db.query(Utilisateur).filter(Utilisateur.date_inscription >= last_30).count()
 
     # Consommations (nutrition)
     nb_consommations = db.query(Consommation).count()
-    consommations_7j = db.query(Consommation).filter(
-        Consommation.date_consommation >= last_7
-    ).count()
+    consommations_7j = db.query(Consommation).filter(Consommation.date_consommation >= last_7).count()
     calories_moy = db.query(func.avg(Consommation.calories_calculees)).scalar()
     calories_moy = _float_or_none(calories_moy) or 0
 
     # Activités
     nb_activites = db.query(Activite).count()
-    activites_7j = db.query(Activite).filter(
-        Activite.date_activite >= last_7
-    ).count()
+    activites_7j = db.query(Activite).filter(Activite.date_activite >= last_7).count()
     duree_totale = db.query(func.sum(Activite.duree_minutes)).scalar()
     duree_totale = int(_float_or_none(duree_totale) or 0)
 
@@ -122,20 +109,29 @@ def get_dashboard(
 
     # Anomalies (estimation)
     anomalies_obj = refuses
-    consommations_invalides = db.query(Consommation).filter(
-        (Consommation.quantite_g <= 0) | (Consommation.calories_calculees < 0)
-    ).count()
-    metriques_aberrantes = db.query(MetriqueSante).filter(
-        (MetriqueSante.poids_kg < 0) | (MetriqueSante.poids_kg > 300) |
-        (MetriqueSante.frequence_cardiaque < 0) | (MetriqueSante.frequence_cardiaque > 250) |
-        (MetriqueSante.duree_sommeil_h < 0) | (MetriqueSante.duree_sommeil_h > 24)
-    ).count()
+    consommations_invalides = (
+        db.query(Consommation).filter((Consommation.quantite_g <= 0) | (Consommation.calories_calculees < 0)).count()
+    )
+    metriques_aberrantes = (
+        db.query(MetriqueSante)
+        .filter(
+            (MetriqueSante.poids_kg < 0)
+            | (MetriqueSante.poids_kg > 300)
+            | (MetriqueSante.frequence_cardiaque < 0)
+            | (MetriqueSante.frequence_cardiaque > 250)
+            | (MetriqueSante.duree_sommeil_h < 0)
+            | (MetriqueSante.duree_sommeil_h > 24)
+        )
+        .count()
+    )
     total_anomalies = anomalies_obj + consommations_invalides + metriques_aberrantes
 
     total_donnees = nb_consommations + nb_activites + nb_metriques
     qualite_pct = round(
         ((total_donnees - consommations_invalides - metriques_aberrantes) / total_donnees * 100)
-        if total_donnees else 100, 1
+        if total_donnees
+        else 100,
+        1,
     )
 
     return {
@@ -238,7 +234,6 @@ def _build_flux_from_airflow(airflow_data: dict, db: Session) -> dict:
 
     for dag_id in HEALTHAIM_DAG_IDS:
         data = airflow_data.get(dag_id, {"runs": [], "last_run": None})
-        runs = data.get("runs", [])
         last_run = data.get("last_run")
         desc = DAG_DESCRIPTIONS.get(dag_id, f"DAG {dag_id}")
 
@@ -302,9 +297,6 @@ def get_flux(
 
 # ============ CSV intermédiaires (visualisation, modification, validation) ============
 
-import json as _json
-from pathlib import Path as _Path
-
 DATA_DIR = _Path(os.getenv("DATA_DIR", "/data"))
 INTERMEDIATE_IMPORT = DATA_DIR / "intermediate" / "import"
 INTERMEDIATE_EXPORT = DATA_DIR / "intermediate" / "export"
@@ -339,8 +331,8 @@ def _get_meta_path(filename: str) -> _Path:
 
 @router.get("/flux/csv")
 def list_flux_csv(
-    type_csv: Optional[str] = Query(None, description="import | export"),
-    status: Optional[str] = Query(None, description="pending | validated | rejected | incorporated"),
+    type_csv: str | None = Query(None, description="import | export"),
+    status: str | None = Query(None, description="pending | validated | rejected | incorporated"),
     user: dict = Depends(require_admin),
 ):
     """
@@ -355,7 +347,7 @@ def list_flux_csv(
         prefix = "import_" if csv_type == "import" else "export_"
         for meta_path in sorted(base_dir.glob(f"{prefix}*.json"), reverse=True):
             try:
-                with open(meta_path, "r", encoding="utf-8") as f:
+                with open(meta_path, encoding="utf-8") as f:
                     meta = _json.load(f)
                 if status and meta.get("status") != status:
                     continue
@@ -373,12 +365,12 @@ def get_flux_csv_content(
 ):
     """Retourne le contenu d'un CSV intermédiaire (pour visualisation)."""
     path = _get_csv_path(filename)
-    with open(path, "r", encoding="utf-8") as f:
+    with open(path, encoding="utf-8") as f:
         content = f.read()
     meta_path = _get_meta_path(filename)
     meta = {}
     if meta_path.exists():
-        with open(meta_path, "r", encoding="utf-8") as f:
+        with open(meta_path, encoding="utf-8") as f:
             meta = _json.load(f)
     return {"content": content, "metadata": meta}
 
@@ -399,10 +391,14 @@ def update_flux_csv(
         f.write(body.content)
     meta_path = _get_meta_path(filename)
     if meta_path.exists():
-        with open(meta_path, "r", encoding="utf-8") as f:
+        with open(meta_path, encoding="utf-8") as f:
             meta = _json.load(f)
-        lines = [l for l in body.content.strip().split("\n") if l.strip()]
-        meta["rows"] = max(0, len(lines) - 1) if lines and (lines[0].startswith("type,") or lines[0].startswith("nom_aliment,")) else len(lines)
+        lines = [line for line in body.content.strip().split("\n") if line.strip()]
+        meta["rows"] = (
+            max(0, len(lines) - 1)
+            if lines and (lines[0].startswith("type,") or lines[0].startswith("nom_aliment,"))
+            else len(lines)
+        )
         with open(meta_path, "w", encoding="utf-8") as f:
             _json.dump(meta, f, indent=2)
     return {"success": True, "message": "CSV mis à jour"}
@@ -418,7 +414,7 @@ def validate_flux_csv(
     meta_path = _get_meta_path(filename)
     if not meta_path.exists():
         raise HTTPException(status_code=404, detail="Métadonnées non trouvées")
-    with open(meta_path, "r", encoding="utf-8") as f:
+    with open(meta_path, encoding="utf-8") as f:
         meta = _json.load(f)
     meta["status"] = "validated"
     with open(meta_path, "w", encoding="utf-8") as f:
@@ -436,7 +432,7 @@ def reject_flux_csv(
     meta_path = _get_meta_path(filename)
     if not meta_path.exists():
         raise HTTPException(status_code=404, detail="Métadonnées non trouvées")
-    with open(meta_path, "r", encoding="utf-8") as f:
+    with open(meta_path, encoding="utf-8") as f:
         meta = _json.load(f)
     meta["status"] = "rejected"
     with open(meta_path, "w", encoding="utf-8") as f:
@@ -449,7 +445,7 @@ def reject_flux_csv(
 
 @router.get("/utilisateurs")
 def search_utilisateurs(
-    q: Optional[str] = Query(None, description="Recherche par nom d'utilisateur (substring)"),
+    q: str | None = Query(None, description="Recherche par nom d'utilisateur (substring)"),
     db: Session = Depends(get_db),
     user: dict = Depends(require_admin),
 ):
@@ -471,24 +467,26 @@ def search_utilisateurs(
         nb_met = db.query(MetriqueSante).filter(MetriqueSante.id_utilisateur == u.id_utilisateur).count()
         nb_obj = db.query(Objectif).filter(Objectif.id_utilisateur == u.id_utilisateur).count()
 
-        result.append({
-            "id_utilisateur": u.id_utilisateur,
-            "username": u.username,
-            "age": u.age,
-            "sexe": u.sexe,
-            "taille_cm": u.taille_cm,
-            "poids_kg": u.poids_kg,
-            "niveau_activite": u.niveau_activite,
-            "type_abonnement": u.type_abonnement,
-            "date_inscription": str(u.date_inscription),
-            "is_admin": u.is_admin,
-            "stats": {
-                "nb_consommations": nb_cons,
-                "nb_activites": nb_act,
-                "nb_metriques": nb_met,
-                "nb_objectifs": nb_obj,
-            },
-        })
+        result.append(
+            {
+                "id_utilisateur": u.id_utilisateur,
+                "username": u.username,
+                "age": u.age,
+                "sexe": u.sexe,
+                "taille_cm": u.taille_cm,
+                "poids_kg": u.poids_kg,
+                "niveau_activite": u.niveau_activite,
+                "type_abonnement": u.type_abonnement,
+                "date_inscription": str(u.date_inscription),
+                "is_admin": u.is_admin,
+                "stats": {
+                    "nb_consommations": nb_cons,
+                    "nb_activites": nb_act,
+                    "nb_metriques": nb_met,
+                    "nb_objectifs": nb_obj,
+                },
+            }
+        )
 
     return {"utilisateurs": result, "total": len(result)}
 
@@ -577,7 +575,9 @@ def get_utilisateur_donnees(
 def get_anomalies(
     db: Session = Depends(get_db),
     user: dict = Depends(require_admin),
-    type_anomalie: Optional[str] = Query(None, description="objectif_refuse | consommation_invalide | metrique_incoherente"),
+    type_anomalie: str | None = Query(
+        None, description="objectif_refuse | consommation_invalide | metrique_incoherente"
+    ),
 ):
     """
     Liste des anomalies détectées.
@@ -586,50 +586,61 @@ def get_anomalies(
 
     # Objectifs refusés
     if type_anomalie is None or type_anomalie == "objectif_refuse":
-        for o in db.query(Objectif).filter(
-            func.lower(Objectif.statut).like("%refus%")
-        ).all():
-            anomalies.append({
-                "id": f"obj-{o.id_objectif}",
-                "type": "objectif_refuse",
-                "type_affichage": "Objectif refusé",
-                "id_entite": o.id_objectif,
-                "entite_type": "objectif",
-                "description": f"Objectif {o.type_objectif} : {o.description}",
-                "detail": o.statut,
-            })
+        for o in db.query(Objectif).filter(func.lower(Objectif.statut).like("%refus%")).all():
+            anomalies.append(
+                {
+                    "id": f"obj-{o.id_objectif}",
+                    "type": "objectif_refuse",
+                    "type_affichage": "Objectif refusé",
+                    "id_entite": o.id_objectif,
+                    "entite_type": "objectif",
+                    "description": f"Objectif {o.type_objectif} : {o.description}",
+                    "detail": o.statut,
+                }
+            )
 
     # Consommations invalides
     if type_anomalie is None or type_anomalie == "consommation_invalide":
-        for c in db.query(Consommation).filter(
-            (Consommation.quantite_g <= 0) | (Consommation.calories_calculees < 0)
-        ).all():
-            anomalies.append({
-                "id": f"cons-{c.id_consommation}",
-                "type": "consommation_invalide",
-                "type_affichage": "Consommation invalide",
-                "id_entite": c.id_consommation,
-                "entite_type": "consommation",
-                "description": f"Consommation #{c.id_consommation} : quantite={c.quantite_g}, calories={c.calories_calculees}",
-                "detail": "Quantité ou calories négatives/nulles",
-            })
+        for c in (
+            db.query(Consommation).filter((Consommation.quantite_g <= 0) | (Consommation.calories_calculees < 0)).all()
+        ):
+            anomalies.append(
+                {
+                    "id": f"cons-{c.id_consommation}",
+                    "type": "consommation_invalide",
+                    "type_affichage": "Consommation invalide",
+                    "id_entite": c.id_consommation,
+                    "entite_type": "consommation",
+                    "description": f"Consommation #{c.id_consommation} : quantite={c.quantite_g}, calories={c.calories_calculees}",
+                    "detail": "Quantité ou calories négatives/nulles",
+                }
+            )
 
     # Métriques aberrantes
     if type_anomalie is None or type_anomalie == "metrique_incoherente":
-        for m in db.query(MetriqueSante).filter(
-            (MetriqueSante.poids_kg < 0) | (MetriqueSante.poids_kg > 300) |
-            (MetriqueSante.frequence_cardiaque < 0) | (MetriqueSante.frequence_cardiaque > 250) |
-            (MetriqueSante.duree_sommeil_h < 0) | (MetriqueSante.duree_sommeil_h > 24)
-        ).all():
-            anomalies.append({
-                "id": f"met-{m.id_metrique}",
-                "type": "metrique_incoherente",
-                "type_affichage": "Métrique incohérente",
-                "id_entite": m.id_metrique,
-                "entite_type": "metrique",
-                "description": f"Métrique #{m.id_metrique} : poids={m.poids_kg}, FC={m.frequence_cardiaque}, sommeil={m.duree_sommeil_h}",
-                "detail": "Valeurs hors plages réalistes",
-            })
+        for m in (
+            db.query(MetriqueSante)
+            .filter(
+                (MetriqueSante.poids_kg < 0)
+                | (MetriqueSante.poids_kg > 300)
+                | (MetriqueSante.frequence_cardiaque < 0)
+                | (MetriqueSante.frequence_cardiaque > 250)
+                | (MetriqueSante.duree_sommeil_h < 0)
+                | (MetriqueSante.duree_sommeil_h > 24)
+            )
+            .all()
+        ):
+            anomalies.append(
+                {
+                    "id": f"met-{m.id_metrique}",
+                    "type": "metrique_incoherente",
+                    "type_affichage": "Métrique incohérente",
+                    "id_entite": m.id_metrique,
+                    "entite_type": "metrique",
+                    "description": f"Métrique #{m.id_metrique} : poids={m.poids_kg}, FC={m.frequence_cardiaque}, sommeil={m.duree_sommeil_h}",
+                    "detail": "Valeurs hors plages réalistes",
+                }
+            )
 
     return {"anomalies": anomalies, "total": len(anomalies)}
 
@@ -662,7 +673,7 @@ def corriger_anomalie(
     anomalie_id: str = Path(...),
     db: Session = Depends(get_db),
     user: dict = Depends(require_admin),
-    correction: Optional[CorrectionBody] = Body(default=None),
+    correction: CorrectionBody | None = Body(default=None),
 ):
     """
     Corriger une anomalie.
@@ -730,7 +741,7 @@ def corriger_anomalie(
 @router.get("/export")
 def export_donnees_nettoyees(
     format_type: str = Query("csv", description="csv"),
-    type_donnees: Optional[str] = Query(None, description="consommations | activites | metriques | objectifs | all"),
+    type_donnees: str | None = Query(None, description="consommations | activites | metriques | objectifs | all"),
     db: Session = Depends(get_db),
     user: dict = Depends(require_admin),
 ):
@@ -740,23 +751,28 @@ def export_donnees_nettoyees(
     if format_type != "csv":
         raise HTTPException(status_code=400, detail="Seul le format CSV est supporté")
 
-    types = ["consommations", "activites", "metriques", "objectifs"] if type_donnees == "all" or not type_donnees else [type_donnees]
+    types = (
+        ["consommations", "activites", "metriques", "objectifs"]
+        if type_donnees == "all" or not type_donnees
+        else [type_donnees]
+    )
     buffer = StringIO()
     first = True
 
     for t in types:
         if t == "consommations":
-            rows = db.query(Consommation).filter(
-                Consommation.quantite_g > 0,
-                Consommation.calories_calculees >= 0
-            ).all()
+            rows = (
+                db.query(Consommation).filter(Consommation.quantite_g > 0, Consommation.calories_calculees >= 0).all()
+            )
             if not rows:
                 continue
             if not first:
                 buffer.write("\n")
             buffer.write("id_consommation,date_consommation,quantite_g,calories_calculees,id_aliment,id_utilisateur\n")
             for r in rows:
-                buffer.write(f"{r.id_consommation},{r.date_consommation},{r.quantite_g},{r.calories_calculees},{r.id_aliment},{r.id_utilisateur}\n")
+                buffer.write(
+                    f"{r.id_consommation},{r.date_consommation},{r.quantite_g},{r.calories_calculees},{r.id_aliment},{r.id_utilisateur}\n"
+                )
             first = False
 
         elif t == "activites":
@@ -767,35 +783,48 @@ def export_donnees_nettoyees(
                 buffer.write("\n")
             buffer.write("id_activite,date_activite,duree_minutes,calories_depensees,id_exercice,id_utilisateur\n")
             for r in rows:
-                buffer.write(f"{r.id_activite},{r.date_activite},{r.duree_minutes},{r.calories_depensees},{r.id_exercice},{r.id_utilisateur}\n")
+                buffer.write(
+                    f"{r.id_activite},{r.date_activite},{r.duree_minutes},{r.calories_depensees},{r.id_exercice},{r.id_utilisateur}\n"
+                )
             first = False
 
         elif t == "metriques":
-            rows = db.query(MetriqueSante).filter(
-                (MetriqueSante.poids_kg.is_(None)) | ((MetriqueSante.poids_kg >= 0) & (MetriqueSante.poids_kg <= 300)),
-                (MetriqueSante.frequence_cardiaque.is_(None)) | ((MetriqueSante.frequence_cardiaque >= 0) & (MetriqueSante.frequence_cardiaque <= 250)),
-                (MetriqueSante.duree_sommeil_h.is_(None)) | ((MetriqueSante.duree_sommeil_h >= 0) & (MetriqueSante.duree_sommeil_h <= 24))
-            ).all()
+            rows = (
+                db.query(MetriqueSante)
+                .filter(
+                    (MetriqueSante.poids_kg.is_(None))
+                    | ((MetriqueSante.poids_kg >= 0) & (MetriqueSante.poids_kg <= 300)),
+                    (MetriqueSante.frequence_cardiaque.is_(None))
+                    | ((MetriqueSante.frequence_cardiaque >= 0) & (MetriqueSante.frequence_cardiaque <= 250)),
+                    (MetriqueSante.duree_sommeil_h.is_(None))
+                    | ((MetriqueSante.duree_sommeil_h >= 0) & (MetriqueSante.duree_sommeil_h <= 24)),
+                )
+                .all()
+            )
             if not rows:
                 continue
             if not first:
                 buffer.write("\n")
-            buffer.write("id_metrique,date_mesure,poids_kg,frequence_cardiaque,duree_sommeil_h,calories_brulees,pas,id_utilisateur\n")
+            buffer.write(
+                "id_metrique,date_mesure,poids_kg,frequence_cardiaque,duree_sommeil_h,calories_brulees,pas,id_utilisateur\n"
+            )
             for r in rows:
-                buffer.write(f"{r.id_metrique},{r.date_mesure},{r.poids_kg or ''},{r.frequence_cardiaque or ''},{r.duree_sommeil_h or ''},{r.calories_brulees or ''},{r.pas or ''},{r.id_utilisateur}\n")
+                buffer.write(
+                    f"{r.id_metrique},{r.date_mesure},{r.poids_kg or ''},{r.frequence_cardiaque or ''},{r.duree_sommeil_h or ''},{r.calories_brulees or ''},{r.pas or ''},{r.id_utilisateur}\n"
+                )
             first = False
 
         elif t == "objectifs":
-            rows = db.query(Objectif).filter(
-                ~func.lower(Objectif.statut).like("%refus%")
-            ).all()
+            rows = db.query(Objectif).filter(~func.lower(Objectif.statut).like("%refus%")).all()
             if not rows:
                 continue
             if not first:
                 buffer.write("\n")
             buffer.write("id_objectif,type_objectif,description,date_debut,date_fin,statut,id_utilisateur\n")
             for r in rows:
-                buffer.write(f"{r.id_objectif},{r.type_objectif},{r.description},{r.date_debut},{r.date_fin},{r.statut},{r.id_utilisateur}\n")
+                buffer.write(
+                    f"{r.id_objectif},{r.type_objectif},{r.description},{r.date_debut},{r.date_fin},{r.statut},{r.id_utilisateur}\n"
+                )
             first = False
 
     content = buffer.getvalue()

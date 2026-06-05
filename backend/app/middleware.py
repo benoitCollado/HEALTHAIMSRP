@@ -1,11 +1,10 @@
 import logging
 import time
 
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-
 from app.observability.logger import get_logger
 from app.observability.monitoring import metrics
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import Request
 
 _access_log = get_logger("access")
 
@@ -16,9 +15,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = (
-            "max-age=31536000; includeSubDomains"
-        )
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; "
             "script-src 'self' 'unsafe-inline' cdn.jsdelivr.net; "

@@ -675,9 +675,14 @@
                     <span class="toc-pg">14</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">12</span>Conclusion &amp; Perspectives
+                    <span class="toc-num">12</span>CI/CD — GitHub Actions
                     <div class="toc-dots"></div>
                     <span class="toc-pg">15</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">13</span>Conclusion &amp; Perspectives
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">17</span>
                 </div>
             </div>
         </div>
@@ -2305,6 +2310,430 @@
         <div class="page page-break">
             <div class="section-header">
                 <div class="section-num">12</div>
+                <h2>CI/CD — GitHub Actions</h2>
+            </div>
+
+            <p>
+                Le projet dispose d'une pipeline d'intégration et de déploiement
+                continus automatisée via <strong>GitHub Actions</strong>. Elle
+                garantit la qualité du code (linters, tests, couverture),
+                l'analyse SonarQube et le déploiement SSH en production après
+                chaque push sur <code>main</code>.
+            </p>
+
+            <div class="info-box">
+                <strong>Fichier principal :</strong>
+                <code>.github/workflows/main.yml</code> —
+                <strong>Dépôt :</strong>
+                <code>benoitCollado/HEALTHAIMSRP</code>
+            </div>
+
+            <h3>Objectifs de la pipeline</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Objectif</th>
+                        <th>Outil / mécanisme</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Qualité du code Python</td>
+                        <td><strong>Ruff</strong> (lint + format)</td>
+                    </tr>
+                    <tr>
+                        <td>Qualité du code TypeScript / Vue</td>
+                        <td><strong>ESLint</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Tests backend</td>
+                        <td><strong>pytest</strong> + couverture ≥ 70 %</td>
+                    </tr>
+                    <tr>
+                        <td>Tests frontend</td>
+                        <td><strong>Vitest</strong> + build Vite</td>
+                    </tr>
+                    <tr>
+                        <td>Dette technique &amp; sécurité</td>
+                        <td><strong>SonarQube</strong> / SonarCloud</td>
+                    </tr>
+                    <tr>
+                        <td>Déploiement production</td>
+                        <td><strong>SSH</strong> + Docker Compose</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Déclencheurs</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Événement</th>
+                        <th>Branche</th>
+                        <th>Jobs exécutés</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Pull Request</strong></td>
+                        <td><code>main</code></td>
+                        <td><code>test-backend</code>, <code>test-frontend</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Push</strong></td>
+                        <td><code>main</code></td>
+                        <td>Tous les jobs (tests + SonarQube + deploy)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Schéma du pipeline</h3>
+            <div class="arch-box">
+                <div class="layer">
+                    <div class="layer-box lb-navy">Push / PR sur main</div>
+                </div>
+                <div class="layer-arrow">↓</div>
+                <div class="layer">
+                    <div class="layer-box lb-blue">test-backend<br /><small>ruff + pytest</small></div>
+                    <div class="layer-box lb-blue">test-frontend<br /><small>eslint + vitest + build</small></div>
+                </div>
+                <div class="layer-arrow">↓ (push main uniquement)</div>
+                <div class="layer">
+                    <div class="layer-box lb-purple">sonarqube<br /><small>analyse complète</small></div>
+                    <div class="layer-box lb-green">deploy<br /><small>SSH + Docker</small></div>
+                </div>
+            </div>
+            <p>
+                Les jobs <code>sonarqube</code> et <code>deploy</code> s'exécutent
+                <strong>en parallèle</strong> après les tests, uniquement sur un
+                push vers <code>main</code>.
+            </p>
+
+            <h3>Job <code>test-backend</code></h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Élément</th>
+                        <th>Détail</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Runner</td>
+                        <td><code>ubuntu-latest</code> — Python 3.11</td>
+                    </tr>
+                    <tr>
+                        <td>Base de données CI</td>
+                        <td>PostgreSQL 17 éphémère (<code>ci/ci@localhost:5432/healthdb</code>) — <strong>pas Neon</strong></td>
+                    </tr>
+                    <tr>
+                        <td>Lint</td>
+                        <td><code>ruff check</code> + <code>ruff format --check</code> sur <code>backend/app</code>, <code>backend/migrations</code>, <code>airflow/dags</code></td>
+                    </tr>
+                    <tr>
+                        <td>Tests</td>
+                        <td><code>python -m pytest</code> — couverture min. 70 %, rapport XML pour SonarQube</td>
+                    </tr>
+                    <tr>
+                        <td>Config Ruff</td>
+                        <td><code>ruff.toml</code> — règles <code>E, F, I, UP, B</code> ; ignorées : <code>E501, B008, E402, F401, I001, UP007, UP035</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Job <code>test-frontend</code></h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Étape</th>
+                        <th>Commande</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Installation</td>
+                        <td><code>npm ci</code> (Node.js 20)</td>
+                    </tr>
+                    <tr>
+                        <td>Lint</td>
+                        <td><code>npm run lint</code> — ESLint (<code>eslint.config.mjs</code>)</td>
+                    </tr>
+                    <tr>
+                        <td>Tests + couverture</td>
+                        <td><code>npm run test:coverage</code> — Vitest</td>
+                    </tr>
+                    <tr>
+                        <td>Build</td>
+                        <td><code>npm run build</code> — Vite</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Tests Vitest (frontend)</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fichier</th>
+                        <th>Contenu testé</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>auth.test.ts</code></td>
+                        <td>Login, logout, JWT, rôles</td>
+                    </tr>
+                    <tr>
+                        <td><code>Navbar.test.ts</code></td>
+                        <td>Navbar admin, déconnexion</td>
+                    </tr>
+                    <tr>
+                        <td><code>AppFooter.test.ts</code></td>
+                        <td>Contenu du footer</td>
+                    </tr>
+                    <tr>
+                        <td><code>config.test.ts</code></td>
+                        <td>URLs par défaut API / Airflow</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="page page-break">
+            <h3>Job <code>sonarqube</code></h3>
+            <p>
+                Analyse complète du dépôt via
+                <code>SonarSource/sonarqube-scan-action@v7</code>, avec import
+                des rapports de couverture backend (<code>coverage.xml</code>) et
+                frontend (<code>lcov.info</code>).
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Zone analysée</th>
+                        <th>Contenu</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>backend/</code></td>
+                        <td>API FastAPI, modèles, routers, migrations</td>
+                    </tr>
+                    <tr>
+                        <td><code>Frontend/src/</code></td>
+                        <td>Vue, TypeScript, composants</td>
+                    </tr>
+                    <tr>
+                        <td><code>airflow/dags/</code></td>
+                        <td>DAGs Python</td>
+                    </tr>
+                    <tr>
+                        <td><code>scripts/</code>, <code>.github/workflows/</code></td>
+                        <td>Déploiement et pipelines CI</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="code-block">
+                <span class="cm"># sonar-project.properties</span>
+                sonar.projectKey=HEALTHAIMSRP
+                sonar.projectName=HealthAI MSPR
+                sonar.python.coverage.reportPaths=backend/coverage.xml
+                sonar.javascript.lcov.reportPaths=Frontend/coverage/lcov.info
+                <span class="cm"># SonarCloud : décommenter sonar.organization=benoitCollado</span>
+            </div>
+
+            <h3>Job <code>deploy</code> (SSH)</h3>
+            <p>
+                Déploiement automatique via SSH et exécution de
+                <code>scripts/deploy.sh</code> sur le serveur. Aucun secret
+                applicatif (Neon, JWT) n'est stocké dans GitHub — tout est dans le
+                <code>.env</code> du serveur.
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Étape</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td><code>git fetch</code> + <code>git reset --hard origin/main</code></td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>Vérification <code>.env</code> (<code>DATABASE_URL</code>, <code>SECRET_KEY</code>)</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td><code>docker compose build backend frontend</code></td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td><code>docker compose up -d backend frontend</code></td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>Vérification <code>/health</code> (API + connexion Neon)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="arch-box">
+                GitHub Actions ──SSH──► Serveur<br />
+                &nbsp;&nbsp;├── .env (DATABASE_URL → Neon)<br />
+                &nbsp;&nbsp;├── docker compose<br />
+                &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;├── backend_api → port 8089<br />
+                &nbsp;&nbsp;│&nbsp;&nbsp;&nbsp;└── frontend_nginx → port 89<br />
+                &nbsp;&nbsp;└── PostgreSQL Neon (externe, managé)
+            </div>
+
+            <h3>Secrets GitHub requis</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Secret</th>
+                        <th>Obligatoire</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>SSH_PRIVATE_KEY</code></td>
+                        <td>Déploiement</td>
+                        <td>Clé privée SSH complète</td>
+                    </tr>
+                    <tr>
+                        <td><code>SSH_HOST</code></td>
+                        <td>Déploiement</td>
+                        <td>IP ou hostname du serveur</td>
+                    </tr>
+                    <tr>
+                        <td><code>SSH_USER</code></td>
+                        <td>Déploiement</td>
+                        <td>Utilisateur SSH</td>
+                    </tr>
+                    <tr>
+                        <td><code>SONAR_TOKEN</code></td>
+                        <td>SonarQube</td>
+                        <td>Token SonarQube / SonarCloud</td>
+                    </tr>
+                    <tr>
+                        <td><code>SSH_PORT</code></td>
+                        <td>Optionnel (défaut 22)</td>
+                        <td>Port SSH</td>
+                    </tr>
+                    <tr>
+                        <td><code>DEPLOY_PATH</code></td>
+                        <td>Optionnel</td>
+                        <td>Chemin projet serveur (défaut <code>/opt/HEALTHAIMSRP</code>)</td>
+                    </tr>
+                    <tr>
+                        <td><code>SONAR_HOST_URL</code></td>
+                        <td>SonarQube auto-hébergé</td>
+                        <td>URL du serveur SonarQube (inutile pour SonarCloud)</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="info-box">
+                <strong>Aucun secret requis</strong> pour les linters (Ruff, ESLint),
+                pytest, Vitest et le build frontend.
+            </div>
+
+            <h3>Commandes locales (reproduire la CI)</h3>
+            <div class="code-block">
+                <span class="cm"># Backend</span>
+                pip install -r backend/requirements-dev.txt
+                ruff check backend/app backend/migrations airflow/dags
+                ruff format --check backend/app backend/migrations airflow/dags
+                cd backend
+                DATABASE_URL=<span class="str">"postgresql://ci:ci@localhost:5432/healthdb"</span> SECRET_KEY=<span class="str">"ci-test-secret-key"</span> python -m pytest
+
+                <span class="cm"># Frontend</span>
+                cd Frontend
+                npm ci
+                npm run lint
+                npm run test:coverage
+                npm run build
+            </div>
+
+            <h3>Dépannage CI/CD</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Problème</th>
+                        <th>Solution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>ruff format --check</code> échoue</td>
+                        <td><code>ruff format backend/app backend/migrations airflow/dags</code></td>
+                    </tr>
+                    <tr>
+                        <td><code>npm run lint</code> échoue</td>
+                        <td>Corriger le fichier signalé ou adapter <code>eslint.config.mjs</code></td>
+                    </tr>
+                    <tr>
+                        <td>Couverture pytest &lt; 70 %</td>
+                        <td>Ajouter des tests dans <code>backend/app/tests/</code></td>
+                    </tr>
+                    <tr>
+                        <td>SonarQube : token invalide</td>
+                        <td>Régénérer <code>SONAR_TOKEN</code></td>
+                    </tr>
+                    <tr>
+                        <td>Deploy : <code>DATABASE_URL</code> manquant</td>
+                        <td>Créer <code>.env</code> sur le serveur depuis <code>.env.example</code></td>
+                    </tr>
+                    <tr>
+                        <td>Deploy : <code>/health</code> timeout</td>
+                        <td><code>docker compose logs backend</code> sur le serveur</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Fichiers de référence CI/CD</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fichier</th>
+                        <th>Rôle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>.github/workflows/main.yml</code></td>
+                        <td>Pipeline GitHub Actions</td>
+                    </tr>
+                    <tr>
+                        <td><code>scripts/deploy.sh</code></td>
+                        <td>Script de déploiement SSH</td>
+                    </tr>
+                    <tr>
+                        <td><code>sonar-project.properties</code></td>
+                        <td>Configuration SonarQube</td>
+                    </tr>
+                    <tr>
+                        <td><code>ruff.toml</code></td>
+                        <td>Linter Python</td>
+                    </tr>
+                    <tr>
+                        <td><code>Frontend/eslint.config.mjs</code></td>
+                        <td>Linter TypeScript / Vue</td>
+                    </tr>
+                    <tr>
+                        <td><code>CICD.md</code></td>
+                        <td>Documentation CI/CD (racine du projet)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================================ SECTION 13 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">13</div>
                 <h2>Conclusion &amp; Perspectives</h2>
             </div>
 
@@ -2334,7 +2763,7 @@
                         API REST complète · Auth JWT · Dashboard admin · Profil
                         utilisateur par onglets · Détection anomalies · Pipeline
                         Airflow · Design system moderne · Footer global ·
-                        Déploiement Docker
+                        Déploiement Docker · CI/CD GitHub Actions · SonarQube
                     </div>
                 </div>
                 <div class="stat-card">
@@ -2370,8 +2799,9 @@
                         "
                     >
                         Architecture découplée · TypeScript strict · ORM typé ·
-                        Validation Pydantic v2 · 89 tests pytest · Couverture
-                        backend 94 % · Documentation auto Swagger
+                        Validation Pydantic v2 · 89 tests pytest · 12 tests Vitest ·
+                        Couverture backend 94 % · Ruff + ESLint · Pipeline CI/CD
+                        automatisée · Documentation auto Swagger
                     </div>
                 </div>
             </div>

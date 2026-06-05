@@ -1,4 +1,5 @@
 from datetime import date
+
 from app.models.utilisateur import Utilisateur
 from app.security import hash_password
 
@@ -14,7 +15,7 @@ def test_login_ok(client, db_session):
         niveau_activite=1,
         type_abonnement=1,
         date_inscription=date.today(),
-        is_admin=True
+        is_admin=True,
     )
 
     db_session.add(admin)
@@ -22,13 +23,8 @@ def test_login_ok(client, db_session):
 
     response = client.post(
         "/login",
-        data={
-            "username": "admin",
-            "password": "admin123"
-        },
-        headers={
-            "Content-Type": "application/x-www-form-urlencoded"
-        }
+        data={"username": "admin", "password": "admin123"},
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
     )
 
     assert response.status_code == 200

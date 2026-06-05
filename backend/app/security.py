@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta
-from jose import jwt, JWTError
+
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 # Clé secrète utilisée pour signer et vérifier les tokens JWT
@@ -19,13 +20,16 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 480  # 8 heures
 # Configuration du contexte de hash pour les mots de passe
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 # Hash un mot de passe en clair
 def hash_password(password: str) -> str:
     return pwd_context.hash(password)
 
+
 # Vérifie un mot de passe en clair par rapport à son hash
 def verify_password(password: str, hashed: str) -> bool:
     return pwd_context.verify(password, hashed)
+
 
 # Crée un token JWT avec une date d’expiration
 def create_access_token(data: dict):
@@ -40,6 +44,7 @@ def create_access_token(data: dict):
 
     # Génération et signature du token JWT
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
 
 # Vérifie et décode un token JWT
 def verify_token(token: str):

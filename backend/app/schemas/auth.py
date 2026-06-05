@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+
 # Schéma utilisé pour la requête de connexion
 class LoginRequest(BaseModel):
     # Nom d’utilisateur

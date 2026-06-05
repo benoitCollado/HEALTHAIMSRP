@@ -1,7 +1,7 @@
 import os
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Classe de base pour tous les modèles SQLAlchemy
 Base = declarative_base()
@@ -20,17 +20,14 @@ engine = create_engine(
 )
 
 # Fabrique de sessions pour interagir avec la base de données
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 # Fonction simple pour tester la connexion à la base de données
 def test_connection():
     try:
         # Tentative d’ouverture d’une connexion
-        with engine.connect() as connection:
+        with engine.connect():
             return True
     except Exception:
         # Retourne False si la connexion échoue

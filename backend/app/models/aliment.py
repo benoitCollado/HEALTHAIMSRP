@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Numeric
 from app.database import Base
+from sqlalchemy import Column, Integer, Numeric, String
+
 
 # Modèle SQLAlchemy représentant un aliment
 class Aliment(Base):

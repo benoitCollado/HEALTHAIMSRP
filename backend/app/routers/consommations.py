@@ -1,6 +1,3 @@
-from fastapi import APIRouter, Depends, HTTPException, Path
-from sqlalchemy.orm import Session
-
 from app.dependencies import get_current_user, get_db, require_admin
 from app.models.consommation import Consommation
 from app.schemas.consommation import (
@@ -8,12 +5,11 @@ from app.schemas.consommation import (
     ConsommationResponse,
     ConsommationUpdate,
 )
+from fastapi import APIRouter, Depends, HTTPException, Path
+from sqlalchemy.orm import Session
 
 # Création du routeur pour les routes liées aux consommations
-router = APIRouter(
-    prefix="/consommations",
-    tags=["Consommations"]
-)
+router = APIRouter(prefix="/consommations", tags=["Consommations"])
 
 # Schéma OAuth2 pour récupérer le token depuis l’endpoint /login
 
@@ -23,12 +19,11 @@ router = APIRouter(
 
 # Vérifie que l’utilisateur est administrateur
 
+
 # Crée une nouvelle consommation pour un utilisateur connecté
 @router.post("/", response_model=ConsommationResponse, status_code=201)
 def create_consommation(
-    consommation: ConsommationCreate,
-    db: Session = Depends(get_db),
-    user: dict = Depends(get_current_user)
+    consommation: ConsommationCreate, db: Session = Depends(get_db), user: dict = Depends(get_current_user)
 ):
     new_consommation = Consommation(**consommation.model_dump())
     db.add(new_consommation)
@@ -36,29 +31,25 @@ def create_consommation(
     db.refresh(new_consommation)
     return new_consommation
 
+
 # Récupère la liste de toutes les consommations
 @router.get("/", response_model=list[ConsommationResponse])
-def get_consommations(
-    db: Session = Depends(get_db),
-    user: dict = Depends(get_current_user)
-):
+def get_consommations(db: Session = Depends(get_db), user: dict = Depends(get_current_user)):
     return db.query(Consommation).all()
+
 
 # Récupère une consommation par son identifiant
 @router.get("/{consommation_id}", response_model=ConsommationResponse)
 def get_consommation_by_id(
-    consommation_id: int = Path(..., gt=0),
-    db: Session = Depends(get_db),
-    user: dict = Depends(get_current_user)
+    consommation_id: int = Path(..., gt=0), db: Session = Depends(get_db), user: dict = Depends(get_current_user)
 ):
-    consommation = db.query(Consommation).filter(
-        Consommation.id_consommation == consommation_id
-    ).first()
+    consommation = db.query(Consommation).filter(Consommation.id_consommation == consommation_id).first()
 
     if consommation is None:
         raise HTTPException(status_code=404, detail="Consommation non trouvée")
 
     return consommation
+
 
 # Met à jour une consommation existante
 @router.put("/{consommation_id}", response_model=ConsommationResponse)
@@ -66,11 +57,9 @@ def update_consommation(
     consommation_id: int,
     consommation_update: ConsommationUpdate,
     db: Session = Depends(get_db),
-    user: dict = Depends(get_current_user)
+    user: dict = Depends(get_current_user),
 ):
-    consommation = db.query(Consommation).filter(
-        Consommation.id_consommation == consommation_id
-    ).first()
+    consommation = db.query(Consommation).filter(Consommation.id_consommation == consommation_id).first()
 
     if consommation is None:
         raise HTTPException(status_code=404, detail="Consommation non trouvée")
@@ -82,16 +71,11 @@ def update_consommation(
     db.refresh(consommation)
     return consommation
 
+
 # Supprime une consommation (réservé aux administrateurs)
 @router.delete("/{consommation_id}", status_code=204)
-def delete_consommation(
-    consommation_id: int,
-    db: Session = Depends(get_db),
-    user: dict = Depends(require_admin)
-):
-    consommation = db.query(Consommation).filter(
-        Consommation.id_consommation == consommation_id
-    ).first()
+def delete_consommation(consommation_id: int, db: Session = Depends(get_db), user: dict = Depends(require_admin)):
+    consommation = db.query(Consommation).filter(Consommation.id_consommation == consommation_id).first()
 
     if consommation is None:
         raise HTTPException(status_code=404, detail="Consommation non trouvée")
