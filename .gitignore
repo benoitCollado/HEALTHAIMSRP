@@ -8,9 +8,13 @@ backend/coverage_html/
 # SonarQube / couverture frontend
 .scannerwork/
 Frontend/coverage/
+backend/.coverage
 .env
 .venv/
 venv/
+.docker-tmp/
+.env.local
+.env.*.local
 
 # FastAPI / Uvicorn
 *.log

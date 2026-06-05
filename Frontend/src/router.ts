@@ -29,11 +29,16 @@ router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, n
   const isAuthenticated = auth.isAuthenticated()
   const isAdmin = auth.isAdmin()
 
-  // Allow access to /connexion without authentication
-  if (to.path === '/connexion') {
+  // Always allow access to public auth pages without authentication.
+  // This explicit path check avoids accidental redirects if meta is not resolved as expected.
+  if (to.path === '/connexion' || to.path === '/inscription') {
     if (isAuthenticated) {
-      // If already logged in, redirect to accueil
-      next('/page-accueil')
+      // Keep /inscription accessible for account creation even when already logged in.
+      if (to.path === '/connexion') {
+        next('/page-accueil')
+      } else {
+        next()
+      }
     } else {
       next()
     }
