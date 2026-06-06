@@ -80,11 +80,19 @@ jobs:
       - name: Install dependencies
         working-directory: Frontend
         run: |
-          npm ci --no-audit --no-fund || {
-            echo "npm ci failed, retrying once after cache verification..."
-            npm cache verify
-            npm ci --no-audit --no-fund
-          }
+          set -euo pipefail
+          echo "Node: $(node -v)"
+          echo "NPM: $(npm -v)"
+
+          if ! npm ci --no-audit --no-fund; then
+            echo "npm ci failed, retrying after cache verification..."
+            npm cache verify || true
+
+            if ! npm ci --no-audit --no-fund; then
+              echo "Second npm ci failed, falling back to npm install."
+              npm install --no-audit --no-fund
+            fi
+          fi
 
       - name: Lint TypeScript / Vue (ESLint)
         working-directory: Frontend
