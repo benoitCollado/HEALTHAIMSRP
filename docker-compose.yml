@@ -54,13 +54,13 @@ services:
       dockerfile: Dockerfile.nginx
       args:
         VITE_API_URL: ${VITE_API_URL:-/api}
-        VITE_AIRFLOW_UI_URL: ${VITE_AIRFLOW_UI_URL:-http://localhost:8080}
+        VITE_AIRFLOW_UI_URL: ${VITE_AIRFLOW_UI_URL:-127.0.0.1:8080}
     container_name: frontend_nginx
     restart: always
     depends_on:
       - backend
     ports:
-      - "${FRONTEND_PORT:-89}:80"
+      - "${FRONTEND_PORT:-127.0.0.1:89}:80"
     networks:
       - health_net
 
