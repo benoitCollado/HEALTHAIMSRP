@@ -1,26 +1,15 @@
-server:
-  http_listen_port: 9080
+apiVersion: 1
 
-positions:
-  filename: /tmp/positions.yaml
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
 
-clients:
-  - url: http://loki:3100/loki/api/v1/push
-
-scrape_configs:
-  # Logs backend HealthAI
-  - job_name: healthai-backend
-    static_configs:
-      - targets: [localhost]
-        labels:
-          job: backend
-          app: healthai
-          __path__: /var/log/backend/*.log
-
-  # Logs Docker (optionnel)
-  - job_name: docker
-    static_configs:
-      - targets: [localhost]
-        labels:
-          job: docker
-          __path__: /var/lib/docker/containers/*/*-json.log
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    editable: true

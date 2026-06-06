@@ -1,227 +1,193 @@
-# 1. Définition des sources de données
+# HealthAI MSPR
 
-## 1.1 Typologie des sources
+HealthAI MSPR est une plateforme full-stack de suivi santé et d'administration de flux de données. Le projet couvre la gestion des utilisateurs, des aliments, des exercices, des consommations, des activités, des métriques santé et des objectifs, avec une API sécurisée, une interface Vue, des pipelines Airflow, une base PostgreSQL managée et une couche d'observabilité.
 
-HealthAI Coach s’appuie sur des **sources hétérogènes**, internes et externes, afin de couvrir l’ensemble du parcours utilisateur (nutrition, sport, biométrie).
+## Architecture
 
-| Source                         | Origine             | Format   | Fréquence       | Justification                                         |
-| ------------------------------ | ------------------- | -------- | --------------- | ----------------------------------------------------- |
-| Daily Food & Nutrition Dataset | Open Data (Kaggle)  | CSV      | Batch (mensuel) | Base nutritionnelle fiable pour analyses alimentaires |
-| Diet Recommendations Dataset   | Open Data (Kaggle)  | CSV/JSON | Batch           | Profils santé et recommandations IA simulées          |
-| ExerciseDB API                 | API publique GitHub | JSON     | Quotidienne     | Catalogue d’exercices riche et structuré              |
-| Gym Members Exercise Dataset   | Open Data (Kaggle)  | CSV      | Batch           | Profils utilisateurs et biométrie simulée             |
-| Fitness Tracker Dataset        | Open Data (Kaggle)  | CSV      | Batch           | Activité quotidienne et engagement                    |
+```text
+Navigateur / mobile Capacitor
+        |
+        v
+Frontend Vue 3 + TypeScript servi par Nginx
+        |
+        v
+API FastAPI / Python 3.11
+        |
+        v
+PostgreSQL Neon + migrations Alembic
 
-**Justification du choix**
-Ces datasets couvrent **au minimum deux sources** comme exigé, et représentent un **échantillon réaliste des données métiers** qu’exploiterait HealthAI Coach en production.
-
----
-
-# 2. Outils et architecture de collecte
-
-## 2.1 Stack technologique retenue
-
-| Besoin             | Outil                       |
-| ------------------ | --------------------------- |
-| Ingestion & ETL    | Python (pandas, requests)   |
-| Orchestration      | Apache Airflow              |
-| Validation qualité | pandas + règles métiers     |
-| Stockage           | PostgreSQL serverless (Neon)|
-| Migrations BDD     | Alembic                     |
-| API                | FastAPI                     |
-| Visualisation      | Metabase / Superset         |
-| Conteneurisation   | Docker / Docker Compose     |
-
-**Justification**
-Cette stack est **open source**, industrialisable, et compatible avec une montée en charge future (micro-services IA).
-
----
-
-## 2.2 Architecture des flux de données (logique)
-
-```
-Sources externes
-   ↓
-Zone de staging (raw)
-   ↓
-Validation & nettoyage (ETL)
-   ↓
-Base relationnelle PostgreSQL
-   ↓
-API REST sécurisée
-   ↓
-Dashboard & services IA
+Airflow orchestre les flux de données et écrit dans les dossiers data/.
+Prometheus, Grafana, Loki et Promtail assurent le monitoring et les logs.
 ```
 
-Cette séparation **raw / cleaned / exposed** garantit traçabilité, qualité et reproductibilité.
+## Technologies utilisées
 
----
+| Domaine | Technologies |
+| --- | --- |
+| Frontend web | Vue 3, TypeScript, Vite, Vue Router 4, CSS, Nginx |
+| Mobile | Capacitor 8, Android Gradle, iOS Xcode/Swift |
+| Backend | Python 3.11, FastAPI, Uvicorn, SQLAlchemy, Pydantic, python-jose |
+| Sécurité | JWT Bearer, passlib/bcrypt, middleware d'en-têtes HTTP, CORS, variables `.env` |
+| Base de données | PostgreSQL Neon, Alembic, psycopg2 |
+| Données / ETL | Apache Airflow 2.10.4, pandas, requests, DAGs Python, CSV |
+| Observabilité | Logs applicatifs, endpoint `/health`, endpoint admin `/metrics`, alertes email SMTP |
+| Monitoring infra | Prometheus, Grafana, Loki, Promtail, Node Exporter, Blackbox Exporter |
+| Conteneurisation | Docker, Docker Compose, images Python slim, Node Alpine et Nginx |
+| Tests | pytest, pytest-cov, Vitest, Vue Test Utils, jsdom, coverage V8 |
+| Qualité / CI | Ruff, ESLint, SonarQube, GitHub Actions |
 
-# 3. Collecte sécurisée et automatisée
+## Structure du dépôt
 
-## 3.1 Sécurité des flux
+```text
+backend/        API FastAPI, modèles SQLAlchemy, routers, migrations Alembic, tests
+Frontend/       Application Vue 3, configuration Vite, tests Vitest, builds web/mobile
+airflow/        DAGs d'import, d'export et d'incorporation ML
+database/       Scripts SQL d'initialisation et données de démonstration
+data/           Données brutes, intermédiaires, exports, logs et fichiers ML
+monitoring/     Configuration Prometheus, Grafana, Loki et Promtail
+docs/           Documentation technique, déploiement et Airflow
+scripts/        Scripts de déploiement et utilitaires SQL
+.github/        Pipeline GitHub Actions CI/CD
+```
 
-* Accès API via HTTPS
-* Variables sensibles stockées dans `.env`
-* Contrôle d’accès par rôle (admin / lecture)
-* Journalisation des traitements sans données personnelles
-* Données fictives → conformité RGPD respectée par design
-* En-têtes de sécurité HTTP sur toutes les réponses (voir ci-dessous)
-* Alertes email automatiques à l’administrateur sur toute erreur 500
+## Fonctionnalités principales
 
-### En-têtes de sécurité HTTP
+- Authentification par JWT et rôles utilisateur/admin.
+- API REST avec endpoints pour utilisateurs, aliments, exercices, consommations, activités, métriques santé et objectifs.
+- Dashboard d'administration et pages de gestion des flux.
+- Nettoyage et validation des données via pipelines Airflow.
+- Migrations versionnées avec Alembic.
+- Journalisation backend, alertes email sur erreurs 500 et métriques internes.
+- Monitoring optionnel avec Grafana, Prometheus, Loki, Promtail et exporters.
+- Tests automatisés backend et frontend, linting et analyse SonarQube en CI.
 
-Le middleware backend ajoute automatiquement les en-têtes OWASP recommandés à chaque réponse :
+## Prérequis
 
-| En-tête | Valeur | Protection |
-| ------- | ------ | ---------- |
-| `X-Frame-Options` | `DENY` | Clickjacking |
-| `X-Content-Type-Options` | `nosniff` | MIME sniffing |
-| `X-XSS-Protection` | `1; mode=block` | XSS (navigateurs legacy) |
-| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Force HTTPS (1 an) |
-| `Content-Security-Policy` | `default-src ‘self’; ...` | Sources de contenu autorisées |
+- Docker et Docker Compose
+- Node.js 22 pour le développement frontend local
+- Python 3.11 pour le développement backend local
+- Une base PostgreSQL Neon ou compatible PostgreSQL
 
-### Alertes email
-
-En cas d’erreur 500 non gérée, un email HTML est envoyé automatiquement à l’administrateur (configurable via `SMTP_*` et `ADMIN_EMAIL` dans `.env`). Un cooldown de 60 s par type d’erreur évite le flood.
-
-## 3.2 Automatisation
-
-* Scripts Python exécutés par cron
-* Chaque job :
-
-  * Télécharge la source
-  * Vérifie le schéma
-  * Loggue les erreurs
-  * Alimente la base
-
-Chaque exécution de pipeline est horodatée et journalisée afin d’assurer la traçabilité des traitements et la reproductibilité des résultats.
-
----
-
-# 4. Analyse, nettoyage et qualité des données
-
-## 4.1 Règles de qualité appliquées
-
-| Problème             | Traitement                    |
-| -------------------- | ----------------------------- |
-| Valeurs manquantes   | Suppression ou imputation     |
-| Doublons             | Détection par clé métier      |
-| Types incohérents    | Cast explicite                |
-| Valeurs aberrantes   | Détection IQR / seuils métier |
-| Données hors domaine | Filtrage                      |
-
-## 4.2 Objectif Data Science
-
-Le nettoyage vise à :
-
-* réduire le biais des modèles IA,
-* garantir la stabilité des analyses,
-* fournir une donnée directement exploitable par les data scientists.
-
----
-
-# 5. Modèle de données relationnel
-
-## 5.1 Choix de modélisation
-
-* **Modèle relationnel normalisé (3NF)** pour backend métier
-* Compatible avec un futur schéma analytique (étoile)
-
-## 5.2 Entités principales
-
-* `utilisateurs`
-* `aliments`
-* `exercices`
-* `activites`
-* `metriques_sante`
-* `objectifs`
-
-Ces entités constituent le socle des indicateurs exposés dans les tableaux de bord analytiques et servent de base aux futurs modules de recommandation IA.
-
----
-
-# 6. Exploitation et visualisation
-
-## 6.1 Requêtage automatisé
-
-* Agrégations par période
-* Analyse de progression
-* KPI engagement & activité
-* Exposition via API REST
-
-## 6.2 Tableaux de bord
-
-* KPI utilisateurs
-* Tendances nutritionnelles
-* Statistiques sportives
-* Qualité des données
-
-**Accessibilité RGAA AA**
-
-* Contraste respecté
-* Libellés explicites
-* Navigation simple
-* Pas de dépendance exclusive à la couleur
-
----
-
-# 7. Conformité aux attendus E6.1
-
-| Exigence RNCP              | Couverture |
-| -------------------------- | ---------- |
-| Sources hétérogènes        | Oui        |
-| Collecte sécurisée         | Oui        |
-| ETL automatisé             | Oui        |
-| Nettoyage & qualité        | Oui        |
-| Modèle de données          | Oui        |
-| Visualisation              | Oui        |
-| Exploitation IA-ready      | Oui        |
-| En-têtes sécurité HTTP     | Oui        |
-| Migrations versionnées     | Oui        |
-| Alertes erreurs admin      | Oui        |
-| Tests + couverture ≥ 70 %  | Oui        |
-
----
-
-# 8. Démarrage rapide
-
-## Prérequis — base de données Neon
-
-La base est hébergée sur [Neon](https://neon.tech) (PostgreSQL serverless).  
-Avant le premier lancement :
-
-1. Copier `.env.example` → `.env` et renseigner `DATABASE_URL` avec la connection string Neon
-2. (Optionnel) Insérer les données de test via le **SQL Editor Neon** :
-   - `database/init/02_insert_test_data.sql`
-
-> Les tables sont créées automatiquement par **Alembic** au premier démarrage du backend (`alembic upgrade head`). L'exécution manuelle de `01_create_tables.sql` n'est plus nécessaire.
-
-## Services Docker
+Copier le fichier d'exemple puis renseigner les secrets :
 
 ```bash
-docker compose up -d                              # Backend (+ migrations auto), frontend, Airflow
-docker compose --profile seed run --rm seed       # Import des données CSV
+cp .env.example .env
 ```
 
-**Identifiants par défaut** : `admin` / `password`
+Variables minimales :
 
-Accès après démarrage :
+```env
+DATABASE_URL=postgresql://<user>:<password>@<host>.neon.tech/<dbname>?sslmode=require&channel_binding=require
+SECRET_KEY=<cle-secrete-longue-et-aleatoire>
+API_ROOT_PATH=/api
+VITE_API_URL=/api
+GRAFANA_ADMIN_PASSWORD=<mot-de-passe-grafana>
+```
 
-* Frontend : [http://localhost:89](http://localhost:89)
-* API publique : [http://localhost:89/api](http://localhost:89/api)
-* Swagger / OpenAPI : [http://localhost:89/api/docs](http://localhost:89/api/docs)
+Les variables SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ADMIN_EMAIL`) activent les alertes email sur erreurs 500.
 
-Toutes les routes API publiques utilisent le préfixe `/api`, par exemple
-`POST /api/login` et `GET /api/admin/dashboard`.
-
-## Airflow
+## Démarrage avec Docker
 
 ```bash
-docker compose up -d                    # Démarre tout (Airflow inclus)
+docker compose up -d --build
 ```
 
-Interface : http://localhost:8080 (airflow / airflow). Voir `airflow/README.md`.
+Services exposés par défaut :
 
-> **Note** : PostgreSQL local supprimé. Seule la base Airflow de métadonnées (`postgres_airflow`) reste en Docker. La base applicative `healthdb` est sur Neon.
+| Service | URL |
+| --- | --- |
+| Frontend | http://localhost:89 |
+| API via Nginx | http://localhost:89/api |
+| Swagger / OpenAPI | http://localhost:89/api/docs |
+| Backend direct | http://localhost:8089 |
+| Airflow | http://localhost:8080 |
+
+Identifiants Airflow par défaut : `airflow` / `airflow`.
+
+Import des données de départ :
+
+```bash
+docker compose --profile seed run --rm seed
+```
+
+## Monitoring
+
+Le monitoring infra est séparé dans `docker-compose.monitoring.yml`. Il utilise le réseau Docker créé par le compose principal.
+
+```bash
+docker compose up -d
+docker compose -f docker-compose.monitoring.yml up -d
+```
+
+Services monitoring :
+
+| Service | URL par défaut | Rôle |
+| --- | --- | --- |
+| Grafana | http://localhost:3000 | Visualisation Prometheus/Loki |
+| Prometheus | http://localhost:9090 | Collecte de métriques |
+| Loki | http://localhost:3100 | Stockage des logs |
+| Node Exporter | http://localhost:9100 | Métriques système |
+| Blackbox Exporter | http://localhost:9115 | Sondes HTTP frontend/backend |
+
+## Développement local
+
+Backend :
+
+```bash
+cd backend
+pip install -r requirements-dev.txt
+alembic upgrade head
+uvicorn app.main:app --reload --port 8089
+```
+
+Frontend :
+
+```bash
+cd Frontend
+npm ci
+npm run dev
+```
+
+Le serveur Vite proxy les appels `/api` vers `http://localhost:8089`.
+
+## Tests et qualité
+
+Backend :
+
+```bash
+cd backend
+python -m pytest
+ruff check app migrations ../airflow/dags
+ruff format --check app migrations ../airflow/dags
+```
+
+Frontend :
+
+```bash
+cd Frontend
+npm run lint
+npm run test:coverage
+npm run build
+```
+
+La CI GitHub Actions lance les tests backend, les tests frontend, le build Vite, Ruff, ESLint, puis l'analyse SonarQube et le déploiement SSH sur `main`.
+
+## Documentation
+
+- [Documentation technique](docs/documentation_technique.html)
+- [Documentation CI/CD](CICD.md)
+- [Guide Airflow](docs/AIRFLOW.md)
+- [Guide de déploiement](docs/GUIDE_DEPLOIEMENT.md)
+- [Rapport technique](docs/RAPPORT_TECHNIQUE.md)
+- [Backend](backend/README.md)
+- [Frontend](Frontend/README.md)
+- [Base de données](database/README.md)
+
+## Sécurité
+
+- Les secrets restent dans `.env` et ne doivent pas être versionnés.
+- `DATABASE_URL` pointe vers PostgreSQL Neon en production.
+- Les tokens JWT sont signés avec `SECRET_KEY`.
+- Les erreurs 500 non gérées sont journalisées et peuvent déclencher une alerte email.
+- Les en-têtes HTTP de sécurité sont ajoutés par middleware backend.
 
