@@ -84,9 +84,11 @@ Les jobs `sonarqube` et `deploy` s’exécutent **en parallèle** après les tes
 
 Fichier : `backend/pytest.ini`
 
-- Couverture minimale : **70 %**
+- Couverture minimale backend : **70 %**
 - Rapports : terminal, HTML (`coverage_html/`), XML (`coverage.xml`)
 - Tests : `backend/app/tests/` (base SQLite en mémoire via `conftest.py`)
+- Résultat audité au 6 juin 2026 : **90 tests**, **94,35 %** avec `.coveragerc`
+- `app/database.py` et `app/routers/admin.py` sont actuellement exclus du calcul
 
 ### 2.4 Linter Python — Ruff
 
@@ -117,7 +119,7 @@ ruff format backend/app backend/migrations airflow/dags
 ### 3.1 Environnement
 
 - **Runner** : `ubuntu-latest`
-- **Node.js** : 20
+- **Node.js** : 22
 
 ### 3.2 Étapes
 

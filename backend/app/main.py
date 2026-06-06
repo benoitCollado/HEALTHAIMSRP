@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from app.dependencies import get_db, require_admin
 from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
@@ -17,18 +18,20 @@ from app.routers import (
     utilisateurs,
 )
 from app.security import create_access_token, verify_password, verify_token
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
 
 _log = get_logger("main")
 
-app = FastAPI(title="HealthAI Coach API")
-api_router = APIRouter(prefix="/api")
+app = FastAPI(
+    title="HealthAI Coach API",
+    root_path=os.getenv("API_ROOT_PATH", "/api"),
+)
 
 
 def _get_request_user_id(request: Request):
@@ -86,7 +89,7 @@ app.add_middleware(
 )
 
 
-@api_router.get("/health", tags=["monitoring"])
+@app.get("/health", tags=["monitoring"])
 def health(db: Session = Depends(get_db)):
     """Health endpoint used by operators to verify API and database availability."""
     try:
@@ -100,13 +103,13 @@ def health(db: Session = Depends(get_db)):
     return {"status": status, "database": db_status}
 
 
-@api_router.get("/metrics", tags=["monitoring"])
+@app.get("/metrics", tags=["monitoring"])
 def get_metrics(user: dict = Depends(require_admin)):
     """Return in-memory request metrics. This endpoint is admin-only."""
     return metrics.snapshot()
 
 
-@api_router.post("/login")
+@app.post("/login")
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db),
@@ -136,13 +139,11 @@ def login(
     return {"access_token": token, "token_type": "bearer"}
 
 
-api_router.include_router(utilisateurs.router)
-api_router.include_router(aliments.router)
-api_router.include_router(exercices.router)
-api_router.include_router(consommations.router)
-api_router.include_router(activites.router)
-api_router.include_router(metriques_sante.router)
-api_router.include_router(objectifs.router)
-api_router.include_router(admin.router)
-
-app.include_router(api_router)
+app.include_router(utilisateurs.router)
+app.include_router(aliments.router)
+app.include_router(exercices.router)
+app.include_router(consommations.router)
+app.include_router(activites.router)
+app.include_router(metriques_sante.router)
+app.include_router(objectifs.router)
+app.include_router(admin.router)

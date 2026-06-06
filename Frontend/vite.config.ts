@@ -64,15 +64,10 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       strictPort: true,
       proxy: {
-        '^/api/(login|auth|admin|utilisateurs|metriques-sante|activites|consommations|objectifs|aliments|exercices|seed|health)(/.*)?$': {
+        '/api': {
           target: 'http://localhost:8000',
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
-        },
-        '^/(login|auth|admin|utilisateurs|metriques-sante|activites|consommations|objectifs|aliments|exercices|seed|health)(/.*)?$': {
-          target: 'http://localhost:8000',
-          changeOrigin: true,
-          rewrite: (path) => `/api${path}`,
         },
       },
     },

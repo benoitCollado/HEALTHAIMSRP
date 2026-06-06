@@ -22,7 +22,7 @@ When the FastAPI backend is ready, follow these steps:
 
 1. **Create `.env.local`** in the `Frontend` folder:
 ```
-VITE_API_URL=http://localhost:8000/api
+VITE_API_URL=/api
 ```
 
 2. **Replace mock implementations** in `src/services/api.ts`:
@@ -67,4 +67,4 @@ export async function getDashboardStats() {
 ## Important Notes
 - All functions include error handling and use TypeScript
 - Mock responses have a 100ms delay to simulate network latency
-- Environment variable `VITE_API_URL` defaults to `http://localhost:8000/api` if not set
+- Environment variable `VITE_API_URL` defaults to `/api` if not set

@@ -9,6 +9,7 @@ COPY app/ app/
 COPY migrations/ migrations/
 COPY alembic.ini .
 COPY pytest.ini .
+COPY .coveragerc .
 COPY start.sh .
 RUN sed -i 's/\r$//' start.sh && chmod +x start.sh
 

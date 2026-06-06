@@ -206,6 +206,15 @@ docker compose --profile seed run --rm seed       # Import des données CSV
 
 **Identifiants par défaut** : `admin` / `password`
 
+Accès après démarrage :
+
+* Frontend : [http://localhost:89](http://localhost:89)
+* API publique : [http://localhost:89/api](http://localhost:89/api)
+* Swagger / OpenAPI : [http://localhost:89/api/docs](http://localhost:89/api/docs)
+
+Toutes les routes API publiques utilisent le préfixe `/api`, par exemple
+`POST /api/login` et `GET /api/admin/dashboard`.
+
 ## Airflow
 
 ```bash

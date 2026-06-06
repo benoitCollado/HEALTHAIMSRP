@@ -32,3 +32,14 @@ def test_login_ok(client, db_session):
     body = response.json()
     assert "access_token" in body
     assert body["token_type"] == "bearer"
+
+
+def test_openapi_uses_public_api_prefix(client):
+    response = client.get("/openapi.json")
+
+    assert response.status_code == 200
+    schema = response.json()
+    assert schema["servers"] == [{"url": "/api"}]
+    assert (
+        schema["components"]["securitySchemes"]["OAuth2PasswordBearer"]["flows"]["password"]["tokenUrl"] == "/api/login"
+    )
