@@ -58,7 +58,6 @@ def client(db_session):
 @pytest.fixture
 def admin_token(client, db_session):
     """Create an admin user and return a valid token."""
-    # Seed admin user
     admin_user = Utilisateur(
         username="admin",
         password_hash=hash_password("admin123"),
