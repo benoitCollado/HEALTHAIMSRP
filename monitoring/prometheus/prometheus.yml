@@ -20,9 +20,8 @@ scrape_configs:
       module: [http_2xx]
     static_configs:
       - targets:
-          - http://backend:8000/api/health      # API + Neon
-          - http://frontend:80/                   # frontend
-          - http://airflow-webserver:8080/health  # Airflow
+          - http://backend:8000/api/health
+          - http://frontend:80/
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

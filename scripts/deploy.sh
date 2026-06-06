@@ -34,11 +34,12 @@ if ! grep -qE '^SECRET_KEY=.+' .env; then
   exit 1
 fi
 
-echo "==> Build des images Docker..."
-docker compose build backend frontend
+echo "==> Arrêt des services app (backend, frontend) — Airflow non inclus..."
+docker compose stop backend frontend
+docker compose rm -f backend frontend
 
-echo "==> Redémarrage des services (connexion BDD via .env / Neon)..."
-docker compose up -d backend frontend
+echo "==> Build et redémarrage (backend, frontend uniquement)..."
+docker compose up -d --build backend frontend
 
 echo "==> Attente du backend (connexion Neon via DATABASE_URL)..."
 for i in $(seq 1 30); do
@@ -57,7 +58,7 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
-echo "==> État des conteneurs :"
+echo "==> État des conteneurs app :"
 docker compose ps backend frontend
 
 echo "==> Déploiement terminé avec succès."
