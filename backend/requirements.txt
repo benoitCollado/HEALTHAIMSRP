@@ -10,4 +10,5 @@ bcrypt==3.2.2
 pytest
 pytest-cov
 httpx
+httpx2
 python-multipart

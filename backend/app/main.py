@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from app.database import engine
 from app.dependencies import get_db, require_admin
@@ -27,7 +28,10 @@ from sqlalchemy.orm import Session
 
 _log = get_logger("main")
 
-app = FastAPI(title="HealthAI Coach API")
+app = FastAPI(
+    title="HealthAI Coach API",
+    root_path=os.getenv("API_ROOT_PATH", "/api"),
+)
 
 
 def _get_request_user_id(request: Request):

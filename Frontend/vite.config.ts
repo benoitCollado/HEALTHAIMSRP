@@ -9,9 +9,10 @@ export default defineConfig({
     host: '0.0.0.0',
     strictPort: true,
     proxy: {
-      '^/(login|utilisateurs|metriques-sante|activites|consommations|objectifs|aliments|exercices)(/.*)?$': {
+      '/api': {
         target: 'http://localhost:8089',
-        changeOrigin: true
+        changeOrigin: true,
+        rewrite: path => path.replace(/^\/api/, '')
       }
     }
   },

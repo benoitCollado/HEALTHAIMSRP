@@ -41,7 +41,8 @@ AIRFLOW_PASSWORD=airflow
 
 # Frontend
 FRONTEND_PORT=127.0.0.1:89
-VITE_API_URL=
+VITE_API_URL=/api
+API_ROOT_PATH=/api
 VITE_AIRFLOW_UI_URL=http://localhost:8080
 
 # Airflow (localhost uniquement)
@@ -59,7 +60,8 @@ AIRFLOW_SECRET_KEY=healthaim-airflow-secret-key-dev
 | `FRONTEND_PORT` | Port de l’interface web | `127.0.0.1:89:80` |
 | `AIRFLOW_PORT` | Port de l'interface Airflow (localhost uniquement) | `127.0.0.1:8080` |
 | `SECRET_KEY` | Clé secrète JWT (à changer en production) | `healthaim-secret-key-dev-change-in-production` |
-| `VITE_API_URL` | URL de l’API pour le frontend (vide = proxy nginx) | Vide (même origine) |
+| `VITE_API_URL` | Préfixe public de l’API utilisé par le frontend | `/api` |
+| `API_ROOT_PATH` | Préfixe public utilisé par FastAPI/OpenAPI | `/api` |
 | `VITE_AIRFLOW_UI_URL` | URL de l'interface Airflow (liens « Voir dans Airflow ») | `http://localhost:8080` |
 | `AIRFLOW_API_URL` | URL de l'API Airflow (backend → Airflow) | `http://airflow-webserver:8080` |
 | `AIRFLOW_USER` | Utilisateur Airflow pour l'API | `airflow` |
@@ -88,7 +90,8 @@ BACKEND_PORT=127.0.0.1:8089
 FRONTEND_PORT=127.0.0.1:89
 AIRFLOW_PORT=127.0.0.1:8080
 SECRET_KEY=healthaim-secret-key-dev-change-in-production
-VITE_API_URL=
+VITE_API_URL=/api
+API_ROOT_PATH=/api
 VITE_AIRFLOW_UI_URL=http://localhost:8080
 AIRFLOW_API_URL=http://airflow-webserver:8080
 AIRFLOW_USER=airflow
@@ -137,8 +140,9 @@ Le backend exécute automatiquement au démarrage :
 ### Étape 6 : Vérifier l’application (2 min)
 
 - **Frontend** : http://localhost:89 (ou le port défini par `FRONTEND_PORT`)
-- **API** : http://localhost:8089
-- **Documentation API** : http://localhost:8089/docs
+- **API publique** : http://localhost:89/api
+- **Documentation API** : http://localhost:89/api/docs
+- **Backend direct (diagnostic local uniquement)** : http://localhost:8089
 
 **Identifiants admin** : `admin` / `password` (insérés par `database/init/02_insert_test_data.sql`)
 
@@ -178,7 +182,7 @@ docker compose build backend frontend
 docker compose up -d backend frontend
 
 # 6. Vérification
-curl -s http://localhost:8089/docs | head -5
+curl -s http://localhost:89/api/health
 ```
 
 ---
@@ -188,8 +192,9 @@ curl -s http://localhost:8089/docs | head -5
 | Service | URL | Port par défaut |
 |---------|-----|-----------------|
 | Frontend | http://localhost:89 | 89 |
-| Backend API | http://localhost:8089 | 8089 |
-| Documentation API | http://localhost:8089/docs | 8089 |
+| API publique | http://localhost:89/api | 89 |
+| Documentation API | http://localhost:89/api/docs | 89 |
+| Backend direct (diagnostic local) | http://localhost:8089 | 8089 |
 | PostgreSQL | localhost:5435 | 5435 |
 | Airflow | http://localhost:8080 | 8080 |
 
@@ -209,12 +214,12 @@ Attendu : `postgres_health`, `backend_api`, `frontend_nginx` (et éventuellement
 
 ```bash
 # Connexion
-TOKEN=$(curl -s -X POST "http://localhost:8089/login" \
+TOKEN=$(curl -s -X POST "http://localhost:89/api/login" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "username=admin&password=admin123" | jq -r '.access_token')
 
 # Test d’une route protégée
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8089/utilisateurs/ | head -c 200
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:89/api/utilisateurs/ | head -c 200
 ```
 
 ### 6.3 Test du frontend
@@ -228,7 +233,7 @@ Ouvrir http://localhost:89, se connecter avec `admin` / `admin123`, accéder au 
 ### Erreur « Unexpected token '<', "<!doctype "... is not valid JSON »
 
 - **Cause** : Le frontend reçoit du HTML au lieu de JSON (proxy nginx mal configuré ou backend arrêté).
-- **Solution** : Vérifier que le backend tourne (`docker compose ps`), que nginx inclut bien les routes `/admin` dans le proxy (voir `Frontend/nginx.conf`).
+- **Solution** : Vérifier que le backend tourne (`docker compose ps`) et que nginx transmet bien le préfixe `/api/` (voir `Frontend/nginx.conf`).
 
 ### PostgreSQL « connection refused »
 

@@ -23,6 +23,7 @@ Le backend est développé avec **FastAPI**, **PostgreSQL**, **JWT** et **Docker
 * JWT (JSON Web Token)
 * Docker / Docker Compose
 * Pytest + pytest-cov
+* httpx2 (client de test Starlette)
 
 ---
 
@@ -54,8 +55,9 @@ Au démarrage, le conteneur exécute automatiquement :
 
 ## Accès à l'API
 
-* API : [http://localhost:8000](http://localhost:8000)
-* Documentation interactive (Swagger / OpenAPI) : [http://localhost:8000/docs](http://localhost:8000/docs)
+* API publique : [http://localhost:89/api](http://localhost:89/api)
+* Documentation interactive (Swagger / OpenAPI) : [http://localhost:89/api/docs](http://localhost:89/api/docs)
+* Backend direct, réservé au diagnostic local : [http://localhost:8089](http://localhost:8089)
 
 ---
 
@@ -66,7 +68,7 @@ L'API est protégée par **JWT (Bearer Token)**.
 ### Connexion
 
 ```
-POST /login
+POST /api/login
 ```
 
 Les identifiants sont envoyés sous forme de **form-data** (OAuth2).

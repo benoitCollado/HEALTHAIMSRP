@@ -1,9 +1,9 @@
 /**
  * URL de base de l'API backend.
- * Vide = même origine (nginx proxy) - fonctionne avec tunnel/accès distant.
- * Ou VITE_API_URL pour un backend externe (ex: http://localhost:8089)
+ * /api = proxy nginx de même origine, recommandé en déploiement.
+ * VITE_API_URL peut cibler un backend externe si nécessaire.
  */
-export const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+export const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
 /**
  * URL de l'interface Airflow (pour les liens "Voir dans Airflow").
