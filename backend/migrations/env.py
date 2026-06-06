@@ -10,14 +10,14 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 # Import tous les modèles pour que Base.metadata les connaisse
-from app.database import Base
-import app.models.utilisateur
-import app.models.aliment
-import app.models.exercice
-import app.models.consommation
-import app.models.activite
-import app.models.metrique_sante
-import app.models.objectif
+from app.database import Base  # noqa: E402
+import app.models.utilisateur  # noqa: E402,F401
+import app.models.aliment  # noqa: E402,F401
+import app.models.exercice  # noqa: E402,F401
+import app.models.consommation  # noqa: E402,F401
+import app.models.activite  # noqa: E402,F401
+import app.models.metrique_sante  # noqa: E402,F401
+import app.models.objectif  # noqa: E402,F401
 
 target_metadata = Base.metadata
 

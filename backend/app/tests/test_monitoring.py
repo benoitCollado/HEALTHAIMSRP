@@ -4,6 +4,7 @@ import pytest
 from app.observability.monitoring import metrics
 from sqlalchemy.exc import OperationalError
 
+
 @pytest.fixture(autouse=True)
 def reset_metrics():
     metrics.reset()
