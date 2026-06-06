@@ -1,5 +1,6 @@
-import pytest
 from datetime import date
+
+import pytest
 from app.models.utilisateur import Utilisateur
 from app.security import hash_password
 
@@ -15,10 +16,16 @@ _CONSOMMATION = {
 @pytest.fixture
 def user_headers(client, db_session):
     user = Utilisateur(
-        username="usercons", password_hash=hash_password("pass"),
-        age=25, sexe="H", taille_cm=175, poids_kg=70,
-        niveau_activite=1, type_abonnement=1,
-        date_inscription=date(2026, 1, 1), is_admin=False,
+        username="usercons",
+        password_hash=hash_password("pass"),
+        age=25,
+        sexe="H",
+        taille_cm=175,
+        poids_kg=70,
+        niveau_activite=1,
+        type_abonnement=1,
+        date_inscription=date(2026, 1, 1),
+        is_admin=False,
     )
     db_session.add(user)
     db_session.commit()
@@ -31,6 +38,7 @@ def _create(client, headers):
 
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
+
 
 def test_create_consommation(client, admin_headers):
     r = client.post("/consommations/", json=_CONSOMMATION, headers=admin_headers)
@@ -84,6 +92,7 @@ def test_delete_consommation_not_found(client, admin_headers):
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
+
 
 def test_consommations_requires_auth(client):
     r = client.get("/consommations/")

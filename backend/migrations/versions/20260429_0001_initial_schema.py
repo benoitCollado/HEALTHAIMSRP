@@ -5,6 +5,7 @@ Revises:
 Create Date: 2026-04-29 00:00:00.000000
 
 """
+
 from typing import Sequence, Union
 
 import sqlalchemy as sa
@@ -28,8 +29,7 @@ def upgrade() -> None:
         sa.Column("poids_kg", sa.Integer(), nullable=False),
         sa.Column("niveau_activite", sa.Integer(), nullable=False),
         sa.Column("type_abonnement", sa.Integer(), nullable=False),
-        sa.Column("date_inscription", sa.Date(), nullable=False,
-                  server_default=sa.text("CURRENT_DATE")),
+        sa.Column("date_inscription", sa.Date(), nullable=False, server_default=sa.text("CURRENT_DATE")),
         sa.Column("is_admin", sa.Boolean(), nullable=False, server_default=sa.text("false")),
     )
 
@@ -65,8 +65,7 @@ def upgrade() -> None:
         sa.Column("date_fin", sa.Date(), nullable=False),
         sa.Column("statut", sa.String(10), nullable=False),
         sa.Column("id_utilisateur", sa.Integer(), nullable=False),
-        sa.ForeignKeyConstraint(["id_utilisateur"], ["utilisateurs.id_utilisateur"],
-                                ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["id_utilisateur"], ["utilisateurs.id_utilisateur"], ondelete="CASCADE"),
     )
 
     op.create_table(
@@ -78,8 +77,7 @@ def upgrade() -> None:
         sa.Column("id_aliment", sa.Integer(), nullable=False),
         sa.Column("id_utilisateur", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(["id_aliment"], ["aliment.id_aliment"]),
-        sa.ForeignKeyConstraint(["id_utilisateur"], ["utilisateurs.id_utilisateur"],
-                                ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["id_utilisateur"], ["utilisateurs.id_utilisateur"], ondelete="CASCADE"),
     )
 
     op.create_table(
@@ -92,8 +90,7 @@ def upgrade() -> None:
         sa.Column("id_exercice", sa.Integer(), nullable=False),
         sa.Column("id_utilisateur", sa.Integer(), nullable=False),
         sa.ForeignKeyConstraint(["id_exercice"], ["exercice.id_exercice"]),
-        sa.ForeignKeyConstraint(["id_utilisateur"], ["utilisateurs.id_utilisateur"],
-                                ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["id_utilisateur"], ["utilisateurs.id_utilisateur"], ondelete="CASCADE"),
     )
 
     op.create_table(
@@ -107,8 +104,7 @@ def upgrade() -> None:
         sa.Column("pas", sa.Integer(), nullable=True),
         sa.Column("id_utilisateur", sa.Integer(), nullable=False),
         sa.UniqueConstraint("id_utilisateur", "date_mesure", name="uq_metrique_jour"),
-        sa.ForeignKeyConstraint(["id_utilisateur"], ["utilisateurs.id_utilisateur"],
-                                ondelete="CASCADE"),
+        sa.ForeignKeyConstraint(["id_utilisateur"], ["utilisateurs.id_utilisateur"], ondelete="CASCADE"),
     )
 
 

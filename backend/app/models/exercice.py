@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String
 from app.database import Base
+from sqlalchemy import Column, Integer, String
+
 
 # Modèle SQLAlchemy représentant un exercice physique
 class Exercice(Base):

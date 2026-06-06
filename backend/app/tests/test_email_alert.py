@@ -1,14 +1,13 @@
-import pytest
 import email as email_lib
 from datetime import datetime, timedelta
-from unittest.mock import MagicMock, patch, call
+from unittest.mock import MagicMock, patch
 
 import app.observability.email_alert as email_alert_module
 from app.observability.email_alert import (
-    send_error_alert,
-    _is_on_cooldown,
-    _get_stacktrace,
     _COOLDOWN_SECONDS,
+    _get_stacktrace,
+    _is_on_cooldown,
+    send_error_alert,
 )
 
 ENV_VARS = {
@@ -21,6 +20,7 @@ ENV_VARS = {
 # ──────────────────────────────────────────────
 # _is_on_cooldown
 # ──────────────────────────────────────────────
+
 
 def test_cooldown_false_when_no_entry():
     email_alert_module._last_sent.clear()
@@ -45,6 +45,7 @@ def test_cooldown_false_after_window():
 # _get_stacktrace
 # ──────────────────────────────────────────────
 
+
 def test_get_stacktrace_no_real_traceback():
     error = ValueError("simple error")
     result = _get_stacktrace(error)
@@ -63,6 +64,7 @@ def test_get_stacktrace_with_real_traceback():
 # ──────────────────────────────────────────────
 # send_error_alert — env not configured
 # ──────────────────────────────────────────────
+
 
 def test_send_no_smtp_config_skips(capsys):
     email_alert_module._last_sent.clear()
@@ -84,6 +86,7 @@ def test_send_partial_config_skips(capsys):
 # send_error_alert — cooldown blocks send
 # ──────────────────────────────────────────────
 
+
 def test_send_blocked_by_cooldown():
     email_alert_module._last_sent.clear()
     error = KeyError("rate-limit-test")
@@ -99,6 +102,7 @@ def test_send_blocked_by_cooldown():
 # ──────────────────────────────────────────────
 # send_error_alert — successful send
 # ──────────────────────────────────────────────
+
 
 def test_send_calls_smtp_correctly(capsys):
     email_alert_module._last_sent.clear()
@@ -178,6 +182,7 @@ def test_send_records_cooldown_timestamp():
 # send_error_alert — SMTP failure
 # ──────────────────────────────────────────────
 
+
 def test_send_smtp_exception_does_not_raise(capsys):
     email_alert_module._last_sent.clear()
 
@@ -196,6 +201,7 @@ def test_send_smtp_exception_does_not_raise(capsys):
 # ──────────────────────────────────────────────
 # send_error_alert — EMAIL_USER fallback
 # ──────────────────────────────────────────────
+
 
 def test_send_uses_admin_email_as_fallback_sender(capsys):
     email_alert_module._last_sent.clear()

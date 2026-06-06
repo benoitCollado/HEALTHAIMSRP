@@ -1,5 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-from typing import Optional
+
 
 # Schéma de base pour un exercice
 class ExerciceBase(BaseModel):
@@ -10,26 +10,29 @@ class ExerciceBase(BaseModel):
     # Niveau de difficulté de l’exercice
     niveau_difficulte: str
     # Équipement nécessaire (optionnel)
-    equipement: Optional[str] = None
+    equipement: str | None = None
     # Muscle principal travaillé (optionnel)
-    muscle_principal: Optional[str] = None
+    muscle_principal: str | None = None
+
 
 # Schéma utilisé lors de la création d’un exercice
 class ExerciceCreate(ExerciceBase):
     pass
 
+
 # Schéma utilisé pour la mise à jour partielle d’un exercice
 class ExerciceUpdate(BaseModel):
     # Nouveau nom de l’exercice
-    nom_exercice: Optional[str] = None
+    nom_exercice: str | None = None
     # Nouveau type d’exercice
-    type_exercice: Optional[str] = None
+    type_exercice: str | None = None
     # Nouveau niveau de difficulté
-    niveau_difficulte: Optional[str] = None
+    niveau_difficulte: str | None = None
     # Nouvel équipement
-    equipement: Optional[str] = None
+    equipement: str | None = None
     # Nouveau muscle principal
-    muscle_principal: Optional[str] = None
+    muscle_principal: str | None = None
+
 
 # Schéma de réponse renvoyé par l’API
 class ExerciceResponse(ExerciceBase):

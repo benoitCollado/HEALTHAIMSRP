@@ -2,15 +2,17 @@
 DAG export_db_to_csv : export BDD → CSV intermédiaire horodaté.
 L'admin valide le CSV, puis incorporation_ml peut l'utiliser pour ML ou export final.
 """
+
 import csv
 import json
 import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from airflow import DAG
 from airflow.operators.python import PythonOperator
 from airflow.providers.postgres.hooks.postgres import PostgresHook
+
+from airflow import DAG
 
 HEALTH_DB_CONN_ID = "healthaim_postgres"
 INTERMEDIATE_DIR = Path("/opt/airflow/intermediate/export")
@@ -43,10 +45,24 @@ def export_daily_to_csv(**context):
     cur = conn.cursor()
 
     fieldnames = [
-        "type", "date", "id_utilisateur",
-        "id_consommation", "id_aliment", "quantite_g", "calories_calculees",
-        "id_activite", "id_exercice", "duree_minutes", "calories_depensees", "intensite",
-        "id_metrique", "poids_kg", "frequence_cardiaque", "duree_sommeil_h", "calories_brulees", "pas",
+        "type",
+        "date",
+        "id_utilisateur",
+        "id_consommation",
+        "id_aliment",
+        "quantite_g",
+        "calories_calculees",
+        "id_activite",
+        "id_exercice",
+        "duree_minutes",
+        "calories_depensees",
+        "intensite",
+        "id_metrique",
+        "poids_kg",
+        "frequence_cardiaque",
+        "duree_sommeil_h",
+        "calories_brulees",
+        "pas",
     ]
     rows = []
 
@@ -56,17 +72,28 @@ def export_daily_to_csv(**context):
         (target_date,),
     )
     for row in cur.fetchall():
-        rows.append({
-            "type": "consommation",
-            "date": str(row[1]),
-            "id_utilisateur": row[2],
-            "id_consommation": row[0],
-            "id_aliment": row[3],
-            "quantite_g": row[4],
-            "calories_calculees": row[5],
-            "id_activite": "", "id_exercice": "", "duree_minutes": "", "calories_depensees": "", "intensite": "",
-            "id_metrique": "", "poids_kg": "", "frequence_cardiaque": "", "duree_sommeil_h": "", "calories_brulees": "", "pas": "",
-        })
+        rows.append(
+            {
+                "type": "consommation",
+                "date": str(row[1]),
+                "id_utilisateur": row[2],
+                "id_consommation": row[0],
+                "id_aliment": row[3],
+                "quantite_g": row[4],
+                "calories_calculees": row[5],
+                "id_activite": "",
+                "id_exercice": "",
+                "duree_minutes": "",
+                "calories_depensees": "",
+                "intensite": "",
+                "id_metrique": "",
+                "poids_kg": "",
+                "frequence_cardiaque": "",
+                "duree_sommeil_h": "",
+                "calories_brulees": "",
+                "pas": "",
+            }
+        )
 
     cur.execute(
         "SELECT id_activite, date_activite, id_utilisateur, id_exercice, duree_minutes, calories_depensees, intensite "
@@ -74,18 +101,28 @@ def export_daily_to_csv(**context):
         (target_date,),
     )
     for row in cur.fetchall():
-        rows.append({
-            "type": "activite",
-            "date": str(row[1]),
-            "id_utilisateur": row[2],
-            "id_consommation": "", "id_aliment": "", "quantite_g": "", "calories_calculees": "",
-            "id_activite": row[0],
-            "id_exercice": row[3],
-            "duree_minutes": row[4],
-            "calories_depensees": row[5],
-            "intensite": row[6] or "",
-            "id_metrique": "", "poids_kg": "", "frequence_cardiaque": "", "duree_sommeil_h": "", "calories_brulees": "", "pas": "",
-        })
+        rows.append(
+            {
+                "type": "activite",
+                "date": str(row[1]),
+                "id_utilisateur": row[2],
+                "id_consommation": "",
+                "id_aliment": "",
+                "quantite_g": "",
+                "calories_calculees": "",
+                "id_activite": row[0],
+                "id_exercice": row[3],
+                "duree_minutes": row[4],
+                "calories_depensees": row[5],
+                "intensite": row[6] or "",
+                "id_metrique": "",
+                "poids_kg": "",
+                "frequence_cardiaque": "",
+                "duree_sommeil_h": "",
+                "calories_brulees": "",
+                "pas": "",
+            }
+        )
 
     cur.execute(
         "SELECT id_metrique, date_mesure, id_utilisateur, poids_kg, frequence_cardiaque, duree_sommeil_h, calories_brulees, pas "
@@ -93,19 +130,28 @@ def export_daily_to_csv(**context):
         (target_date,),
     )
     for row in cur.fetchall():
-        rows.append({
-            "type": "metrique_sante",
-            "date": str(row[1]),
-            "id_utilisateur": row[2],
-            "id_consommation": "", "id_aliment": "", "quantite_g": "", "calories_calculees": "",
-            "id_activite": "", "id_exercice": "", "duree_minutes": "", "calories_depensees": "", "intensite": "",
-            "id_metrique": row[0],
-            "poids_kg": row[3] if row[3] is not None else "",
-            "frequence_cardiaque": row[4] if row[4] is not None else "",
-            "duree_sommeil_h": row[5] if row[5] is not None else "",
-            "calories_brulees": row[6] if row[6] is not None else "",
-            "pas": row[7] if row[7] is not None else "",
-        })
+        rows.append(
+            {
+                "type": "metrique_sante",
+                "date": str(row[1]),
+                "id_utilisateur": row[2],
+                "id_consommation": "",
+                "id_aliment": "",
+                "quantite_g": "",
+                "calories_calculees": "",
+                "id_activite": "",
+                "id_exercice": "",
+                "duree_minutes": "",
+                "calories_depensees": "",
+                "intensite": "",
+                "id_metrique": row[0],
+                "poids_kg": row[3] if row[3] is not None else "",
+                "frequence_cardiaque": row[4] if row[4] is not None else "",
+                "duree_sommeil_h": row[5] if row[5] is not None else "",
+                "calories_brulees": row[6] if row[6] is not None else "",
+                "pas": row[7] if row[7] is not None else "",
+            }
+        )
 
     cur.close()
     conn.close()

@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Date, Boolean
 from app.database import Base
+from sqlalchemy import Boolean, Column, Date, Integer, String
+
 
 # Modèle SQLAlchemy représentant un utilisateur de l’application
 class Utilisateur(Base):

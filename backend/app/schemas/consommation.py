@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict
 from datetime import date
-from typing import Optional
+
+from pydantic import BaseModel, ConfigDict
+
 
 # Schéma de base pour une consommation alimentaire
 class ConsommationBase(BaseModel):
@@ -15,22 +16,25 @@ class ConsommationBase(BaseModel):
     # Référence vers l’utilisateur
     id_utilisateur: int
 
+
 # Schéma utilisé lors de la création d’une consommation
 class ConsommationCreate(ConsommationBase):
     pass
 
+
 # Schéma utilisé pour la mise à jour partielle d’une consommation
 class ConsommationUpdate(BaseModel):
     # Nouvelle date de consommation
-    date_consommation: Optional[date] = None
+    date_consommation: date | None = None
     # Nouvelle quantité en grammes
-    quantite_g: Optional[float] = None
+    quantite_g: float | None = None
     # Nouvelles calories calculées
-    calories_calculees: Optional[float] = None
+    calories_calculees: float | None = None
     # Nouvel aliment associé
-    id_aliment: Optional[int] = None
+    id_aliment: int | None = None
     # Nouvel utilisateur associé
-    id_utilisateur: Optional[int] = None
+    id_utilisateur: int | None = None
+
 
 # Schéma de réponse renvoyé par l’API
 class ConsommationResponse(ConsommationBase):

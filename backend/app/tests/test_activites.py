@@ -1,5 +1,6 @@
-import pytest
 from datetime import date
+
+import pytest
 from app.models.utilisateur import Utilisateur
 from app.security import hash_password
 
@@ -15,10 +16,16 @@ _ACTIVITE = {
 @pytest.fixture
 def user_headers(client, db_session):
     user = Utilisateur(
-        username="useract", password_hash=hash_password("pass"),
-        age=25, sexe="F", taille_cm=165, poids_kg=60,
-        niveau_activite=1, type_abonnement=1,
-        date_inscription=date(2026, 1, 1), is_admin=False,
+        username="useract",
+        password_hash=hash_password("pass"),
+        age=25,
+        sexe="F",
+        taille_cm=165,
+        poids_kg=60,
+        niveau_activite=1,
+        type_abonnement=1,
+        date_inscription=date(2026, 1, 1),
+        is_admin=False,
     )
     db_session.add(user)
     db_session.commit()
@@ -31,6 +38,7 @@ def _create(client, headers):
 
 
 # ── CRUD ──────────────────────────────────────────────────────────────────────
+
 
 def test_create_activite(client, admin_headers):
     r = client.post("/activites/", json=_ACTIVITE, headers=admin_headers)
@@ -84,6 +92,7 @@ def test_delete_activite_not_found(client, admin_headers):
 
 
 # ── Auth ──────────────────────────────────────────────────────────────────────
+
 
 def test_activites_requires_auth(client):
     r = client.get("/activites/")

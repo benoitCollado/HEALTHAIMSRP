@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, Date, Numeric, String, ForeignKey
 from app.database import Base
+from sqlalchemy import Column, Date, ForeignKey, Integer, Numeric, String
+
 
 # Modèle SQLAlchemy représentant une activité physique
 class Activite(Base):

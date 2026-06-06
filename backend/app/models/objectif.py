@@ -1,5 +1,6 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
 from app.database import Base
+from sqlalchemy import Column, Date, ForeignKey, Integer, String
+
 
 # Modèle SQLAlchemy représentant un objectif défini par un utilisateur
 class Objectif(Base):

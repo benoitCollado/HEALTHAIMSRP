@@ -4,7 +4,6 @@ import traceback
 from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from typing import Optional
 
 # ==============================
 # CONFIG
@@ -17,6 +16,7 @@ _COOLDOWN_SECONDS = 60
 # ==============================
 # UTILS
 # ==============================
+
 
 def _is_on_cooldown(error_key: str) -> bool:
     """Avoid flooding the admin with repeated alerts for the same route/error."""
@@ -38,11 +38,12 @@ def _get_stacktrace(error: Exception) -> str:
 # MAIN FUNCTION
 # ==============================
 
+
 def send_error_alert(
     error: Exception,
     method: str = "",
     url: str = "",
-    user_id: Optional[int] = None,
+    user_id: int | None = None,
 ) -> None:
     """
     Envoie un email d'alerte en cas d'erreur backend.
