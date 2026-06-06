@@ -2,19 +2,17 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+*.coverage
+backend/.coverage
 backend/coverage.xml
 backend/coverage_html/
 
 # SonarQube / couverture frontend
 .scannerwork/
 Frontend/coverage/
-backend/.coverage
 .env
 .venv/
 venv/
-.docker-tmp/
-.env.local
-.env.*.local
 
 # FastAPI / Uvicorn
 *.log
@@ -27,6 +25,7 @@ build/
 
 # Docker
 .env
+.docker-tmp/
 
 
 # IDE

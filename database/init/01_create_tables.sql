@@ -9,9 +9,7 @@ CREATE TABLE utilisateurs (
     niveau_activite SMALLINT NOT NULL,
     type_abonnement SMALLINT NOT NULL,
     date_inscription DATE NOT NULL DEFAULT CURRENT_DATE,
-    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-    totp_secret VARCHAR(64),
-    totp_enabled BOOLEAN NOT NULL DEFAULT FALSE
+    is_admin BOOLEAN NOT NULL DEFAULT FALSE
 );
 
 CREATE TABLE objectif (

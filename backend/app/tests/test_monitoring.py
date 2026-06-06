@@ -25,9 +25,8 @@ def test_health_ok(client):
     assert body["database"] == "ok"
 
 
-def test_health_db_error(client):
-    with patch("app.main.engine") as mock_engine:
-        mock_engine.connect.side_effect = OperationalError("conn", {}, Exception("timeout"))
+def test_health_db_error(client, db_session):
+    with patch.object(db_session, "execute", side_effect=OperationalError("conn", {}, Exception("timeout"))):
         response = client.get("/health")
     assert response.status_code == 200
     body = response.json()

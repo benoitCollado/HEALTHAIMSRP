@@ -9,7 +9,7 @@ export default defineConfig({
     host: '0.0.0.0',
     strictPort: true,
     proxy: {
-      '^/(login|admin|utilisateurs|metriques-sante|activites|consommations|objectifs|aliments|exercices)(/.*)?$': {
+      '^/(login|auth|admin|utilisateurs|metriques-sante|activites|consommations|objectifs|aliments|exercices|seed|health)(/.*)?$': {
         target: 'http://localhost:8089',
         changeOrigin: true
       }

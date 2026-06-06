@@ -39,9 +39,3 @@ class Utilisateur(Base):
 
     # Indique si l’utilisateur a les droits administrateur
     is_admin = Column(Boolean, nullable=False, default=False)
-
-    # Secret TOTP (base32), utilisé pour la 2FA Google Authenticator / Authy
-    totp_secret = Column(String(64), nullable=True)
-
-    # Indique si la double authentification TOTP est activée
-    totp_enabled = Column(Boolean, nullable=False, default=False)

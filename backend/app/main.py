@@ -1,6 +1,5 @@
 import asyncio
 
-from app.database import engine
 from app.dependencies import get_db, require_admin
 from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
 from app.models.utilisateur import Utilisateur
@@ -15,11 +14,10 @@ from app.routers import (
     exercices,
     metriques_sante,
     objectifs,
-    two_factor,
     utilisateurs,
 )
-from app.security import create_access_token, verify_password, verify_token, verify_totp_code
-from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from app.security import create_access_token, verify_password, verify_token
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -29,16 +27,6 @@ from sqlalchemy.orm import Session
 _log = get_logger("main")
 
 app = FastAPI(title="HealthAI Coach API")
-
-
-@app.on_event("startup")
-def ensure_security_columns():
-    """Ensure 2FA columns are present on existing databases."""
-    with engine.begin() as conn:
-        conn.execute(text("ALTER TABLE utilisateurs ADD COLUMN IF NOT EXISTS totp_secret VARCHAR(64)"))
-        conn.execute(
-            text("ALTER TABLE utilisateurs ADD COLUMN IF NOT EXISTS totp_enabled BOOLEAN NOT NULL DEFAULT FALSE")
-        )
 
 
 def _get_request_user_id(request: Request):
@@ -97,11 +85,10 @@ app.add_middleware(
 
 
 @app.get("/health", tags=["monitoring"])
-def health():
+def health(db: Session = Depends(get_db)):
     """Health endpoint used by operators to verify API and database availability."""
     try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        db.execute(text("SELECT 1"))
         db_status = "ok"
     except Exception as e:
         _log.warning("Health check DB failed: %s", e)
@@ -120,7 +107,6 @@ def get_metrics(user: dict = Depends(require_admin)):
 @app.post("/login")
 def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
-    otp: str | None = Form(default=None),
     db: Session = Depends(get_db),
 ):
     """Authenticate a user and return the JWT used by protected endpoints."""
@@ -134,14 +120,6 @@ def login(
         _log.warning("Login failed - wrong password: %s", form_data.username)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    if utilisateur.totp_enabled:
-        if not otp:
-            _log.warning("Login failed - missing 2FA code: %s", form_data.username)
-            raise HTTPException(status_code=401, detail="Code 2FA requis")
-        if not utilisateur.totp_secret or not verify_totp_code(utilisateur.totp_secret, otp):
-            _log.warning("Login failed - invalid 2FA code: %s", form_data.username)
-            raise HTTPException(status_code=401, detail="Code 2FA invalide")
-
     token = create_access_token(
         {
             "sub": str(utilisateur.id_utilisateur),
@@ -153,7 +131,6 @@ def login(
 
 
 app.include_router(utilisateurs.router)
-app.include_router(two_factor.router)
 app.include_router(aliments.router)
 app.include_router(exercices.router)
 app.include_router(consommations.router)

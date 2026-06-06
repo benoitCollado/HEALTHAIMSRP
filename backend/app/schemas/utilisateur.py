@@ -52,7 +52,4 @@ class UtilisateurResponse(UtilisateurBase):
     # Identifiant unique de l’utilisateur
     id_utilisateur: int
 
-    # Indique si la 2FA TOTP est activée pour ce compte
-    totp_enabled: bool = False
-
     model_config = ConfigDict(from_attributes=True)

@@ -28,4 +28,4 @@ except Exception as e:
     print(f"Avertissement migration : {e}", file=sys.stderr)
 EOF
 
-exec uvicorn app.main:app --host 0.0.0.0 --port 8000
+exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
