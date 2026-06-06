@@ -4,7 +4,6 @@ import pytest
 from app.observability.monitoring import metrics
 from sqlalchemy.exc import OperationalError
 
-
 @pytest.fixture(autouse=True)
 def reset_metrics():
     metrics.reset()
@@ -69,8 +68,8 @@ def test_metrics_counts_requests(client, admin_headers):
     response = client.get("/metrics", headers=admin_headers)
     body = response.json()
     assert body["requests_total"] >= 3
-    assert "/aliments" in body["requests_by_route"]
-    assert body["requests_by_route"]["/aliments"] >= 3
+    assert "/api/aliments/" in body["requests_by_route"]
+    assert body["requests_by_route"]["/api/aliments/"] >= 3
 
 
 def test_metrics_counts_errors(client, admin_headers):

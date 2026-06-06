@@ -1,9 +1,9 @@
 /**
- * URL de base de l'API backend.
- * Vide = même origine (nginx proxy) - fonctionne avec tunnel/accès distant.
- * Ou VITE_API_URL pour un backend externe (ex: http://localhost:8089)
+ * URL complète de l'API (VITE_API_URL dans .env / .env.example à la racine du repo).
+ * Ex. https://healthai.mondomaine.com/api
  */
-export const API_BASE_URL = import.meta.env.VITE_API_URL || ''
+const rawApiUrl = import.meta.env.VITE_API_URL ?? '/api'
+export const API_BASE_URL = rawApiUrl.replace(/\/$/, '')
 
 /**
  * URL de l'interface Airflow (pour les liens "Voir dans Airflow").

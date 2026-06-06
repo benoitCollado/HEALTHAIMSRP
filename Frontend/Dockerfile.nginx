@@ -1,7 +1,7 @@
 # Stage 1: Build Vue.js
 FROM node:20-alpine AS builder
-# Vide = API via proxy nginx (même origine)
-ARG VITE_API_URL=
+# Injecté depuis le .env racine via docker compose (VITE_API_URL)
+ARG VITE_API_URL
 ARG VITE_AIRFLOW_UI_URL=http://localhost:8080
 ENV VITE_API_URL=$VITE_API_URL
 ENV VITE_AIRFLOW_UI_URL=$VITE_AIRFLOW_UI_URL

@@ -26,6 +26,33 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
+class _ApiTestClient:
+    """Préfixe automatiquement les chemins de test avec /api."""
+
+    def __init__(self, client: TestClient):
+        self._client = client
+
+    def _path(self, url: str) -> str:
+        if url.startswith("/api"):
+            return url
+        return f"/api{url}"
+
+    def get(self, url: str, **kwargs):
+        return self._client.get(self._path(url), **kwargs)
+
+    def post(self, url: str, **kwargs):
+        return self._client.post(self._path(url), **kwargs)
+
+    def put(self, url: str, **kwargs):
+        return self._client.put(self._path(url), **kwargs)
+
+    def delete(self, url: str, **kwargs):
+        return self._client.delete(self._path(url), **kwargs)
+
+    def patch(self, url: str, **kwargs):
+        return self._client.patch(self._path(url), **kwargs)
+
+
 @pytest.fixture(scope="function")
 def db_session():
     """Create a fresh database for each test."""
@@ -51,7 +78,7 @@ def client(db_session):
     # All routers import the same get_db dependency, so one override is enough.
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as c:
-        yield c
+        yield _ApiTestClient(c)
     app.dependency_overrides.clear()
 
 
