@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Documentation Technique — HealthAI MSPR</title>
+        <title>Présentation Projet — HealthAI MSPR</title>
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -586,7 +586,7 @@
         <!-- ============================================================ COVER -->
         <div class="cover">
             <div class="cover-logo">❤️</div>
-            <div class="cover-tag">Documentation Technique</div>
+            <div class="cover-tag">Présentation Projet</div>
             <h1>HealthAI MSPR</h1>
             <h2>Plateforme de suivi santé intelligent</h2>
             <div class="cover-divider"></div>
@@ -596,8 +596,8 @@
                     Recommandations Personnalisées
                 </div>
                 <div><strong>Organisation :</strong> EPSI</div>
-                <div><strong>Version :</strong> 2.1.0</div>
-                <div><strong>Date :</strong> Mai 2026</div>
+                <div><strong>Version :</strong> 2.1.1</div>
+                <div><strong>Date :</strong> Juin 2026</div>
                 <div>
                     <strong>Stack :</strong> Vue 3 · TypeScript · Capacitor ·
                     FastAPI · PostgreSQL Neon · Docker · Apache Airflow ·
@@ -614,7 +614,7 @@
         <div class="page">
             <div class="section-header">
                 <div class="section-num">📋</div>
-                <h2>Table des matières</h2>
+                <h2>Plan de présentation</h2>
             </div>
 
             <div class="toc">
@@ -634,56 +634,51 @@
                     <span class="toc-pg">5</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">4</span>Structure du projet
+                    <span class="toc-num">4</span>Base de données
                     <div class="toc-dots"></div>
                     <span class="toc-pg">6</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">5</span>Base de données
+                    <span class="toc-num">5</span>API REST — Endpoints
                     <div class="toc-dots"></div>
                     <span class="toc-pg">7</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">6</span>API REST — Endpoints
+                    <span class="toc-num">6</span>Authentification JWT
                     <div class="toc-dots"></div>
-                    <span class="toc-pg">8</span>
+                    <span class="toc-pg">9</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">7</span>Authentification JWT
+                    <span class="toc-num">7</span>Frontend — Interface
+                    utilisateur
                     <div class="toc-dots"></div>
                     <span class="toc-pg">10</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">8</span>Frontend — Interface
-                    utilisateur
+                    <span class="toc-num">8</span>Pipeline de données — Apache
+                    Airflow
                     <div class="toc-dots"></div>
                     <span class="toc-pg">11</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">9</span>Pipeline de données — Apache
-                    Airflow
+                    <span class="toc-num">9</span>Déploiement Docker
                     <div class="toc-dots"></div>
                     <span class="toc-pg">12</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">10</span>Déploiement Docker
+                    <span class="toc-num">10</span>Sécurité
                     <div class="toc-dots"></div>
                     <span class="toc-pg">13</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">11</span>Sécurité
+                    <span class="toc-num">11</span>CI/CD — GitHub Actions
                     <div class="toc-dots"></div>
                     <span class="toc-pg">14</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">12</span>CI/CD — GitHub Actions
+                    <span class="toc-num">12</span>Conclusion &amp; Perspectives
                     <div class="toc-dots"></div>
-                    <span class="toc-pg">15</span>
-                </div>
-                <div class="toc-item">
-                    <span class="toc-num">13</span>Conclusion &amp; Perspectives
-                    <div class="toc-dots"></div>
-                    <span class="toc-pg">17</span>
+                    <span class="toc-pg">16</span>
                 </div>
             </div>
         </div>
@@ -802,53 +797,119 @@
 
             <p>
                 L'application repose sur une architecture
-                <strong>3-tiers conteneurisée</strong> : présentation (Vue.js +
-                Nginx), logique métier (FastAPI), persistance (PostgreSQL). Un
-                pipeline Airflow orchestre les tâches de données en
-                arrière-plan.
+                <strong>full-stack conteneurisée et découplée</strong>. Le
+                frontend Vue 3 est servi par Nginx, qui joue aussi le rôle de
+                reverse proxy vers l'API FastAPI. Le backend applique les règles
+                métier, sécurise les accès par JWT et persiste les données dans
+                PostgreSQL Neon. En parallèle, Airflow orchestre les traitements
+                de données, tandis que Prometheus, Grafana, Loki et Promtail
+                assurent le monitoring et la centralisation des logs.
             </p>
 
             <div class="arch-box">
                 <div class="layer">
                     <div class="layer-box lb-gray">
-                        🌐 Navigateur (Chrome / Firefox)
+                        🌐 Navigateur web / application mobile Capacitor
                     </div>
                 </div>
                 <div class="layer-arrow">↕ HTTP/HTTPS (port 89)</div>
                 <div class="layer">
                     <div class="layer-box lb-blue">
-                        🖥️ Frontend — Vue 3 + Nginx
+                        🖥️ Frontend — Vue 3 + TypeScript
+                    </div>
+                    <div class="layer-box lb-blue">
+                        🌐 Nginx — SPA + proxy /api
                     </div>
                 </div>
                 <div class="layer-arrow">
-                    ↕ REST API (proxy interne port 8000)
+                    ↕ REST JSON (proxy interne vers backend:8000)
                 </div>
                 <div class="layer">
                     <div class="layer-box lb-navy">
-                        ⚙️ Backend — FastAPI (Python)
+                        ⚙️ Backend — FastAPI / Python 3.11
                     </div>
                     <div class="layer-box lb-purple">
-                        🔐 Auth — JWT / bcrypt
+                        🔐 Auth — JWT / bcrypt / RBAC
                     </div>
                 </div>
-                <div class="layer-arrow">↕ SQLAlchemy ORM</div>
+                <div class="layer-arrow">↕ SQLAlchemy + psycopg2 + TLS</div>
                 <div class="layer">
                     <div class="layer-box lb-green">
-                        🗄️ PostgreSQL — Base de données santé
+                        🗄️ PostgreSQL Neon — Base applicative externe
+                    </div>
+                    <div class="layer-box lb-gray">
+                        📄 Alembic — migrations versionnées
                     </div>
                 </div>
                 <div class="layer-arrow" style="margin-top: 20px">
-                    ↕ Accès DB (port 5432 interne)
+                    ↕ Pipelines ETL, exports CSV, fichiers ML
                 </div>
                 <div class="layer">
                     <div class="layer-box lb-orange">
-                        🌀 Apache Airflow — Orchestration DAGs
+                        🌀 Apache Airflow — DAGs import / export / ML
                     </div>
                     <div class="layer-box lb-green">
-                        🗄️ PostgreSQL — Base Airflow
+                        🗄️ PostgreSQL 17 — Métadonnées Airflow
+                    </div>
+                </div>
+                <div class="layer-arrow" style="margin-top: 20px">
+                    ↕ Observabilité
+                </div>
+                <div class="layer">
+                    <div class="layer-box lb-purple">
+                        📈 Prometheus + Blackbox + Node Exporter
+                    </div>
+                    <div class="layer-box lb-orange">
+                        📊 Grafana — dashboards
+                    </div>
+                    <div class="layer-box lb-gray">
+                        📚 Loki + Promtail — logs backend/Docker
                     </div>
                 </div>
             </div>
+
+            <h3>Composants principaux</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Couche</th>
+                        <th>Composants</th>
+                        <th>Responsabilités</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Présentation</td>
+                        <td>Vue 3, TypeScript, Vite, Vue Router, Capacitor</td>
+                        <td>Interface web, navigation SPA, adaptation mobile Android/iOS.</td>
+                    </tr>
+                    <tr>
+                        <td>Reverse proxy</td>
+                        <td>Nginx</td>
+                        <td>Expose le frontend, sert les assets statiques et redirige <code>/api</code> vers FastAPI.</td>
+                    </tr>
+                    <tr>
+                        <td>API métier</td>
+                        <td>FastAPI, SQLAlchemy, Pydantic, Uvicorn</td>
+                        <td>Authentification, endpoints REST, validation, accès aux données et règles métier.</td>
+                    </tr>
+                    <tr>
+                        <td>Persistance</td>
+                        <td>PostgreSQL Neon, Alembic</td>
+                        <td>Stockage applicatif managé, migrations versionnées, connexion sécurisée via <code>DATABASE_URL</code>.</td>
+                    </tr>
+                    <tr>
+                        <td>Orchestration data</td>
+                        <td>Apache Airflow, DAGs Python, pandas, requests</td>
+                        <td>Import Open Food Facts, export base vers CSV, préparation de fichiers ML.</td>
+                    </tr>
+                    <tr>
+                        <td>Observabilité</td>
+                        <td>Grafana, Prometheus, Loki, Promtail, exporters</td>
+                        <td>Métriques système, disponibilité HTTP, dashboards et centralisation des logs.</td>
+                    </tr>
+                </tbody>
+            </table>
 
             <h3>Flux de communication</h3>
             <table>
@@ -875,9 +936,9 @@
                     </tr>
                     <tr>
                         <td>FastAPI</td>
-                        <td>PostgreSQL Health</td>
-                        <td>TCP (SQLAlchemy)</td>
-                        <td>5432 interne</td>
+                        <td>PostgreSQL Neon</td>
+                        <td>TCP/TLS (SQLAlchemy + psycopg2)</td>
+                        <td>5432 distant</td>
                     </tr>
                     <tr>
                         <td>Navigateur (admin)</td>
@@ -887,23 +948,46 @@
                     </tr>
                     <tr>
                         <td>Airflow</td>
-                        <td>PostgreSQL Health</td>
-                        <td>TCP (psycopg2)</td>
-                        <td>5432 interne</td>
+                        <td>PostgreSQL Neon</td>
+                        <td>TCP/TLS via <code>AIRFLOW_CONN_HEALTHAIM_POSTGRES</code></td>
+                        <td>5432 distant</td>
                     </tr>
                     <tr>
-                        <td>Client externe</td>
-                        <td>PostgreSQL Health</td>
-                        <td>TCP</td>
-                        <td>5435</td>
+                        <td>Airflow</td>
+                        <td>PostgreSQL Airflow</td>
+                        <td>TCP interne</td>
+                        <td>5432</td>
+                    </tr>
+                    <tr>
+                        <td>Prometheus</td>
+                        <td>Backend / Frontend / Node Exporter / Blackbox</td>
+                        <td>HTTP scrape</td>
+                        <td>9090, 9100, 9115</td>
+                    </tr>
+                    <tr>
+                        <td>Promtail</td>
+                        <td>Loki</td>
+                        <td>HTTP push logs</td>
+                        <td>3100</td>
+                    </tr>
+                    <tr>
+                        <td>Grafana</td>
+                        <td>Prometheus / Loki</td>
+                        <td>HTTP interne</td>
+                        <td>9090 / 3100</td>
                     </tr>
                 </tbody>
             </table>
 
             <h3>Réseau Docker</h3>
             <p>
-                Tous les conteneurs communiquent via le réseau bridge interne
-                <code>health_net</code>. Seuls les ports nécessaires sont
+                Les conteneurs applicatifs communiquent via le réseau bridge
+                interne <code>health_net</code>. La pile monitoring utilise le
+                même réseau Docker pour atteindre <code>backend</code>,
+                <code>frontend</code>, <code>prometheus</code> et
+                <code>loki</code>. La base applicative n'est pas conteneurisée :
+                elle est fournie par Neon et jointe uniquement via
+                <code>DATABASE_URL</code>. Seuls les ports nécessaires sont
                 exposés vers l'hôte.
             </p>
         </div>
@@ -1114,82 +1198,10 @@
                 </div>
             </div>
         </div>
-
         <!-- ============================================================ SECTION 4 -->
         <div class="page page-break">
             <div class="section-header">
                 <div class="section-num">4</div>
-                <h2>Structure du projet</h2>
-            </div>
-
-            <div class="card-grid card-grid-2">
-                <div>
-                    <h3>Backend (Python / FastAPI)</h3>
-                    <div class="code-block">
-                        <span class="cm">backend/</span>
-                        ├── Dockerfile ├── requirements.txt └── app/ ├──
-                        <span class="fn">main.py</span>
-                        <span class="cm"># Point d'entrée API</span> ├──
-                        <span class="fn">database.py</span>
-                        <span class="cm"># Connexion SQLAlchemy Neon</span> ├──
-                        <span class="fn">security.py</span>
-                        <span class="cm"># JWT + bcrypt</span> ├──
-                        <span class="fn">dependencies.py</span>
-                        <span class="cm"># DB, JWT, admin-only</span> ├── models/
-                        │ ├── utilisateur.py │ ├── activite.py │ ├── aliment.py
-                        │ ├── consommation.py │ ├── exercice.py │ ├──
-                        metrique_sante.py │ └── objectif.py ├── routers/ │ ├──
-                        utilisateurs.py │ ├── activites.py │ ├── aliments.py │
-                        ├── consommations.py │ ├── exercices.py │ ├──
-                        metriques_sante.py │ └── objectifs.py └── schemas/
-                        <span class="cm"># Pydantic schemas - tests pytest</span>
-                    </div>
-                </div>
-                <div>
-                    <h3>Frontend (Vue 3 / TypeScript)</h3>
-                    <div class="code-block">
-                        <span class="cm">Frontend/</span>
-                        ├── Dockerfile.nginx ├── vite.config.ts └── src/ ├──
-                        <span class="fn">main.ts</span>
-                        <span class="cm"># Entrée Vue App</span> ├──
-                        <span class="fn">App.vue</span>
-                        <span class="cm"># Layout root</span> ├──
-                        <span class="fn">router.ts</span>
-                        <span class="cm"># Navigation + guards</span> ├──
-                        <span class="fn">styles.css</span>
-                        <span class="cm"># Design System global</span> ├──
-                        components/ │ ├── Navbar.vue │ └── AppFooter.vue ├──
-                        pages/ │ ├── Connexion.vue │ ├── PageAccueil.vue
-                        <span class="cm"># Profil (tabs)</span> │ ├──
-                        Dashboard.vue │ ├── GestionFlux.vue │ ├── FluxDetail.vue
-                        │ ├── Nettoyage.vue │ ├── TestBackend.vue │ └──
-                        PageView.vue └── services/ ├── auth.ts
-                        <span class="cm"># JWT + localStorage</span> └── api.ts
-                        <span class="cm"># Appels API</span>
-                    </div>
-                </div>
-            </div>
-
-            <h3>Données &amp; Orchestration</h3>
-            <div class="code-block">
-                <span class="cm">airflow/dags/</span>
-                ├── export_db_to_csv.py
-                <span class="cm"># DAG : Export PostgreSQL → CSV</span> └──
-                fetch_openfoodfacts_france.py
-                <span class="cm"># DAG : Collecte données OpenFoodFacts</span>
-
-                <span class="cm">data/</span>
-                ├── export/
-                <span class="cm"># Exports CSV</span> └──
-                intermediate/ et logs/backend/
-                <span class="cm"># Fichiers Airflow et logs persistés</span>
-            </div>
-        </div>
-
-        <!-- ============================================================ SECTION 5 -->
-        <div class="page page-break">
-            <div class="section-header">
-                <div class="section-num">5</div>
                 <h2>Base de données</h2>
             </div>
 
@@ -1355,10 +1367,10 @@
             </div>
         </div>
 
-        <!-- ============================================================ SECTION 6 -->
+        <!-- ============================================================ SECTION 5 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">6</div>
+                <div class="section-num">5</div>
                 <h2>API REST — Endpoints</h2>
             </div>
 
@@ -1566,10 +1578,10 @@
             </p>
         </div>
 
-        <!-- ============================================================ SECTION 7 -->
+        <!-- ============================================================ SECTION 6 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">7</div>
+                <div class="section-num">6</div>
                 <h2>Authentification JWT</h2>
             </div>
 
@@ -1686,10 +1698,10 @@
             </ul>
         </div>
 
-        <!-- ============================================================ SECTION 8 -->
+        <!-- ============================================================ SECTION 7 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">8</div>
+                <div class="section-num">7</div>
                 <h2>Frontend — Interface utilisateur</h2>
             </div>
 
@@ -1876,10 +1888,10 @@
             </ul>
         </div>
 
-        <!-- ============================================================ SECTION 9 -->
+        <!-- ============================================================ SECTION 8 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">9</div>
+                <div class="section-num">8</div>
                 <h2>Pipeline de données — Apache Airflow</h2>
             </div>
 
@@ -2044,10 +2056,10 @@
             </div>
         </div>
 
-        <!-- ============================================================ SECTION 10 -->
+        <!-- ============================================================ SECTION 9 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">10</div>
+                <div class="section-num">9</div>
                 <h2>Déploiement Docker</h2>
             </div>
 
@@ -2263,10 +2275,10 @@
             </table>
         </div>
 
-        <!-- ============================================================ SECTION 11 -->
+        <!-- ============================================================ SECTION 10 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">11</div>
+                <div class="section-num">10</div>
                 <h2>Sécurité</h2>
             </div>
 
@@ -2456,10 +2468,10 @@
             </table>
         </div>
 
-        <!-- ============================================================ SECTION 12 -->
+        <!-- ============================================================ SECTION 11 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">12</div>
+                <div class="section-num">11</div>
                 <h2>CI/CD — GitHub Actions</h2>
             </div>
 
@@ -3047,10 +3059,10 @@
             </table>
         </div>
 
-        <!-- ============================================================ SECTION 13 -->
+        <!-- ============================================================ SECTION 12 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">13</div>
+                <div class="section-num">12</div>
                 <h2>Conclusion &amp; Perspectives</h2>
             </div>
 
