@@ -6,6 +6,9 @@ import {
   mockNettoyageData
 } from '../data/mockApiData'
 
+// API base URL - change this when connecting to real backend
+import { API_BASE_URL } from '../config'
+
 // ============ Dashboard ============
 
 export async function getDashboardStats() {

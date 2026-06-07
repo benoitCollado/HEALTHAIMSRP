@@ -51,9 +51,8 @@
         <div class="user-panel">
           <div v-if="userLoading" class="user-loading">Chargement des données utilisateur...</div>
           <div v-else-if="userError" class="user-error">{{ userError }}</div>
-          <div v-else-if="userSuccess" class="user-success">{{ userSuccess }}</div>
-
           <template v-else>
+          <div v-if="userSuccess" class="user-success">{{ userSuccess }}</div>
 
           <!-- Tab: Profil -->
           <div v-if="activeTab === 'profil'" class="user-section">
@@ -141,6 +140,17 @@
                 <div class="user-label">Date d'inscription</div>
                 <div class="user-value">{{ formatDate(userProfile?.date_inscription) }}</div>
               </div>
+            </div>
+
+            <div class="twofa-panel">
+              <div class="twofa-status-row">
+                <span class="user-label">Securite A2A / 2FA</span>
+                <span class="goal-status" :class="twoFactorEnabled ? 'termine' : 'en_pause'">
+                  {{ twoFactorEnabled ? 'Activee' : 'Desactivee' }}
+                </span>
+              </div>
+              <p class="helper-text">La 2FA est optionnelle: elle n'est jamais activee par defaut.</p>
+              <button class="action-btn" @click="activeTab = 'securite'">Configurer la securite A2A</button>
             </div>
           </div>
 
@@ -373,6 +383,85 @@
             </div>
           </div>
 
+          <!-- Tab: Securite A2A / 2FA -->
+          <div v-if="activeTab === 'securite'">
+            <div class="twofa-panel">
+              <div class="section-header">
+                <h3>Securite du compte (A2A / 2FA TOTP)</h3>
+              </div>
+
+              <div class="twofa-status-row">
+                <span class="user-label">Statut 2FA</span>
+                <span class="goal-status" :class="twoFactorEnabled ? 'termine' : 'en_pause'">
+                  {{ twoFactorEnabled ? 'Activee' : 'Desactivee' }}
+                </span>
+              </div>
+
+              <p class="helper-text">Comptes existants et nouveaux comptes: 2FA desactivee par defaut.</p>
+
+              <div class="twofa-actions">
+                <button
+                  v-if="!twoFactorEnabled"
+                  class="action-btn"
+                  @click="startTwoFactorSetup"
+                  :disabled="savingKey === 'twofa'"
+                >
+                  {{ savingKey === 'twofa' ? 'Preparation...' : 'Configurer la 2FA' }}
+                </button>
+              </div>
+
+              <div v-if="twoFactorSetupSecret" class="twofa-setup-box">
+                <p class="helper-text">
+                  1) Scanne l'URL dans Google Authenticator / Authy ou copie la cle secrete.
+                </p>
+                <div class="user-grid user-grid-2 twofa-grid">
+                  <div class="user-card twofa-qr-card">
+                    <div class="user-label">QR code</div>
+                    <img v-if="twoFactorQrDataUrl" :src="twoFactorQrDataUrl" alt="QR code 2FA" class="twofa-qr" />
+                    <div v-else class="user-value">Generation du QR en cours...</div>
+                  </div>
+                  <div class="user-card">
+                    <div class="user-label">Cle secrete</div>
+                    <div class="user-value twofa-mono">{{ twoFactorSetupSecret }}</div>
+                    <button class="table-action" @click="copyText(twoFactorSetupSecret, 'Cle secrete')">Copier la cle</button>
+                  </div>
+                  <div class="user-card">
+                    <div class="user-label">URL OTPAUTH</div>
+                    <div class="user-value twofa-mono">{{ twoFactorProvisioningUri }}</div>
+                    <button class="table-action" @click="copyText(twoFactorProvisioningUri, 'URL OTPAUTH')">Copier l'URL</button>
+                  </div>
+                </div>
+                <p class="helper-text">2) Entre le code a 6 chiffres pour activer.</p>
+              </div>
+
+              <div v-if="twoFactorSetupSecret || twoFactorEnabled" class="twofa-code-row">
+                <input
+                  v-model="twoFactorCode"
+                  type="text"
+                  inputmode="numeric"
+                  maxlength="6"
+                  placeholder="Code 2FA (6 chiffres)"
+                />
+                <button
+                  v-if="!twoFactorEnabled"
+                  class="action-btn"
+                  @click="enableTwoFactor"
+                  :disabled="savingKey === 'twofa'"
+                >
+                  Activer
+                </button>
+                <button
+                  v-else
+                  class="action-btn danger"
+                  @click="disableTwoFactor"
+                  :disabled="savingKey === 'twofa'"
+                >
+                  Desactiver
+                </button>
+              </div>
+            </div>
+          </div>
+
           </template>
         </div>
       </div>
@@ -386,6 +475,7 @@ import { useRouter } from 'vue-router'
 import Navbar from '../components/Navbar.vue'
 import { auth } from '../services/auth'
 import { API_BASE_URL } from '../config'
+import QRCode from 'qrcode'
 
 interface UserProfile {
   id_utilisateur: number
@@ -397,6 +487,16 @@ interface UserProfile {
   niveau_activite: number
   type_abonnement: number
   date_inscription: string
+}
+
+interface TwoFactorStatus {
+  enabled: boolean
+}
+
+interface TwoFactorSetup {
+  enabled: boolean
+  secret: string
+  provisioning_uri: string
 }
 
 interface Metrique {
@@ -579,6 +679,11 @@ export default defineComponent({
     const showActivityForm = ref(false)
     const showConsumptionForm = ref(false)
     const showGoalForm = ref(false)
+    const twoFactorEnabled = ref(false)
+    const twoFactorSetupSecret = ref('')
+    const twoFactorProvisioningUri = ref('')
+    const twoFactorQrDataUrl = ref('')
+    const twoFactorCode = ref('')
     const profileForm = ref<ProfileForm>(createProfileForm(null))
     const metricForm = ref<MetricForm>(createMetricForm())
     const activityForm = ref<ActivityForm>(createActivityForm())
@@ -587,6 +692,7 @@ export default defineComponent({
 
     const tabs = computed(() => [
       { id: 'profil', label: 'Profil', icon: '👤' },
+      { id: 'securite', label: 'Securite A2A', icon: '🔐' },
       { id: 'sante', label: 'Santé', icon: '❤️', count: userMetrics.value.length },
       { id: 'activites', label: 'Activités', icon: '🏃', count: userActivities.value.length },
       { id: 'alimentation', label: 'Alimentation', icon: '🍽️', count: userConsumptions.value.length },
@@ -655,6 +761,26 @@ export default defineComponent({
       userSuccess.value = ''
     }
 
+    async function renderTwoFactorQr(uri: string) {
+      try {
+        twoFactorQrDataUrl.value = await QRCode.toDataURL(uri, {
+          width: 220,
+          margin: 1
+        })
+      } catch {
+        twoFactorQrDataUrl.value = ''
+      }
+    }
+
+    async function copyText(value: string, label: string) {
+      try {
+        await navigator.clipboard.writeText(value)
+        userSuccess.value = `${label} copie dans le presse-papiers.`
+      } catch {
+        userError.value = `Impossible de copier ${label.toLowerCase()}.`
+      }
+    }
+
     function getTokenOrThrow(): string {
       const token = auth.getToken()
       if (!token) {
@@ -699,6 +825,69 @@ export default defineComponent({
       showGoalForm.value = !showGoalForm.value || Boolean(goal)
       goalForm.value = createGoalForm(goal)
       clearFeedback()
+    }
+
+    async function startTwoFactorSetup() {
+      try {
+        savingKey.value = 'twofa'
+        clearFeedback()
+        const token = getTokenOrThrow()
+        const setup = await apiRequest<TwoFactorSetup>('/auth/2fa/setup', token, { method: 'POST' })
+        twoFactorSetupSecret.value = setup.secret
+        twoFactorProvisioningUri.value = setup.provisioning_uri
+        await renderTwoFactorQr(setup.provisioning_uri)
+        twoFactorEnabled.value = false
+        twoFactorCode.value = ''
+        userSuccess.value = 'Configuration creee. Validez avec un code de votre application d\'authentification.'
+      } catch (err) {
+        userError.value = err instanceof Error ? err.message : 'Erreur lors de la configuration 2FA.'
+      } finally {
+        savingKey.value = null
+      }
+    }
+
+    async function enableTwoFactor() {
+      try {
+        savingKey.value = 'twofa'
+        clearFeedback()
+        const token = getTokenOrThrow()
+        await apiRequest('/auth/2fa/enable', token, {
+          method: 'POST',
+          body: JSON.stringify({ code: twoFactorCode.value })
+        })
+        twoFactorEnabled.value = true
+        twoFactorSetupSecret.value = ''
+        twoFactorProvisioningUri.value = ''
+        twoFactorQrDataUrl.value = ''
+        twoFactorCode.value = ''
+        userSuccess.value = '2FA activee avec succes.'
+      } catch (err) {
+        userError.value = err instanceof Error ? err.message : 'Erreur lors de l\'activation 2FA.'
+      } finally {
+        savingKey.value = null
+      }
+    }
+
+    async function disableTwoFactor() {
+      try {
+        savingKey.value = 'twofa'
+        clearFeedback()
+        const token = getTokenOrThrow()
+        await apiRequest('/auth/2fa/disable', token, {
+          method: 'POST',
+          body: JSON.stringify({ code: twoFactorCode.value })
+        })
+        twoFactorEnabled.value = false
+        twoFactorSetupSecret.value = ''
+        twoFactorProvisioningUri.value = ''
+        twoFactorQrDataUrl.value = ''
+        twoFactorCode.value = ''
+        userSuccess.value = '2FA desactivee.'
+      } catch (err) {
+        userError.value = err instanceof Error ? err.message : 'Erreur lors de la desactivation 2FA.'
+      } finally {
+        savingKey.value = null
+      }
     }
 
     async function saveProfile() {
@@ -848,18 +1037,25 @@ export default defineComponent({
         userLoading.value = true
         userError.value = ''
 
-        const [profile, metrics, activities, consumptions, goals, alimentsResponse, exercicesResponse] = await Promise.all([
+        const [profile, metrics, activities, consumptions, goals, alimentsResponse, exercicesResponse, twoFactorStatus] = await Promise.all([
           apiRequest<UserProfile>(`/utilisateurs/${userId}`, token),
           apiRequest<Metrique[]>('/metriques-sante/', token),
           apiRequest<Activite[]>('/activites/', token),
           apiRequest<Consommation[]>('/consommations/', token),
           apiRequest<Objectif[]>('/objectifs/', token),
           apiRequest<Aliment[]>('/aliments/', token),
-          apiRequest<Exercice[]>('/exercices/', token)
+          apiRequest<Exercice[]>('/exercices/', token),
+          apiRequest<TwoFactorStatus>('/auth/2fa/status', token)
         ])
 
         userProfile.value = profile
         profileForm.value = createProfileForm(profile)
+        twoFactorEnabled.value = Boolean(twoFactorStatus.enabled)
+        if (twoFactorEnabled.value) {
+          twoFactorSetupSecret.value = ''
+          twoFactorProvisioningUri.value = ''
+          twoFactorQrDataUrl.value = ''
+        }
         aliments.value = alimentsResponse
         exercises.value = exercicesResponse
         userMetrics.value = metrics
@@ -914,6 +1110,11 @@ export default defineComponent({
       showActivityForm,
       showConsumptionForm,
       showGoalForm,
+      twoFactorEnabled,
+      twoFactorSetupSecret,
+      twoFactorProvisioningUri,
+      twoFactorQrDataUrl,
+      twoFactorCode,
       profileForm,
       metricForm,
       activityForm,
@@ -931,6 +1132,10 @@ export default defineComponent({
       toggleActivityForm,
       toggleConsumptionForm,
       toggleGoalForm,
+      startTwoFactorSetup,
+      enableTwoFactor,
+      disableTwoFactor,
+      copyText,
       saveProfile,
       saveMetric,
       saveActivity,
@@ -1100,6 +1305,14 @@ export default defineComponent({
   color: #fff;
 }
 
+.action-btn.danger {
+  background: #b91c1c;
+}
+
+.action-btn.danger:hover {
+  background: #991b1b;
+}
+
 .action-btn:hover {
   background: #1d4ed8;
 }
@@ -1118,6 +1331,71 @@ export default defineComponent({
   margin-top: -8px;
   color: #5a6c7d;
   font-size: 13px;
+}
+
+.twofa-panel {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid #e8edf3;
+  border-radius: 8px;
+  background: #f9fbff;
+}
+
+.twofa-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.twofa-actions {
+  margin-bottom: 12px;
+}
+
+.twofa-setup-box {
+  margin-bottom: 12px;
+}
+
+.twofa-grid {
+  align-items: stretch;
+}
+
+.twofa-qr-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.twofa-qr {
+  width: 220px;
+  height: 220px;
+  max-width: 100%;
+  border: 1px solid #d7e0eb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px;
+}
+
+.twofa-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  overflow-wrap: anywhere;
+}
+
+.twofa-code-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.twofa-code-row input {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #cfd8e3;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
 }
 
 .user-label {

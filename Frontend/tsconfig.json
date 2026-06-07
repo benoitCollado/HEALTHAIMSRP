@@ -10,5 +10,5 @@
     "forceConsistentCasingInFileNames": true,
     "types": []
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue", "vitest.setup.ts"]
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "src/**/*.vue"]
 }

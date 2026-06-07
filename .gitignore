@@ -2,6 +2,8 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+*.coverage
+backend/.coverage
 backend/coverage.xml
 backend/coverage_html/
 
@@ -23,6 +25,7 @@ build/
 
 # Docker
 .env
+.docker-tmp/
 
 
 # IDE

@@ -4,6 +4,7 @@ import { auth } from './services/auth'
 const routes = [
   { path: '/', redirect: '/connexion' },
   { path: '/connexion', name: 'Connexion', component: () => import('./pages/Connexion.vue'), meta: { requiresAuth: false } },
+  { path: '/inscription', name: 'Inscription', component: () => import('./pages/Inscription.vue'), meta: { requiresAuth: false } },
   { path: '/page-accueil', name: 'PageAccueil', component: () => import('./pages/PageAccueil.vue'), meta: { requiresAuth: true } },
   { path: '/dashboard', name: 'Dashboard', component: () => import('./pages/Dashboard.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
   { path: '/gestion-des-flux', name: 'GestionFlux', component: () => import('./pages/GestionFlux.vue'), meta: { requiresAuth: true, requiresAdmin: true } },
@@ -28,11 +29,16 @@ router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, n
   const isAuthenticated = auth.isAuthenticated()
   const isAdmin = auth.isAdmin()
 
-  // Allow access to /connexion without authentication
-  if (to.path === '/connexion') {
+  // Always allow access to public auth pages without authentication.
+  // This explicit path check avoids accidental redirects if meta is not resolved as expected.
+  if (to.path === '/connexion' || to.path === '/inscription') {
     if (isAuthenticated) {
-      // If already logged in, redirect to accueil
-      next('/page-accueil')
+      // Keep /inscription accessible for account creation even when already logged in.
+      if (to.path === '/connexion') {
+        next('/page-accueil')
+      } else {
+        next()
+      }
     } else {
       next()
     }

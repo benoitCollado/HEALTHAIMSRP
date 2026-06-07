@@ -1,7 +1,6 @@
 import asyncio
 import os
 
-from app.database import engine
 from app.dependencies import get_db, require_admin
 from app.middleware import RequestLoggingMiddleware, SecurityHeadersMiddleware
 from app.models.utilisateur import Utilisateur
@@ -23,6 +22,7 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -90,11 +90,10 @@ app.add_middleware(
 
 
 @app.get("/health", tags=["monitoring"])
-def health():
+def health(db: Session = Depends(get_db)):
     """Health endpoint used by operators to verify API and database availability."""
     try:
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        db.execute(text("SELECT 1"))
         db_status = "ok"
     except Exception as e:
         _log.warning("Health check DB failed: %s", e)
@@ -116,7 +115,11 @@ def login(
     db: Session = Depends(get_db),
 ):
     """Authenticate a user and return the JWT used by protected endpoints."""
-    utilisateur = db.query(Utilisateur).filter(Utilisateur.username == form_data.username).first()
+    try:
+        utilisateur = db.query(Utilisateur).filter(Utilisateur.username == form_data.username).first()
+    except SQLAlchemyError as exc:
+        _log.error("Login failed - database unavailable: %s", exc)
+        raise HTTPException(status_code=503, detail="Base de donnees indisponible") from exc
 
     if utilisateur is None:
         _log.warning("Login failed - user not found: %s", form_data.username)

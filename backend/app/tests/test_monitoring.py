@@ -1,14 +1,8 @@
-from contextlib import contextmanager
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 from app.observability.monitoring import metrics
 from sqlalchemy.exc import OperationalError
-
-
-@contextmanager
-def _healthy_db_connection():
-    yield MagicMock()
 
 
 @pytest.fixture(autouse=True)
@@ -24,17 +18,15 @@ def reset_metrics():
 
 
 def test_health_ok(client):
-    with patch("app.main.engine.connect", side_effect=lambda: _healthy_db_connection()):
-        response = client.get("/health")
+    response = client.get("/health")
     assert response.status_code == 200
     body = response.json()
     assert body["status"] == "ok"
     assert body["database"] == "ok"
 
 
-def test_health_db_error(client):
-    with patch("app.main.engine") as mock_engine:
-        mock_engine.connect.side_effect = OperationalError("conn", {}, Exception("timeout"))
+def test_health_db_error(client, db_session):
+    with patch.object(db_session, "execute", side_effect=OperationalError("conn", {}, Exception("timeout"))):
         response = client.get("/health")
     assert response.status_code == 200
     body = response.json()

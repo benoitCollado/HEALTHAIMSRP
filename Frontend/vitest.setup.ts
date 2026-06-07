@@ -1,6 +1,2 @@
-import { beforeEach, vi } from 'vitest'
-
-beforeEach(() => {
-  localStorage.clear()
-  vi.restoreAllMocks()
-})
+// Vitest setup file referenced by vite.config.ts.
+export {}

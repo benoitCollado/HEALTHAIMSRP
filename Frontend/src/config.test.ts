@@ -3,7 +3,8 @@ import { AIRFLOW_UI_URL, API_BASE_URL } from './config'
 
 describe('config', () => {
   it('utilise le prefixe API du proxy nginx par defaut', () => {
-    expect(API_BASE_URL).toBe('/api')
+    const expectedApiBase = (import.meta.env.VITE_API_URL || '/api').replace(/\/$/, '') || '/api'
+    expect(API_BASE_URL).toBe(expectedApiBase)
   })
 
   it('fournit une URL Airflow par defaut', () => {

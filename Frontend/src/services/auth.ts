@@ -41,8 +41,17 @@ function decodeJwtPayload(token: string): JwtPayload | null {
   }
 }
 
-async function loginRequest(username: string, password: string): Promise<{ access_token: string; token_type: string }> {
-  const body = new URLSearchParams({ username, password }).toString()
+async function loginRequest(
+  username: string,
+  password: string,
+  otp?: string
+): Promise<{ access_token: string; token_type: string }> {
+  const form = new URLSearchParams({ username, password })
+  if (otp && otp.trim()) {
+    form.set('otp', otp.trim())
+  }
+
+  const body = form.toString()
   const response = await fetch(`${API_BASE_URL}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -76,9 +85,9 @@ export const auth = {
   },
 
   // Login with username/password using FastAPI backend
-  async login(username: string, password: string): Promise<LoginResult> {
+  async login(username: string, password: string, otp?: string): Promise<LoginResult> {
     try {
-      const result = await loginRequest(username, password)
+      const result = await loginRequest(username, password, otp)
       const payload = decodeJwtPayload(result.access_token)
 
       if (!payload?.sub) {
