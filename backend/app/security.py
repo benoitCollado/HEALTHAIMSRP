@@ -94,6 +94,5 @@ def verify_totp_code(secret: str, code: str, window: int = 1) -> bool:
 
     counter = int(time.time() // 30)
     return any(
-        hmac.compare_digest(_totp_at(secret, counter + drift), normalized)
-        for drift in range(-window, window + 1)
+        hmac.compare_digest(_totp_at(secret, counter + drift), normalized) for drift in range(-window, window + 1)
     )
