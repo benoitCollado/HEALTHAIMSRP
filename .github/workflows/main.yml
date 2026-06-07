@@ -187,9 +187,21 @@ jobs:
           SSH_HOST: ${{ secrets.SSH_HOST }}
           SSH_PORT: ${{ secrets.SSH_PORT }}
         run: |
+          set -euo pipefail
+
+          if [ -z "${SSH_HOST:-}" ]; then
+            echo "::error::SSH_HOST manquant. Ajoutez le secret GitHub SSH_HOST avec l'IP ou le nom DNS du serveur, sans protocole."
+            exit 1
+          fi
+
           mkdir -p ~/.ssh
           PORT="${SSH_PORT:-22}"
-          ssh-keyscan -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts
+
+          echo "Ajout de la clé hôte SSH pour $SSH_HOST:$PORT"
+          if ! ssh-keyscan -T 15 -p "$PORT" -H "$SSH_HOST" >> ~/.ssh/known_hosts; then
+            echo "::error::Impossible de récupérer la clé SSH du serveur. Vérifiez SSH_HOST, SSH_PORT, DNS/IP, firewall et service sshd."
+            exit 1
+          fi
 
       - name: Deploy to production
         env:

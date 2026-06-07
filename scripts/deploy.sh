@@ -44,13 +44,13 @@ docker compose up -d --build backend frontend
 echo "==> Attente du backend (connexion Neon via DATABASE_URL)..."
 for i in $(seq 1 30); do
   if docker compose exec -T backend python -c \
-    "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=3)" \
+    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)" \
     > /dev/null 2>&1; then
     echo "    Backend opérationnel (health OK, BDD externe joignable)."
     break
   fi
   if [[ "$i" -eq 30 ]]; then
-    echo "Erreur : le backend ne répond pas sur /api/health après 30 tentatives."
+    echo "Erreur : le backend ne répond pas sur /health après 30 tentatives."
     echo "Vérifiez DATABASE_URL (Neon) et les logs ci-dessous."
     docker compose logs --tail=50 backend
     exit 1
