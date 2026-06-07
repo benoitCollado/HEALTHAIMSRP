@@ -678,12 +678,17 @@
                 <div class="toc-item">
                     <span class="toc-num">12</span>CI/CD — GitHub Actions
                     <div class="toc-dots"></div>
-                    <span class="toc-pg">16</span>
+                    <span class="toc-pg">15</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">13</span>Conclusion &amp; Perspectives
+                    <span class="toc-num">13</span>Observabilité production
                     <div class="toc-dots"></div>
-                    <span class="toc-pg">18</span>
+                    <span class="toc-pg">17</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">14</span>Conclusion &amp; Perspectives
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">19</span>
                 </div>
             </div>
         </div>
@@ -1385,9 +1390,11 @@
                 <code>http://localhost:89/api/docs</code> (accès public via Nginx)
                 et proxifiée par Nginx sur le port 89. Les routes publiques
                 sont <code>/api/login</code>, <code>/api/utilisateurs/register</code>
-                et <code>/health</code>. Les routes métier requièrent un token
-                JWT Bearer, et <code>/metrics</code> est réservé aux
-                administrateurs.
+                et <code>/api/health</code>. Les routes métier requièrent un token
+                JWT Bearer, et <code>/api/metrics</code> est réservé aux
+                administrateurs. Toutes les routes sont exposées publiquement
+                sous le préfixe <code>/api</code> via <code>API_ROOT_PATH</code>
+                et le reverse proxy Nginx du VPS.
             </div>
 
             <h3>Authentification</h3>
@@ -1412,14 +1419,14 @@
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/utilisateurs/register</code></td>
+                        <td><code>/api/utilisateurs/register</code></td>
                         <td><span class="badge b-public">Public</span></td>
                         <td>Inscription d'un nouvel utilisateur</td>
                     </tr>
                 </tbody>
             </table>
 
-            <h3>Utilisateurs — <code>/utilisateurs</code></h3>
+            <h3>Utilisateurs — <code>/api/utilisateurs</code></h3>
             <table>
                 <thead>
                     <tr>
@@ -1432,31 +1439,31 @@
                 <tbody>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/utilisateurs/</code></td>
+                        <td><code>/api/utilisateurs/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Liste tous les utilisateurs</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/utilisateurs/{id}</code></td>
+                        <td><code>/api/utilisateurs/{id}</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Détail d'un utilisateur par ID</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/utilisateurs/</code></td>
+                        <td><code>/api/utilisateurs/</code></td>
                         <td><span class="badge b-admin">Admin</span></td>
                         <td>Créer un utilisateur</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-put">PUT</span></td>
-                        <td><code>/utilisateurs/{id}</code></td>
+                        <td><code>/api/utilisateurs/{id}</code></td>
                         <td><span class="badge b-admin">Admin</span></td>
                         <td>Modifier un utilisateur</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-delete">DELETE</span></td>
-                        <td><code>/utilisateurs/{id}</code></td>
+                        <td><code>/api/utilisateurs/{id}</code></td>
                         <td><span class="badge b-admin">Admin</span></td>
                         <td>Supprimer un utilisateur</td>
                     </tr>
@@ -1464,8 +1471,8 @@
             </table>
 
             <h3>
-                Activités — <code>/activites</code> &amp; Métriques —
-                <code>/metriques-sante</code>
+                Activités — <code>/api/activites</code> &amp; Métriques —
+                <code>/api/metriques-sante</code>
             </h3>
             <table>
                 <thead>
@@ -1479,43 +1486,43 @@
                 <tbody>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/activites/</code></td>
+                        <td><code>/api/activites/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Liste toutes les activités physiques</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/activites/{id}</code></td>
+                        <td><code>/api/activites/{id}</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Détail d'une activité</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/activites/</code></td>
+                        <td><code>/api/activites/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Enregistrer une activité</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-put">PUT</span></td>
-                        <td><code>/activites/{id}</code></td>
+                        <td><code>/api/activites/{id}</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Modifier une activité</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-delete">DELETE</span></td>
-                        <td><code>/activites/{id}</code></td>
+                        <td><code>/api/activites/{id}</code></td>
                         <td><span class="badge b-admin">Admin</span></td>
                         <td>Supprimer une activité</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/metriques-sante/</code></td>
+                        <td><code>/api/metriques-sante/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Liste toutes les métriques santé</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/metriques-sante/</code></td>
+                        <td><code>/api/metriques-sante/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Enregistrer une mesure santé</td>
                     </tr>
@@ -1523,9 +1530,9 @@
             </table>
 
             <h3>
-                Alimentation — <code>/aliments</code> ·
-                <code>/consommations</code> · <code>/objectifs</code> ·
-                <code>/exercices</code>
+                Alimentation — <code>/api/aliments</code> ·
+                <code>/api/consommations</code> · <code>/api/objectifs</code> ·
+                <code>/api/exercices</code>
             </h3>
             <table>
                 <thead>
@@ -1539,39 +1546,65 @@
                 <tbody>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/aliments/</code></td>
+                        <td><code>/api/aliments/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Liste du catalogue d'aliments (OpenFoodFacts)</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/consommations/</code></td>
+                        <td><code>/api/consommations/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Historique des consommations alimentaires</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/consommations/</code></td>
+                        <td><code>/api/consommations/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Enregistrer une consommation</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/objectifs/</code></td>
+                        <td><code>/api/objectifs/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Liste les objectifs santé</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/objectifs/</code></td>
+                        <td><code>/api/objectifs/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Créer un objectif</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/exercices/</code></td>
+                        <td><code>/api/exercices/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Catalogue des exercices physiques</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Santé &amp; observabilité — <code>/api/health</code> · <code>/api/metrics</code></h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Méthode</th>
+                        <th>Route</th>
+                        <th>Accès</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/api/health</code></td>
+                        <td><span class="badge b-public">Public</span></td>
+                        <td>État API + connectivité base Neon</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/api/metrics</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>Métriques JSON en mémoire (requêtes, latence, erreurs 5xx)</td>
                     </tr>
                 </tbody>
             </table>
@@ -1728,15 +1761,17 @@
                     <code>http://localhost:89</code>
                 </li>
                 <li>
-                    <strong>Proxy API :</strong> Nginx proxifie
-                    <code>/api/login</code>, <code>/api/admin</code>,
-                    <code>/utilisateurs</code>, etc. vers le backend (même
-                    origine = pas de CORS)
+                    <strong>Routage API :</strong> le conteneur frontend sert
+                    uniquement les fichiers statiques. Le reverse proxy
+                    <strong>Nginx du VPS</strong> route
+                    <code>/api/*</code> vers le backend.
                 </li>
                 <li>
                     <strong>Variables build :</strong>
-                    <code>VITE_API_URL</code> (vide = proxy),
-                    <code>VITE_AIRFLOW_UI_URL</code> (lien vers Airflow)
+                    <code>VITE_API_URL</code> (URL complète injectée depuis le
+                    <code>.env</code> racine, ex.
+                    <code>https://healthai.example.com/api</code>),
+                    <code>VITE_AIRFLOW_UI_URL</code>
                 </li>
             </ul>
 
@@ -2083,7 +2118,7 @@
                         <td><code>frontend_nginx</code></td>
                         <td>healthaimspr-frontend (custom)</td>
                         <td>89:80</td>
-                        <td>Serveur Vue.js + proxy API</td>
+                        <td>Serveur Vue.js (fichiers statiques uniquement)</td>
                     </tr>
                     <tr>
                         <td><code>backend_api</code></td>
@@ -2143,19 +2178,19 @@
                     <tr>
                         <td><code>healthaim_grafana</code></td>
                         <td>grafana/grafana:11.4.0</td>
-                        <td>3000:3000</td>
+                        <td>127.0.0.1:3000</td>
                         <td>Dashboards et sources Prometheus/Loki provisionnées</td>
                     </tr>
                     <tr>
                         <td><code>healthaim_prometheus</code></td>
                         <td>prom/prometheus:v2.54.1</td>
-                        <td>9090:9090</td>
+                        <td>127.0.0.1:9090</td>
                         <td>Scraping Prometheus, Node Exporter et Blackbox Exporter</td>
                     </tr>
                     <tr>
                         <td><code>healthaim_loki</code></td>
                         <td>grafana/loki:3.2.1</td>
-                        <td>3100:3100</td>
+                        <td>127.0.0.1:3100</td>
                         <td>Stockage des logs applicatifs et Docker</td>
                     </tr>
                     <tr>
@@ -2167,13 +2202,13 @@
                     <tr>
                         <td><code>healthaim_node_exporter</code></td>
                         <td>prom/node-exporter:v1.8.2</td>
-                        <td>9100:9100</td>
+                        <td>127.0.0.1:9100</td>
                         <td>Métriques CPU, mémoire, disque et système du serveur</td>
                     </tr>
                     <tr>
                         <td><code>healthaim_blackbox</code></td>
                         <td>prom/blackbox-exporter:v0.25.0</td>
-                        <td>9115:9115</td>
+                        <td>127.0.0.1:9115</td>
                         <td>Sondes HTTP sur le frontend et l'endpoint backend de santé</td>
                     </tr>
                 </tbody>
@@ -2199,16 +2234,19 @@
                 FRONTEND_PORT=127.0.0.1:89 BACKEND_PORT=127.0.0.1:8089
                 AIRFLOW_PORT=8080
 
-                <span class="cm"># Monitoring (optionnels)</span>
+                <span class="cm"># Monitoring (docker-compose.monitoring.yml)</span>
                 GRAFANA_ADMIN_PASSWORD=<span class="str">mot-de-passe-fort</span>
-                GRAFANA_PORT=127.0.0.1:3000 PROMETHEUS_PORT=127.0.0.1:9090
-                LOKI_PORT=127.0.0.1:3100 NODE_EXPORTER_PORT=127.0.0.1:9100
+                GRAFANA_PORT=127.0.0.1:3000
+                GRAFANA_ROOT_URL=http://127.0.0.1:3000
+                PROMETHEUS_PORT=127.0.0.1:9090
+                LOKI_PORT=127.0.0.1:3100
+                NODE_EXPORTER_PORT=127.0.0.1:9100
                 BLACKBOX_PORT=127.0.0.1:9115
+                COMPOSE_NETWORK_NAME=healthaimsrp_health_net
 
-                <span class="cm"
-                    ># Frontend (URL de l'API depuis le navigateur)</span
-                >
-                VITE_API_URL=<span class="str">/api</span>
+                <span class="cm"># Frontend (URL complète API vue par le navigateur)</span>
+                VITE_API_URL=<span class="str">https://healthai.example.com/api</span>
+                API_ROOT_PATH=/api
             </div>
 
             <h3>Notes de configuration récentes</h3>
@@ -2269,6 +2307,10 @@
                         <td>Démarre Grafana, Prometheus, Loki, Promtail et les exporters</td>
                     </tr>
                     <tr>
+                        <td><code>./scripts/reset-grafana-password.sh</code></td>
+                        <td>Réinitialise le mot de passe admin Grafana depuis <code>GRAFANA_ADMIN_PASSWORD</code></td>
+                    </tr>
+                    <tr>
                         <td><code>docker compose exec backend python -m compileall app</code></td>
                         <td>Vérifie rapidement la syntaxe Python</td>
                     </tr>
@@ -2318,7 +2360,7 @@
                     <ul class="simple">
                         <li>
                             Routes publiques : <code>/api/login</code>,
-                            <code>/utilisateurs/register</code>
+                            <code>/api/utilisateurs/register</code>
                         </li>
                         <li>Routes auth : lecture des données (GET)</li>
                         <li>
@@ -2326,7 +2368,7 @@
                             modifications globales
                         </li>
                         <li>
-                            Endpoint <code>/metrics</code> protégé par le rôle
+                            Endpoint <code>/api/metrics</code> protégé par le rôle
                             administrateur
                         </li>
                         <li>
@@ -2389,11 +2431,11 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>/health</code></td>
+                        <td><code>/api/health</code></td>
                         <td>Vérifie l'état API + connexion PostgreSQL Neon</td>
                     </tr>
                     <tr>
-                        <td><code>/metrics</code></td>
+                        <td><code>/api/metrics</code></td>
                         <td>Métriques en mémoire : requêtes, erreurs 5xx, durée moyenne, routes appelées. Accès admin requis.</td>
                     </tr>
                     <tr>
@@ -3238,7 +3280,31 @@
                     </tr>
                     <tr>
                         <td><code>CICD.md</code></td>
-                        <td>Documentation CI/CD (racine du projet)</td>
+                        <td>Documentation CI/CD et observabilité (racine du projet)</td>
+                    </tr>
+                    <tr>
+                        <td><code>docker-compose.monitoring.yml</code></td>
+                        <td>Stack Grafana / Prometheus / Loki</td>
+                    </tr>
+                    <tr>
+                        <td><code>monitoring/prometheus/prometheus.yml</code></td>
+                        <td>Cibles de scrape (node-exporter, blackbox)</td>
+                    </tr>
+                    <tr>
+                        <td><code>monitoring/loki/loki-config.yml</code></td>
+                        <td>Stockage logs (rétention 7 jours)</td>
+                    </tr>
+                    <tr>
+                        <td><code>monitoring/promtail/promtail-config.yml</code></td>
+                        <td>Collecte logs backend et conteneurs Docker</td>
+                    </tr>
+                    <tr>
+                        <td><code>monitoring/grafana/provisioning/datasources/datasources.yml</code></td>
+                        <td>Datasources Prometheus + Loki provisionnées</td>
+                    </tr>
+                    <tr>
+                        <td><code>scripts/reset-grafana-password.sh</code></td>
+                        <td>Reset mot de passe Grafana</td>
                     </tr>
                 </tbody>
             </table>
@@ -3248,6 +3314,283 @@
         <div class="page page-break">
             <div class="section-header">
                 <div class="section-num">13</div>
+                <h2>Observabilité production</h2>
+            </div>
+
+            <div class="info-box">
+                La stack monitoring est <strong>séparée du pipeline CI/CD</strong> :
+                elle n'est pas déployée par <code>scripts/deploy.sh</code> ni par
+                GitHub Actions. Elle tourne en parallèle sur le serveur via
+                <code>docker-compose.monitoring.yml</code>.
+            </div>
+
+            <h3>Architecture</h3>
+            <div class="arch-box">
+                Serveur VPS (/opt/HEALTHAIMSRP)<br />
+                &nbsp;&nbsp;├── Stack app : backend (8089) + frontend (89)<br />
+                &nbsp;&nbsp;├── Stack monitoring : Grafana, Prometheus, Loki, Promtail, exporters<br />
+                &nbsp;&nbsp;├── Nginx VPS : HTTPS public, route <code>/api/*</code> → backend<br />
+                &nbsp;&nbsp;└── Neon PostgreSQL (métriques via console Neon)
+            </div>
+            <p>
+                Tous les ports monitoring sont liés à <code>127.0.0.1</code> :
+                accès local ou tunnel SSH, sauf exposition nginx dédiée.
+            </p>
+
+            <h3>Composants et rôles</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Port local</th>
+                        <th>Rôle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>healthaim_grafana</code></td>
+                        <td>3000</td>
+                        <td>Dashboards — datasources Prometheus et Loki provisionnées</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_prometheus</code></td>
+                        <td>9090</td>
+                        <td>Collecte métriques (node-exporter, blackbox, self-scrape)</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_loki</code></td>
+                        <td>3100</td>
+                        <td>Stockage logs (rétention 7 jours)</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_promtail</code></td>
+                        <td>—</td>
+                        <td>Envoie <code>data/logs/backend/*.log</code> et logs Docker vers Loki</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_node_exporter</code></td>
+                        <td>9100</td>
+                        <td>CPU, RAM, disque du VPS</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_blackbox</code></td>
+                        <td>9115</td>
+                        <td>Sondes HTTP : <code>/api/health</code>, frontend, préfixe <code>/api</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Accès Grafana</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Élément</th>
+                        <th>Valeur</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Utilisateur</td>
+                        <td><code>admin</code></td>
+                    </tr>
+                    <tr>
+                        <td>Mot de passe</td>
+                        <td><code>GRAFANA_ADMIN_PASSWORD</code> dans <code>.env</code></td>
+                    </tr>
+                    <tr>
+                        <td>Tunnel SSH</td>
+                        <td><code>ssh -L 3000:127.0.0.1:3000 deploy@serveur</code> → http://localhost:3000</td>
+                    </tr>
+                    <tr>
+                        <td>Reset mot de passe</td>
+                        <td><code>./scripts/reset-grafana-password.sh</code></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="info-box">
+                <code>GRAFANA_ADMIN_PASSWORD</code> ne s'applique qu'au
+                <strong>premier</strong> démarrage Grafana. Si le mot de passe ne
+                fonctionne plus, utiliser le script de reset (volume
+                <code>grafana_data</code> déjà initialisé).
+            </div>
+
+            <h3>Surveillance des routes <code>/api</code> et erreurs 4xx/5xx</h3>
+            <p>
+                Deux mécanismes complémentaires : <strong>Loki</strong> pour les
+                logs détaillés, <strong>Prometheus</strong> pour les métriques
+                d'infrastructure et la disponibilité HTTP.
+            </p>
+
+            <h4>Logs backend → Loki (déjà en place)</h4>
+            <p>
+                Chaque requête est journalisée par le middleware FastAPI dans
+                <code>data/logs/backend/app.log</code> :
+            </p>
+            <div class="code-block">
+                GET /api/utilisateurs → 401 (3.2 ms)
+            </div>
+            <p>Requêtes LogQL utiles (Grafana → Explore → Loki) :</p>
+            <div class="code-block">
+                <span class="cm"># Toutes les erreurs 4xx+ sur /api</span>
+                {job="backend"} |~ "access" |~ "/api/" |~ "→ [45][0-9]{2} "
+
+                <span class="cm"># Erreurs 5xx uniquement</span>
+                {job="backend"} |~ "access" |~ "/api/" |~ "→ 5[0-9]{2} "
+
+                <span class="cm"># Erreurs 4xx uniquement</span>
+                {job="backend"} |~ "access" |~ "/api/" |~ "→ 4[0-9]{2} "
+
+                <span class="cm"># Compter les erreurs sur 5 minutes</span>
+                sum(count_over_time({job="backend"} |~ "access" |~ "/api/" |~ "→ [45][0-9]{2} "[5m]))
+            </div>
+
+            <h4>Prometheus — jobs configurés</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Job</th>
+                        <th>Cible</th>
+                        <th>Mesure</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>node</code></td>
+                        <td><code>node-exporter:9100</code></td>
+                        <td>Ressources système du VPS</td>
+                    </tr>
+                    <tr>
+                        <td><code>blackbox</code></td>
+                        <td><code>http://backend:8000/api/health</code></td>
+                        <td>Disponibilité API + BDD Neon</td>
+                    </tr>
+                    <tr>
+                        <td><code>blackbox</code></td>
+                        <td><code>http://frontend:80/</code></td>
+                        <td>Disponibilité frontend</td>
+                    </tr>
+                    <tr>
+                        <td><code>blackbox</code></td>
+                        <td><code>http://backend:8000/api</code></td>
+                        <td>Disponibilité préfixe API</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Endpoint <code>/api/metrics</code> (backend natif)</h4>
+            <p>
+                JSON en mémoire, accessible aux admins JWT : compteurs de
+                requêtes, erreurs 5xx, latence moyenne et répartition par route.
+                Non compatible Prometheus — à utiliser pour diagnostic rapide, pas
+                pour les dashboards Grafana temps réel.
+            </p>
+
+            <h3>Dashboards Grafana recommandés</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID grafana.com</th>
+                        <th>Nom</th>
+                        <th>Usage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>1860</strong></td>
+                        <td>Node Exporter Full</td>
+                        <td>CPU/RAM/disque — sélectionner <code>job=node</code>, instance <code>node-exporter:9100</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>7587</strong></td>
+                        <td>Blackbox Exporter</td>
+                        <td>Disponibilité HTTP des sondes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>13639</strong></td>
+                        <td>Loki — exploration logs</td>
+                        <td>Erreurs 4xx/5xx sur routes <code>/api</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Démarrage sur le serveur</h3>
+            <div class="code-block">
+                cd /opt/HEALTHAIMSRP
+                docker compose up -d backend frontend
+                docker compose -f docker-compose.monitoring.yml up -d
+                curl -s http://127.0.0.1:9090/api/v1/targets
+            </div>
+
+            <h3>Limites et évolutions</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Besoin</th>
+                        <th>État actuel</th>
+                        <th>Évolution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Erreurs 4xx/5xx par route en graphiques</td>
+                        <td>Logs Loki (regex)</td>
+                        <td><code>prometheus-fastapi-instrumentator</code></td>
+                    </tr>
+                    <tr>
+                        <td>Métriques API scrapables</td>
+                        <td><code>/api/metrics</code> JSON admin-only</td>
+                        <td>Exporter format Prometheus</td>
+                    </tr>
+                    <tr>
+                        <td>Alertes automatiques</td>
+                        <td>Non configurées</td>
+                        <td>Grafana Alerting ou Alertmanager</td>
+                    </tr>
+                    <tr>
+                        <td>Monitoring Airflow / Neon</td>
+                        <td>Hors stack</td>
+                        <td>Dashboards dédiés</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Dépannage monitoring</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Problème</th>
+                        <th>Solution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Promtail : <code>is a directory</code></td>
+                        <td>Vérifier que <code>monitoring/promtail/promtail-config.yml</code> est un fichier</td>
+                    </tr>
+                    <tr>
+                        <td>Grafana : mot de passe refusé</td>
+                        <td><code>./scripts/reset-grafana-password.sh</code></td>
+                    </tr>
+                    <tr>
+                        <td>Dashboard Node Exporter : erreur 400</td>
+                        <td>Renseigner les variables <code>job</code> et <code>instance</code> en haut du dashboard</td>
+                    </tr>
+                    <tr>
+                        <td><code>network health_net not found</code></td>
+                        <td>Démarrer la stack app avant le monitoring ; vérifier <code>COMPOSE_NETWORK_NAME</code></td>
+                    </tr>
+                    <tr>
+                        <td>Pas de logs dans Loki</td>
+                        <td>Vérifier <code>data/logs/backend/app.log</code> et le conteneur <code>healthaim_promtail</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================================ SECTION 14 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">14</div>
                 <h2>Conclusion &amp; Perspectives</h2>
             </div>
 
@@ -3277,7 +3620,8 @@
                         API REST complète · Auth JWT · Dashboard admin · Profil
                         utilisateur par onglets · Détection anomalies · Pipeline
                         Airflow · Design system moderne · Footer global ·
-                        Déploiement Docker · CI/CD GitHub Actions · SonarQube
+                        Déploiement Docker · CI/CD GitHub Actions · SonarQube ·
+                        Observabilité Grafana / Prometheus / Loki
                     </div>
                 </div>
                 <div class="stat-card">
