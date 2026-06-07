@@ -686,9 +686,14 @@
                     <span class="toc-pg">17</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">14</span>Conclusion &amp; Perspectives
+                    <span class="toc-num">14</span>Synthèse fonctionnelle (A2F, CRUD, Android, compte, tests)
                     <div class="toc-dots"></div>
                     <span class="toc-pg">19</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">15</span>Conclusion &amp; Perspectives
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">20</span>
                 </div>
             </div>
         </div>
@@ -3526,6 +3531,55 @@
         <div class="page page-break">
             <div class="section-header">
                 <div class="section-num">14</div>
+                <h2>Synthèse fonctionnelle (A2F, CRUD, Android, compte, tests)</h2>
+            </div>
+
+            <div class="info-box">
+                Cette section résume les fonctionnalités livrées et validées pour la soutenance :
+                authentification à deux facteurs, opérations CRUD, ouverture mobile Android,
+                création de compte utilisateur, et stratégie de tests unitaires.
+            </div>
+
+            <h3>Authentification A2F (2FA / TOTP)</h3>
+            <ul class="feature-list">
+                <li><span class="check">✓</span>Mise en place du cycle complet : setup, activation, statut et désactivation.</li>
+                <li><span class="check">✓</span>Validation des codes temporaires TOTP (compatibles Google Authenticator / Authy).</li>
+                <li><span class="check">✓</span>Renforcement du login avec contrôle des cas d'erreur (code absent/invalide).</li>
+            </ul>
+
+            <h3>Fonctionnalités CRUD</h3>
+            <ul class="feature-list">
+                <li><span class="check">✓</span>Endpoints complets Create, Read, Update, Delete sur les ressources métier.</li>
+                <li><span class="check">✓</span>Gestion des réponses d'erreur cohérentes (404, 401, 403 selon le contexte).</li>
+                <li><span class="check">✓</span>Protection par rôles (admin/non-admin) et authentification JWT.</li>
+            </ul>
+
+            <h3>Ouverture Android (Capacitor)</h3>
+            <ul class="feature-list">
+                <li><span class="check">✓</span>Intégration de la plateforme Android dans le frontend.</li>
+                <li><span class="check">✓</span>Synchronisation du build web vers le projet mobile et préparation du packaging.</li>
+                <li><span class="check">✓</span>Base prête pour les tests sur appareil/émulateur Android.</li>
+            </ul>
+
+            <h3>Création de compte utilisateur</h3>
+            <ul class="feature-list">
+                <li><span class="check">✓</span>Parcours d'inscription complet avec validation des champs principaux.</li>
+                <li><span class="check">✓</span>Stockage sécurisé du mot de passe (hash, jamais en clair).</li>
+                <li><span class="check">✓</span>Parcours validé de bout en bout : création de compte puis connexion sur ce compte.</li>
+            </ul>
+
+            <h3>Tests unitaires et fiabilité</h3>
+            <ul class="feature-list">
+                <li><span class="check">✓</span>Couverture backend via Pytest (tests API, auth, monitoring, CRUD).</li>
+                <li><span class="check">✓</span>Couverture frontend via Vitest (configuration et comportements critiques).</li>
+                <li><span class="check">✓</span>Pipeline CI/CD consolidée (lint, tests, build) avec installation frontend rendue plus robuste.</li>
+            </ul>
+        </div>
+
+        <!-- ============================================================ SECTION 15 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">15</div>
                 <h2>Conclusion &amp; Perspectives</h2>
             </div>
 
@@ -3646,4 +3700,3 @@
         </div>
     </body>
 </html>
-
