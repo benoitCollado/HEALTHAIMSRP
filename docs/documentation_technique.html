@@ -3,7 +3,7 @@
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Documentation Technique — HealthAI MSPR</title>
+        <title>Présentation Projet — HealthAI MSPR</title>
         <style>
             @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -586,7 +586,7 @@
         <!-- ============================================================ COVER -->
         <div class="cover">
             <div class="cover-logo">❤️</div>
-            <div class="cover-tag">Documentation Technique</div>
+            <div class="cover-tag">Présentation Projet</div>
             <h1>HealthAI MSPR</h1>
             <h2>Plateforme de suivi santé intelligent</h2>
             <div class="cover-divider"></div>
@@ -596,11 +596,12 @@
                     Recommandations Personnalisées
                 </div>
                 <div><strong>Organisation :</strong> EPSI</div>
-                <div><strong>Version :</strong> 2.1.0</div>
-                <div><strong>Date :</strong> Mai 2026</div>
+                <div><strong>Version :</strong> 2.1.1</div>
+                <div><strong>Date :</strong> Juin 2026</div>
                 <div>
-                    <strong>Stack :</strong> Vue 3 · FastAPI · PostgreSQL ·
-                    Docker · Apache Airflow · Alembic · pytest-cov
+                    <strong>Stack :</strong> Vue 3 · TypeScript · Capacitor ·
+                    FastAPI · PostgreSQL Neon · Docker · Apache Airflow ·
+                    Grafana · Prometheus · Loki · SonarQube
                 </div>
             </div>
             <div class="cover-footer">
@@ -613,7 +614,7 @@
         <div class="page">
             <div class="section-header">
                 <div class="section-num">📋</div>
-                <h2>Table des matières</h2>
+                <h2>Plan de présentation</h2>
             </div>
 
             <div class="toc">
@@ -633,44 +634,44 @@
                     <span class="toc-pg">5</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">4</span>Structure du projet
+                    <span class="toc-num">4</span>Base de données
                     <div class="toc-dots"></div>
                     <span class="toc-pg">6</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">5</span>Base de données
+                    <span class="toc-num">5</span>API REST — Endpoints
                     <div class="toc-dots"></div>
                     <span class="toc-pg">7</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">6</span>API REST — Endpoints
+                    <span class="toc-num">6</span>Authentification JWT
                     <div class="toc-dots"></div>
-                    <span class="toc-pg">8</span>
+                    <span class="toc-pg">9</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">7</span>Authentification JWT
+                    <span class="toc-num">7</span>Frontend — Interface
+                    utilisateur
                     <div class="toc-dots"></div>
                     <span class="toc-pg">10</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">8</span>Frontend — Interface
-                    utilisateur
+                    <span class="toc-num">8</span>Pipeline de données — Apache
+                    Airflow
                     <div class="toc-dots"></div>
                     <span class="toc-pg">11</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">9</span>Pipeline de données — Apache
-                    Airflow
+                    <span class="toc-num">9</span>Déploiement Docker
                     <div class="toc-dots"></div>
                     <span class="toc-pg">12</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">10</span>Déploiement Docker
+                    <span class="toc-num">10</span>Sécurité
                     <div class="toc-dots"></div>
                     <span class="toc-pg">13</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">11</span>Sécurité
+                    <span class="toc-num">11</span>Tests &amp; couverture
                     <div class="toc-dots"></div>
                     <span class="toc-pg">14</span>
                 </div>
@@ -680,9 +681,19 @@
                     <span class="toc-pg">15</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">13</span>Conclusion &amp; Perspectives
+                    <span class="toc-num">13</span>Observabilité production
                     <div class="toc-dots"></div>
                     <span class="toc-pg">17</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">14</span>Synthèse fonctionnelle (A2F, CRUD, Android, compte, tests)
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">19</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">15</span>Conclusion &amp; Perspectives
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">20</span>
                 </div>
             </div>
         </div>
@@ -801,53 +812,119 @@
 
             <p>
                 L'application repose sur une architecture
-                <strong>3-tiers conteneurisée</strong> : présentation (Vue.js +
-                Nginx), logique métier (FastAPI), persistance (PostgreSQL). Un
-                pipeline Airflow orchestre les tâches de données en
-                arrière-plan.
+                <strong>full-stack conteneurisée et découplée</strong>. Le
+                frontend Vue 3 est servi par Nginx, qui joue aussi le rôle de
+                reverse proxy vers l'API FastAPI. Le backend applique les règles
+                métier, sécurise les accès par JWT et persiste les données dans
+                PostgreSQL Neon. En parallèle, Airflow orchestre les traitements
+                de données, tandis que Prometheus, Grafana, Loki et Promtail
+                assurent le monitoring et la centralisation des logs.
             </p>
 
             <div class="arch-box">
                 <div class="layer">
                     <div class="layer-box lb-gray">
-                        🌐 Navigateur (Chrome / Firefox)
+                        🌐 Navigateur web / application mobile Capacitor
                     </div>
                 </div>
                 <div class="layer-arrow">↕ HTTP/HTTPS (port 89)</div>
                 <div class="layer">
                     <div class="layer-box lb-blue">
-                        🖥️ Frontend — Vue 3 + Nginx
+                        🖥️ Frontend — Vue 3 + TypeScript
+                    </div>
+                    <div class="layer-box lb-blue">
+                        🌐 Nginx — SPA + proxy /api
                     </div>
                 </div>
                 <div class="layer-arrow">
-                    ↕ REST API (proxy interne port 8000)
+                    ↕ REST JSON (proxy interne vers backend:8000)
                 </div>
                 <div class="layer">
                     <div class="layer-box lb-navy">
-                        ⚙️ Backend — FastAPI (Python)
+                        ⚙️ Backend — FastAPI / Python 3.11
                     </div>
                     <div class="layer-box lb-purple">
-                        🔐 Auth — JWT / bcrypt
+                        🔐 Auth — JWT / bcrypt / RBAC
                     </div>
                 </div>
-                <div class="layer-arrow">↕ SQLAlchemy ORM</div>
+                <div class="layer-arrow">↕ SQLAlchemy + psycopg2 + TLS</div>
                 <div class="layer">
                     <div class="layer-box lb-green">
-                        🗄️ PostgreSQL — Base de données santé
+                        🗄️ PostgreSQL Neon — Base applicative externe
+                    </div>
+                    <div class="layer-box lb-gray">
+                        📄 Alembic — migrations versionnées
                     </div>
                 </div>
                 <div class="layer-arrow" style="margin-top: 20px">
-                    ↕ Accès DB (port 5432 interne)
+                    ↕ Pipelines ETL, exports CSV, fichiers ML
                 </div>
                 <div class="layer">
                     <div class="layer-box lb-orange">
-                        🌀 Apache Airflow — Orchestration DAGs
+                        🌀 Apache Airflow — DAGs import / export / ML
                     </div>
                     <div class="layer-box lb-green">
-                        🗄️ PostgreSQL — Base Airflow
+                        🗄️ PostgreSQL 17 — Métadonnées Airflow
+                    </div>
+                </div>
+                <div class="layer-arrow" style="margin-top: 20px">
+                    ↕ Observabilité
+                </div>
+                <div class="layer">
+                    <div class="layer-box lb-purple">
+                        📈 Prometheus + Blackbox + Node Exporter
+                    </div>
+                    <div class="layer-box lb-orange">
+                        📊 Grafana — dashboards
+                    </div>
+                    <div class="layer-box lb-gray">
+                        📚 Loki + Promtail — logs backend/Docker
                     </div>
                 </div>
             </div>
+
+            <h3>Composants principaux</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Couche</th>
+                        <th>Composants</th>
+                        <th>Responsabilités</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Présentation</td>
+                        <td>Vue 3, TypeScript, Vite, Vue Router, Capacitor</td>
+                        <td>Interface web, navigation SPA, adaptation mobile Android/iOS.</td>
+                    </tr>
+                    <tr>
+                        <td>Reverse proxy</td>
+                        <td>Nginx</td>
+                        <td>Expose le frontend, sert les assets statiques et redirige <code>/api</code> vers FastAPI.</td>
+                    </tr>
+                    <tr>
+                        <td>API métier</td>
+                        <td>FastAPI, SQLAlchemy, Pydantic, Uvicorn</td>
+                        <td>Authentification, endpoints REST, validation, accès aux données et règles métier.</td>
+                    </tr>
+                    <tr>
+                        <td>Persistance</td>
+                        <td>PostgreSQL Neon, Alembic</td>
+                        <td>Stockage applicatif managé, migrations versionnées, connexion sécurisée via <code>DATABASE_URL</code>.</td>
+                    </tr>
+                    <tr>
+                        <td>Orchestration data</td>
+                        <td>Apache Airflow, DAGs Python, pandas, requests</td>
+                        <td>Import Open Food Facts, export base vers CSV, préparation de fichiers ML.</td>
+                    </tr>
+                    <tr>
+                        <td>Observabilité</td>
+                        <td>Grafana, Prometheus, Loki, Promtail, exporters</td>
+                        <td>Métriques système, disponibilité HTTP, dashboards et centralisation des logs.</td>
+                    </tr>
+                </tbody>
+            </table>
 
             <h3>Flux de communication</h3>
             <table>
@@ -874,9 +951,9 @@
                     </tr>
                     <tr>
                         <td>FastAPI</td>
-                        <td>PostgreSQL Health</td>
-                        <td>TCP (SQLAlchemy)</td>
-                        <td>5432 interne</td>
+                        <td>PostgreSQL Neon</td>
+                        <td>TCP/TLS (SQLAlchemy + psycopg2)</td>
+                        <td>5432 distant</td>
                     </tr>
                     <tr>
                         <td>Navigateur (admin)</td>
@@ -886,23 +963,46 @@
                     </tr>
                     <tr>
                         <td>Airflow</td>
-                        <td>PostgreSQL Health</td>
-                        <td>TCP (psycopg2)</td>
-                        <td>5432 interne</td>
+                        <td>PostgreSQL Neon</td>
+                        <td>TCP/TLS via <code>AIRFLOW_CONN_HEALTHAIM_POSTGRES</code></td>
+                        <td>5432 distant</td>
                     </tr>
                     <tr>
-                        <td>Client externe</td>
-                        <td>PostgreSQL Health</td>
-                        <td>TCP</td>
-                        <td>5435</td>
+                        <td>Airflow</td>
+                        <td>PostgreSQL Airflow</td>
+                        <td>TCP interne</td>
+                        <td>5432</td>
+                    </tr>
+                    <tr>
+                        <td>Prometheus</td>
+                        <td>Backend / Frontend / Node Exporter / Blackbox</td>
+                        <td>HTTP scrape</td>
+                        <td>9090, 9100, 9115</td>
+                    </tr>
+                    <tr>
+                        <td>Promtail</td>
+                        <td>Loki</td>
+                        <td>HTTP push logs</td>
+                        <td>3100</td>
+                    </tr>
+                    <tr>
+                        <td>Grafana</td>
+                        <td>Prometheus / Loki</td>
+                        <td>HTTP interne</td>
+                        <td>9090 / 3100</td>
                     </tr>
                 </tbody>
             </table>
 
             <h3>Réseau Docker</h3>
             <p>
-                Tous les conteneurs communiquent via le réseau bridge interne
-                <code>health_net</code>. Seuls les ports nécessaires sont
+                Les conteneurs applicatifs communiquent via le réseau bridge
+                interne <code>health_net</code>. La pile monitoring utilise le
+                même réseau Docker pour atteindre <code>backend</code>,
+                <code>frontend</code>, <code>prometheus</code> et
+                <code>loki</code>. La base applicative n'est pas conteneurisée :
+                elle est fournie par Neon et jointe uniquement via
+                <code>DATABASE_URL</code>. Seuls les ports nécessaires sont
                 exposés vers l'hôte.
             </p>
         </div>
@@ -1056,83 +1156,67 @@
                     </ul>
                 </div>
             </div>
-        </div>
 
+            <div class="card-grid" style="margin-top: 8px">
+                <div class="stat-card" style="text-align: left; padding: 18px">
+                    <div
+                        style="
+                            font-weight: 700;
+                            color: #0f2044;
+                            margin-bottom: 8px;
+                            font-size: 11pt;
+                        "
+                    >
+                        Mobile
+                    </div>
+                    <ul class="simple">
+                        <li><strong>Capacitor 8</strong> — Packaging mobile hybride</li>
+                        <li><strong>Android Gradle</strong> — Projet Android natif</li>
+                        <li><strong>iOS / Xcode</strong> — Projet iOS natif Swift</li>
+                    </ul>
+                </div>
+                <div class="stat-card" style="text-align: left; padding: 18px">
+                    <div
+                        style="
+                            font-weight: 700;
+                            color: #0f2044;
+                            margin-bottom: 8px;
+                            font-size: 11pt;
+                        "
+                    >
+                        Tests &amp; Qualité
+                    </div>
+                    <ul class="simple">
+                        <li><strong>pytest / pytest-cov</strong> — Tests API et couverture</li>
+                        <li><strong>Vitest + Vue Test Utils</strong> — Tests frontend</li>
+                        <li><strong>Ruff + ESLint</strong> — Lint et format</li>
+                        <li><strong>SonarQube</strong> — Analyse qualité et couverture</li>
+                    </ul>
+                </div>
+                <div class="stat-card" style="text-align: left; padding: 18px">
+                    <div
+                        style="
+                            font-weight: 700;
+                            color: #0f2044;
+                            margin-bottom: 8px;
+                            font-size: 11pt;
+                        "
+                    >
+                        Observabilité
+                    </div>
+                    <ul class="simple">
+                        <li><strong>Prometheus</strong> — Collecte de métriques</li>
+                        <li><strong>Grafana</strong> — Dashboards opérationnels</li>
+                        <li><strong>Loki + Promtail</strong> — Centralisation des logs</li>
+                        <li><strong>Node / Blackbox Exporters</strong> — Système et disponibilité HTTP</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
         <!-- ============================================================ SECTION 4 -->
         <div class="page page-break">
             <div class="section-header">
                 <div class="section-num">4</div>
-                <h2>Structure du projet</h2>
-            </div>
-
-            <div class="card-grid card-grid-2">
-                <div>
-                    <h3>Backend (Python / FastAPI)</h3>
-                    <div class="code-block">
-                        <span class="cm">backend/</span>
-                        ├── Dockerfile ├── requirements.txt └── app/ ├──
-                        <span class="fn">main.py</span>
-                        <span class="cm"># Point d'entrée API</span> ├──
-                        <span class="fn">database.py</span>
-                        <span class="cm"># Connexion SQLAlchemy Neon</span> ├──
-                        <span class="fn">security.py</span>
-                        <span class="cm"># JWT + bcrypt</span> ├──
-                        <span class="fn">dependencies.py</span>
-                        <span class="cm"># DB, JWT, admin-only</span> ├── models/
-                        │ ├── utilisateur.py │ ├── activite.py │ ├── aliment.py
-                        │ ├── consommation.py │ ├── exercice.py │ ├──
-                        metrique_sante.py │ └── objectif.py ├── routers/ │ ├──
-                        utilisateurs.py │ ├── activites.py │ ├── aliments.py │
-                        ├── consommations.py │ ├── exercices.py │ ├──
-                        metriques_sante.py │ └── objectifs.py └── schemas/
-                        <span class="cm"># Pydantic schemas - tests pytest</span>
-                    </div>
-                </div>
-                <div>
-                    <h3>Frontend (Vue 3 / TypeScript)</h3>
-                    <div class="code-block">
-                        <span class="cm">Frontend/</span>
-                        ├── Dockerfile.nginx ├── vite.config.ts └── src/ ├──
-                        <span class="fn">main.ts</span>
-                        <span class="cm"># Entrée Vue App</span> ├──
-                        <span class="fn">App.vue</span>
-                        <span class="cm"># Layout root</span> ├──
-                        <span class="fn">router.ts</span>
-                        <span class="cm"># Navigation + guards</span> ├──
-                        <span class="fn">styles.css</span>
-                        <span class="cm"># Design System global</span> ├──
-                        components/ │ ├── Navbar.vue │ └── AppFooter.vue ├──
-                        pages/ │ ├── Connexion.vue │ ├── PageAccueil.vue
-                        <span class="cm"># Profil (tabs)</span> │ ├──
-                        Dashboard.vue │ ├── GestionFlux.vue │ ├── FluxDetail.vue
-                        │ ├── Nettoyage.vue │ ├── TestBackend.vue │ └──
-                        PageView.vue └── services/ ├── auth.ts
-                        <span class="cm"># JWT + localStorage</span> └── api.ts
-                        <span class="cm"># Appels API</span>
-                    </div>
-                </div>
-            </div>
-
-            <h3>Données &amp; Orchestration</h3>
-            <div class="code-block">
-                <span class="cm">airflow/dags/</span>
-                ├── export_db_to_csv.py
-                <span class="cm"># DAG : Export PostgreSQL → CSV</span> └──
-                fetch_openfoodfacts_france.py
-                <span class="cm"># DAG : Collecte données OpenFoodFacts</span>
-
-                <span class="cm">data/</span>
-                ├── export/
-                <span class="cm"># Exports CSV</span> └──
-                intermediate/ et logs/backend/
-                <span class="cm"># Fichiers Airflow et logs persistés</span>
-            </div>
-        </div>
-
-        <!-- ============================================================ SECTION 5 -->
-        <div class="page page-break">
-            <div class="section-header">
-                <div class="section-num">5</div>
                 <h2>Base de données</h2>
             </div>
 
@@ -1298,10 +1382,10 @@
             </div>
         </div>
 
-        <!-- ============================================================ SECTION 6 -->
+        <!-- ============================================================ SECTION 5 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">6</div>
+                <div class="section-num">5</div>
                 <h2>API REST — Endpoints</h2>
             </div>
 
@@ -1311,9 +1395,11 @@
                 <code>http://localhost:89/api/docs</code> (accès public via Nginx)
                 et proxifiée par Nginx sur le port 89. Les routes publiques
                 sont <code>/api/login</code>, <code>/api/utilisateurs/register</code>
-                et <code>/health</code>. Les routes métier requièrent un token
-                JWT Bearer, et <code>/metrics</code> est réservé aux
-                administrateurs.
+                et <code>/api/health</code>. Les routes métier requièrent un token
+                JWT Bearer, et <code>/api/metrics</code> est réservé aux
+                administrateurs. Toutes les routes sont exposées publiquement
+                sous le préfixe <code>/api</code> via <code>API_ROOT_PATH</code>
+                et le reverse proxy Nginx du VPS.
             </div>
 
             <h3>Authentification</h3>
@@ -1338,14 +1424,14 @@
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/utilisateurs/register</code></td>
+                        <td><code>/api/utilisateurs/register</code></td>
                         <td><span class="badge b-public">Public</span></td>
                         <td>Inscription d'un nouvel utilisateur</td>
                     </tr>
                 </tbody>
             </table>
 
-            <h3>Utilisateurs — <code>/utilisateurs</code></h3>
+            <h3>Utilisateurs — <code>/api/utilisateurs</code></h3>
             <table>
                 <thead>
                     <tr>
@@ -1358,31 +1444,31 @@
                 <tbody>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/utilisateurs/</code></td>
+                        <td><code>/api/utilisateurs/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Liste tous les utilisateurs</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/utilisateurs/{id}</code></td>
+                        <td><code>/api/utilisateurs/{id}</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Détail d'un utilisateur par ID</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/utilisateurs/</code></td>
+                        <td><code>/api/utilisateurs/</code></td>
                         <td><span class="badge b-admin">Admin</span></td>
                         <td>Créer un utilisateur</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-put">PUT</span></td>
-                        <td><code>/utilisateurs/{id}</code></td>
+                        <td><code>/api/utilisateurs/{id}</code></td>
                         <td><span class="badge b-admin">Admin</span></td>
                         <td>Modifier un utilisateur</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-delete">DELETE</span></td>
-                        <td><code>/utilisateurs/{id}</code></td>
+                        <td><code>/api/utilisateurs/{id}</code></td>
                         <td><span class="badge b-admin">Admin</span></td>
                         <td>Supprimer un utilisateur</td>
                     </tr>
@@ -1390,8 +1476,8 @@
             </table>
 
             <h3>
-                Activités — <code>/activites</code> &amp; Métriques —
-                <code>/metriques-sante</code>
+                Activités — <code>/api/activites</code> &amp; Métriques —
+                <code>/api/metriques-sante</code>
             </h3>
             <table>
                 <thead>
@@ -1405,43 +1491,43 @@
                 <tbody>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/activites/</code></td>
+                        <td><code>/api/activites/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Liste toutes les activités physiques</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/activites/{id}</code></td>
+                        <td><code>/api/activites/{id}</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Détail d'une activité</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/activites/</code></td>
+                        <td><code>/api/activites/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Enregistrer une activité</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-put">PUT</span></td>
-                        <td><code>/activites/{id}</code></td>
+                        <td><code>/api/activites/{id}</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Modifier une activité</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-delete">DELETE</span></td>
-                        <td><code>/activites/{id}</code></td>
+                        <td><code>/api/activites/{id}</code></td>
                         <td><span class="badge b-admin">Admin</span></td>
                         <td>Supprimer une activité</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/metriques-sante/</code></td>
+                        <td><code>/api/metriques-sante/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Liste toutes les métriques santé</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/metriques-sante/</code></td>
+                        <td><code>/api/metriques-sante/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Enregistrer une mesure santé</td>
                     </tr>
@@ -1449,9 +1535,9 @@
             </table>
 
             <h3>
-                Alimentation — <code>/aliments</code> ·
-                <code>/consommations</code> · <code>/objectifs</code> ·
-                <code>/exercices</code>
+                Alimentation — <code>/api/aliments</code> ·
+                <code>/api/consommations</code> · <code>/api/objectifs</code> ·
+                <code>/api/exercices</code>
             </h3>
             <table>
                 <thead>
@@ -1465,39 +1551,65 @@
                 <tbody>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/aliments/</code></td>
+                        <td><code>/api/aliments/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Liste du catalogue d'aliments (OpenFoodFacts)</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/consommations/</code></td>
+                        <td><code>/api/consommations/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Historique des consommations alimentaires</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/consommations/</code></td>
+                        <td><code>/api/consommations/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Enregistrer une consommation</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/objectifs/</code></td>
+                        <td><code>/api/objectifs/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Liste les objectifs santé</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-post">POST</span></td>
-                        <td><code>/objectifs/</code></td>
+                        <td><code>/api/objectifs/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Créer un objectif</td>
                     </tr>
                     <tr>
                         <td><span class="badge b-get">GET</span></td>
-                        <td><code>/exercices/</code></td>
+                        <td><code>/api/exercices/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Catalogue des exercices physiques</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Santé &amp; observabilité — <code>/api/health</code> · <code>/api/metrics</code></h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Méthode</th>
+                        <th>Route</th>
+                        <th>Accès</th>
+                        <th>Description</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/api/health</code></td>
+                        <td><span class="badge b-public">Public</span></td>
+                        <td>État API + connectivité base Neon</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-get">GET</span></td>
+                        <td><code>/api/metrics</code></td>
+                        <td><span class="badge b-admin">Admin</span></td>
+                        <td>Métriques JSON en mémoire (requêtes, latence, erreurs 5xx)</td>
                     </tr>
                 </tbody>
             </table>
@@ -1509,10 +1621,10 @@
             </p>
         </div>
 
-        <!-- ============================================================ SECTION 7 -->
+        <!-- ============================================================ SECTION 6 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">7</div>
+                <div class="section-num">6</div>
                 <h2>Authentification JWT</h2>
             </div>
 
@@ -1629,10 +1741,10 @@
             </ul>
         </div>
 
-        <!-- ============================================================ SECTION 8 -->
+        <!-- ============================================================ SECTION 7 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">8</div>
+                <div class="section-num">7</div>
                 <h2>Frontend — Interface utilisateur</h2>
             </div>
 
@@ -1654,15 +1766,17 @@
                     <code>http://localhost:89</code>
                 </li>
                 <li>
-                    <strong>Proxy API :</strong> Nginx proxifie
-                    <code>/api/login</code>, <code>/api/admin</code>,
-                    <code>/utilisateurs</code>, etc. vers le backend (même
-                    origine = pas de CORS)
+                    <strong>Routage API :</strong> le conteneur frontend sert
+                    uniquement les fichiers statiques. Le reverse proxy
+                    <strong>Nginx du VPS</strong> route
+                    <code>/api/*</code> vers le backend.
                 </li>
                 <li>
                     <strong>Variables build :</strong>
-                    <code>VITE_API_URL</code> (vide = proxy),
-                    <code>VITE_AIRFLOW_UI_URL</code> (lien vers Airflow)
+                    <code>VITE_API_URL</code> (URL complète injectée depuis le
+                    <code>.env</code> racine, ex.
+                    <code>https://healthai.example.com/api</code>),
+                    <code>VITE_AIRFLOW_UI_URL</code>
                 </li>
             </ul>
 
@@ -1819,10 +1933,10 @@
             </ul>
         </div>
 
-        <!-- ============================================================ SECTION 9 -->
+        <!-- ============================================================ SECTION 8 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">9</div>
+                <div class="section-num">8</div>
                 <h2>Pipeline de données — Apache Airflow</h2>
             </div>
 
@@ -1987,10 +2101,10 @@
             </div>
         </div>
 
-        <!-- ============================================================ SECTION 10 -->
+        <!-- ============================================================ SECTION 9 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">10</div>
+                <div class="section-num">9</div>
                 <h2>Déploiement Docker</h2>
             </div>
 
@@ -2009,7 +2123,7 @@
                         <td><code>frontend_nginx</code></td>
                         <td>healthaimspr-frontend (custom)</td>
                         <td>89:80</td>
-                        <td>Serveur Vue.js + proxy API</td>
+                        <td>Serveur Vue.js (fichiers statiques uniquement)</td>
                     </tr>
                     <tr>
                         <td><code>backend_api</code></td>
@@ -2050,6 +2164,61 @@
                 </tbody>
             </table>
 
+            <h3>Services Docker Compose monitoring</h3>
+            <p>
+                La pile d'observabilité est séparée dans
+                <code>docker-compose.monitoring.yml</code> et se connecte au réseau
+                Docker applicatif existant.
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Conteneur</th>
+                        <th>Image</th>
+                        <th>Port exposé</th>
+                        <th>Rôle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>healthaim_grafana</code></td>
+                        <td>grafana/grafana:11.4.0</td>
+                        <td>127.0.0.1:3000</td>
+                        <td>Dashboards et sources Prometheus/Loki provisionnées</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_prometheus</code></td>
+                        <td>prom/prometheus:v2.54.1</td>
+                        <td>127.0.0.1:9090</td>
+                        <td>Scraping Prometheus, Node Exporter et Blackbox Exporter</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_loki</code></td>
+                        <td>grafana/loki:3.2.1</td>
+                        <td>127.0.0.1:3100</td>
+                        <td>Stockage des logs applicatifs et Docker</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_promtail</code></td>
+                        <td>grafana/promtail:3.2.1</td>
+                        <td>—</td>
+                        <td>Collecte des logs <code>data/logs/backend</code> et Docker vers Loki</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_node_exporter</code></td>
+                        <td>prom/node-exporter:v1.8.2</td>
+                        <td>127.0.0.1:9100</td>
+                        <td>Métriques CPU, mémoire, disque et système du serveur</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_blackbox</code></td>
+                        <td>prom/blackbox-exporter:v0.25.0</td>
+                        <td>127.0.0.1:9115</td>
+                        <td>Sondes HTTP sur le frontend et l'endpoint backend de santé</td>
+                    </tr>
+                </tbody>
+            </table>
+
             <h3>Variables d'environnement (.env)</h3>
             <div class="code-block">
                 <span class="cm"># Base de données principale (Neon)</span>
@@ -2070,10 +2239,19 @@
                 FRONTEND_PORT=127.0.0.1:89 BACKEND_PORT=127.0.0.1:8089
                 AIRFLOW_PORT=8080
 
-                <span class="cm"
-                    ># Frontend (URL de l'API depuis le navigateur)</span
-                >
-                VITE_API_URL=<span class="str">/api</span>
+                <span class="cm"># Monitoring (docker-compose.monitoring.yml)</span>
+                GRAFANA_ADMIN_PASSWORD=<span class="str">mot-de-passe-fort</span>
+                GRAFANA_PORT=127.0.0.1:3000
+                GRAFANA_ROOT_URL=http://127.0.0.1:3000
+                PROMETHEUS_PORT=127.0.0.1:9090
+                LOKI_PORT=127.0.0.1:3100
+                NODE_EXPORTER_PORT=127.0.0.1:9100
+                BLACKBOX_PORT=127.0.0.1:9115
+                COMPOSE_NETWORK_NAME=healthaimsrp_health_net
+
+                <span class="cm"># Frontend (URL complète API vue par le navigateur)</span>
+                VITE_API_URL=<span class="str">https://healthai.example.com/api</span>
+                API_ROOT_PATH=/api
             </div>
 
             <h3>Notes de configuration récentes</h3>
@@ -2130,6 +2308,14 @@
                         <td>Suit les logs du service backend</td>
                     </tr>
                     <tr>
+                        <td><code>docker compose -f docker-compose.monitoring.yml up -d</code></td>
+                        <td>Démarre Grafana, Prometheus, Loki, Promtail et les exporters</td>
+                    </tr>
+                    <tr>
+                        <td><code>./scripts/reset-grafana-password.sh</code></td>
+                        <td>Réinitialise le mot de passe admin Grafana depuis <code>GRAFANA_ADMIN_PASSWORD</code></td>
+                    </tr>
+                    <tr>
                         <td><code>docker compose exec backend python -m compileall app</code></td>
                         <td>Vérifie rapidement la syntaxe Python</td>
                     </tr>
@@ -2141,10 +2327,10 @@
             </table>
         </div>
 
-        <!-- ============================================================ SECTION 11 -->
+        <!-- ============================================================ SECTION 10 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">11</div>
+                <div class="section-num">10</div>
                 <h2>Sécurité</h2>
             </div>
 
@@ -2179,7 +2365,7 @@
                     <ul class="simple">
                         <li>
                             Routes publiques : <code>/api/login</code>,
-                            <code>/utilisateurs/register</code>
+                            <code>/api/utilisateurs/register</code>
                         </li>
                         <li>Routes auth : lecture des données (GET)</li>
                         <li>
@@ -2187,7 +2373,7 @@
                             modifications globales
                         </li>
                         <li>
-                            Endpoint <code>/metrics</code> protégé par le rôle
+                            Endpoint <code>/api/metrics</code> protégé par le rôle
                             administrateur
                         </li>
                         <li>
@@ -2250,11 +2436,11 @@
                 </thead>
                 <tbody>
                     <tr>
-                        <td><code>/health</code></td>
+                        <td><code>/api/health</code></td>
                         <td>Vérifie l'état API + connexion PostgreSQL Neon</td>
                     </tr>
                     <tr>
-                        <td><code>/metrics</code></td>
+                        <td><code>/api/metrics</code></td>
                         <td>Métriques en mémoire : requêtes, erreurs 5xx, durée moyenne, routes appelées. Accès admin requis.</td>
                     </tr>
                     <tr>
@@ -2264,6 +2450,34 @@
                     <tr>
                         <td>Alertes email</td>
                         <td>Email HTML sur erreur 500 non gérée, SMTP configurable, cooldown anti-spam de 60 secondes.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Monitoring Prometheus / Grafana / Loki</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fichier</th>
+                        <th>Rôle technique</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>monitoring/prometheus/prometheus.yml</code></td>
+                        <td>Scrape Prometheus lui-même, <code>node-exporter:9100</code> et les sondes Blackbox HTTP.</td>
+                    </tr>
+                    <tr>
+                        <td><code>monitoring/loki/loki-config.yml</code></td>
+                        <td>Configuration Loki pour la réception et la conservation des logs.</td>
+                    </tr>
+                    <tr>
+                        <td><code>monitoring/promtail/promtail-config.yml</code></td>
+                        <td>Lecture des logs backend dans <code>/var/log/backend/*.log</code> et des logs Docker.</td>
+                    </tr>
+                    <tr>
+                        <td><code>monitoring/grafana/provisioning/datasources</code></td>
+                        <td>Provisioning automatique des sources de données Prometheus et Loki dans Grafana.</td>
                     </tr>
                 </tbody>
             </table>
@@ -2301,6 +2515,186 @@
                     <tr>
                         <td>Pas de rate limiting sur <code>/api/login</code></td>
                         <td>Ajouter une limite de tentatives (brute force)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================================ SECTION 11 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">11</div>
+                <h2>Tests &amp; couverture</h2>
+            </div>
+
+            <p>
+                La stratégie de tests couvre le backend FastAPI, les contrôles
+                qualité Python, les tests frontend Vitest et l'import des rapports
+                de couverture dans SonarQube. L'objectif est de bloquer rapidement
+                les régressions fonctionnelles tout en gardant une mesure visible
+                de la couverture.
+            </p>
+
+            <div class="card-grid card-grid-4">
+                <div class="stat-card">
+                    <div class="icon">✓</div>
+                    <div class="label">Backend</div>
+                    <div class="value">93 tests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">%</div>
+                    <div class="label">Couverture backend</div>
+                    <div class="value">92,91 %</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">JS</div>
+                    <div class="label">Frontend</div>
+                    <div class="value">2 tests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">CI</div>
+                    <div class="label">Seuil bloquant</div>
+                    <div class="value">70 %</div>
+                </div>
+            </div>
+
+            <h3>Commandes de validation</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Périmètre</th>
+                        <th>Commande</th>
+                        <th>Résultat / rapport</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Backend</td>
+                        <td><code>cd backend &amp;&amp; python -m pytest</code></td>
+                        <td>93 tests, couverture terminal, <code>coverage_html/</code> et <code>coverage.xml</code></td>
+                    </tr>
+                    <tr>
+                        <td>Qualité Python</td>
+                        <td><code>ruff check backend/app backend/migrations airflow/dags</code></td>
+                        <td>Lint Python, migrations Alembic et DAGs Airflow</td>
+                    </tr>
+                    <tr>
+                        <td>Format Python</td>
+                        <td><code>ruff format --check backend/app backend/migrations airflow/dags</code></td>
+                        <td>Bloque la CI si un fichier doit être reformatté</td>
+                    </tr>
+                    <tr>
+                        <td>Frontend</td>
+                        <td><code>cd Frontend &amp;&amp; npm run test:coverage</code></td>
+                        <td>2 tests Vitest, rapport <code>coverage/lcov.info</code></td>
+                    </tr>
+                    <tr>
+                        <td>Build UI</td>
+                        <td><code>npm run lint &amp;&amp; npm run build</code></td>
+                        <td>TypeScript strict et build Vite de production</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Couverture backend</h3>
+            <p>
+                La configuration <code>backend/pytest.ini</code> active
+                <code>pytest-cov</code> sur le package <code>app</code> avec un
+                seuil minimal de <strong>70 %</strong>. La couverture mesurée le
+                7 juin 2026 atteint <strong>92,91 %</strong>, avec génération des
+                rapports terminal, HTML et XML.
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fichier</th>
+                        <th>Rôle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>backend/pytest.ini</code></td>
+                        <td>Découverte des tests dans <code>app/tests</code>, seuil <code>--cov-fail-under=70</code>, rapports HTML/XML</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/.coveragerc</code></td>
+                        <td>Périmètre mesuré, exclusions de couverture et configuration du rapport HTML</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/tests/conftest.py</code></td>
+                        <td>Base SQLite isolée, fixtures SQLAlchemy et client FastAPI de test</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/coverage.xml</code></td>
+                        <td>Rapport importé par SonarQube pour l'analyse qualité</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box">
+                <strong>Point d'attention :</strong>
+                <code>app/routers/admin.py</code> est encore exclu du calcul de
+                couverture. Le pourcentage backend est donc conforme à la
+                configuration actuelle, mais les routes admin doivent être testées
+                avant de retirer cette exclusion.
+            </div>
+
+            <h3>Périmètre de tests couvert</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Famille</th>
+                        <th>Validations principales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Authentification</td>
+                        <td>Login JWT, inscription publique, 2FA TOTP, statut <code>/auth/2fa/status</code></td>
+                    </tr>
+                    <tr>
+                        <td>Sécurité</td>
+                        <td>En-têtes HTTP, accès admin, validation OpenAPI sous préfixe public <code>/api</code></td>
+                    </tr>
+                    <tr>
+                        <td>Routes métier</td>
+                        <td>Activités, consommations, métriques santé, objectifs, aliments, exercices et utilisateurs</td>
+                    </tr>
+                    <tr>
+                        <td>Observabilité</td>
+                        <td><code>/health</code>, métriques applicatives, logs et alertes email sur erreurs 500</td>
+                    </tr>
+                    <tr>
+                        <td>Frontend</td>
+                        <td>Configuration d'environnement Vite, génération LCOV via Vitest</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Axes d'amélioration</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Priorité</th>
+                        <th>Amélioration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Haute</strong></td>
+                        <td>Ajouter des tests pour les routes <code>/admin</code> puis les réintégrer dans la couverture</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Moyenne</strong></td>
+                        <td>Augmenter la suite Vitest avec les pages connexion, inscription, 2FA et composants de navigation</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Moyenne</strong></td>
+                        <td>Définir un seuil minimal de couverture frontend dans <code>vite.config.ts</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Moyenne</strong></td>
+                        <td>Ajouter des tests end-to-end Playwright/Cypress sur inscription, connexion, 2FA et dashboard</td>
                     </tr>
                 </tbody>
             </table>
@@ -2438,7 +2832,7 @@
                     </tr>
                     <tr>
                         <td>Tests</td>
-                        <td><code>python -m pytest</code> — 90 tests, couverture min. 70 %, rapports terminal, HTML et XML</td>
+                        <td><code>python -m pytest</code> — 93 tests, couverture min. 70 %, rapports terminal, HTML et XML</td>
                     </tr>
                     <tr>
                         <td>Config Ruff</td>
@@ -2489,7 +2883,7 @@
                     </tr>
                     <tr>
                         <td>Résultat audité</td>
-                        <td><strong>90 tests réussis</strong> et <strong>94,35 %</strong> de couverture avec <code>.coveragerc</code></td>
+                        <td><strong>93 tests réussis</strong> et <strong>92,91 %</strong> de couverture avec <code>.coveragerc</code></td>
                     </tr>
                 </tbody>
             </table>
@@ -2497,7 +2891,7 @@
                 <strong>Attention à l'interprétation :</strong>
                 <code>app/routers/admin.py</code> est exclu du calcul alors qu'il
                 contient une part importante de la logique métier. Le pourcentage
-                de 94,35 % est conforme à la configuration, mais il ne signifie pas
+                de 92,91 % est conforme à la configuration, mais il ne signifie pas
                 que les routes d'administration sont couvertes.
             </div>
 
@@ -2548,7 +2942,7 @@
                     </tr>
                     <tr>
                         <td>Tests + couverture</td>
-                        <td><code>npm run test:coverage</code> — 12 tests Vitest, rapport <code>lcov.info</code></td>
+                        <td><code>npm run test:coverage</code> — 2 tests Vitest, rapport <code>lcov.info</code></td>
                     </tr>
                     <tr>
                         <td>Build</td>
@@ -2559,7 +2953,7 @@
             <div class="info-box">
                 <strong>Limite frontend :</strong> Vitest génère actuellement un
                 rapport LCOV pour SonarQube, mais aucun seuil minimal de couverture
-                n'est configuré. Les 12 tests peuvent donc réussir même si la
+                n'est configuré. Les 2 tests peuvent donc réussir même si la
                 couverture globale diminue fortement.
             </div>
 
@@ -2751,71 +3145,6 @@
                 npm run build
             </div>
 
-            <h3>Audit CI/CD et éléments encore manquants</h3>
-            <p>
-                Audit réalisé le <strong>6 juin 2026</strong> à partir du workflow,
-                des configurations pytest/Vitest/SonarQube et d'une reproduction
-                locale des jobs. Les contrôles Ruff, ESLint, Vitest, build Vite et
-                pytest passent après alignement de Node.js 22 et copie de
-                <code>.coveragerc</code> dans l'image backend.
-            </p>
-            <table>
-                <thead>
-                    <tr>
-                        <th>Priorité</th>
-                        <th>Manque / risque</th>
-                        <th>Recommandation</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><strong>Haute</strong></td>
-                        <td>Le déploiement est parallèle à SonarQube</td>
-                        <td>Faire dépendre <code>deploy</code> de SonarQube et attendre explicitement la Quality Gate</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Haute</strong></td>
-                        <td>Aucun rollback automatique après un health check en échec</td>
-                        <td>Conserver la révision ou l'image précédente et restaurer automatiquement le dernier déploiement sain</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Haute</strong></td>
-                        <td><code>app/routers/admin.py</code> est exclu de la couverture</td>
-                        <td>Ajouter des tests admin puis retirer progressivement cette exclusion</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Moyenne</strong></td>
-                        <td>Aucun seuil minimal de couverture frontend</td>
-                        <td>Configurer les seuils Vitest pour lignes, fonctions, branches et instructions</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Moyenne</strong></td>
-                        <td>Pas de tests end-to-end ni de smoke test public après déploiement</td>
-                        <td>Ajouter Playwright/Cypress et vérifier <code>/api/health</code>, <code>/api/login</code> et le frontend via Nginx</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Moyenne</strong></td>
-                        <td>Pas de <code>concurrency</code> GitHub Actions</td>
-                        <td>Sérialiser les déploiements et annuler les exécutions obsolètes</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Moyenne</strong></td>
-                        <td>Pas d'environnement GitHub protégé pour la production</td>
-                        <td>Utiliser un environnement <code>production</code> avec approbation et secrets dédiés</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Moyenne</strong></td>
-                        <td><code>npm audit</code> signale 9 vulnérabilités dans les dépendances actuelles</td>
-                        <td>Qualifier les vulnérabilités, mettre à jour les dépendances et ajouter un contrôle de dépendances</td>
-                    </tr>
-                    <tr>
-                        <td><strong>Faible</strong></td>
-                        <td>Actions GitHub référencées par tags de version</td>
-                        <td>Épingler les actions tierces par SHA pour renforcer la chaîne d'approvisionnement</td>
-                    </tr>
-                </tbody>
-            </table>
-
             <h3>Dépannage CI/CD</h3>
             <table>
                 <thead>
@@ -2891,7 +3220,31 @@
                     </tr>
                     <tr>
                         <td><code>CICD.md</code></td>
-                        <td>Documentation CI/CD (racine du projet)</td>
+                        <td>Documentation CI/CD et observabilité (racine du projet)</td>
+                    </tr>
+                    <tr>
+                        <td><code>docker-compose.monitoring.yml</code></td>
+                        <td>Stack Grafana / Prometheus / Loki</td>
+                    </tr>
+                    <tr>
+                        <td><code>monitoring/prometheus/prometheus.yml</code></td>
+                        <td>Cibles de scrape (node-exporter, blackbox)</td>
+                    </tr>
+                    <tr>
+                        <td><code>monitoring/loki/loki-config.yml</code></td>
+                        <td>Stockage logs (rétention 7 jours)</td>
+                    </tr>
+                    <tr>
+                        <td><code>monitoring/promtail/promtail-config.yml</code></td>
+                        <td>Collecte logs backend et conteneurs Docker</td>
+                    </tr>
+                    <tr>
+                        <td><code>monitoring/grafana/provisioning/datasources/datasources.yml</code></td>
+                        <td>Datasources Prometheus + Loki provisionnées</td>
+                    </tr>
+                    <tr>
+                        <td><code>scripts/reset-grafana-password.sh</code></td>
+                        <td>Reset mot de passe Grafana</td>
                     </tr>
                 </tbody>
             </table>
@@ -2901,6 +3254,332 @@
         <div class="page page-break">
             <div class="section-header">
                 <div class="section-num">13</div>
+                <h2>Observabilité production</h2>
+            </div>
+
+            <div class="info-box">
+                La stack monitoring est <strong>séparée du pipeline CI/CD</strong> :
+                elle n'est pas déployée par <code>scripts/deploy.sh</code> ni par
+                GitHub Actions. Elle tourne en parallèle sur le serveur via
+                <code>docker-compose.monitoring.yml</code>.
+            </div>
+
+            <h3>Architecture</h3>
+            <div class="arch-box">
+                Serveur VPS (/opt/HEALTHAIMSRP)<br />
+                &nbsp;&nbsp;├── Stack app : backend (8089) + frontend (89)<br />
+                &nbsp;&nbsp;├── Stack monitoring : Grafana, Prometheus, Loki, Promtail, exporters<br />
+                &nbsp;&nbsp;├── Nginx VPS : HTTPS public, route <code>/api/*</code> → backend<br />
+                &nbsp;&nbsp;└── Neon PostgreSQL (métriques via console Neon)
+            </div>
+            <p>
+                Tous les ports monitoring sont liés à <code>127.0.0.1</code> :
+                accès local ou tunnel SSH, sauf exposition nginx dédiée.
+            </p>
+
+            <h3>Composants et rôles</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Service</th>
+                        <th>Port local</th>
+                        <th>Rôle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>healthaim_grafana</code></td>
+                        <td>3000</td>
+                        <td>Dashboards — datasources Prometheus et Loki provisionnées</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_prometheus</code></td>
+                        <td>9090</td>
+                        <td>Collecte métriques (node-exporter, blackbox, self-scrape)</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_loki</code></td>
+                        <td>3100</td>
+                        <td>Stockage logs (rétention 7 jours)</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_promtail</code></td>
+                        <td>—</td>
+                        <td>Envoie <code>data/logs/backend/*.log</code> et logs Docker vers Loki</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_node_exporter</code></td>
+                        <td>9100</td>
+                        <td>CPU, RAM, disque du VPS</td>
+                    </tr>
+                    <tr>
+                        <td><code>healthaim_blackbox</code></td>
+                        <td>9115</td>
+                        <td>Sondes HTTP : <code>/api/health</code>, frontend, préfixe <code>/api</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Accès Grafana</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Élément</th>
+                        <th>Valeur</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Utilisateur</td>
+                        <td><code>admin</code></td>
+                    </tr>
+                    <tr>
+                        <td>Mot de passe</td>
+                        <td><code>GRAFANA_ADMIN_PASSWORD</code> dans <code>.env</code></td>
+                    </tr>
+                    <tr>
+                        <td>Tunnel SSH</td>
+                        <td><code>ssh -L 3000:127.0.0.1:3000 deploy@serveur</code> → http://localhost:3000</td>
+                    </tr>
+                    <tr>
+                        <td>Reset mot de passe</td>
+                        <td><code>./scripts/reset-grafana-password.sh</code></td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="info-box">
+                <code>GRAFANA_ADMIN_PASSWORD</code> ne s'applique qu'au
+                <strong>premier</strong> démarrage Grafana. Si le mot de passe ne
+                fonctionne plus, utiliser le script de reset (volume
+                <code>grafana_data</code> déjà initialisé).
+            </div>
+
+            <h3>Surveillance des routes <code>/api</code> et erreurs 4xx/5xx</h3>
+            <p>
+                Deux mécanismes complémentaires : <strong>Loki</strong> pour les
+                logs détaillés, <strong>Prometheus</strong> pour les métriques
+                d'infrastructure et la disponibilité HTTP.
+            </p>
+
+            <h4>Logs backend → Loki (déjà en place)</h4>
+            <p>
+                Chaque requête est journalisée par le middleware FastAPI dans
+                <code>data/logs/backend/app.log</code> :
+            </p>
+            <div class="code-block">
+                GET /api/utilisateurs → 401 (3.2 ms)
+            </div>
+            <p>Requêtes LogQL utiles (Grafana → Explore → Loki) :</p>
+            <div class="code-block">
+                <span class="cm"># Toutes les erreurs 4xx+ sur /api</span>
+                {job="backend"} |~ "access" |~ "/api/" |~ "→ [45][0-9]{2} "
+
+                <span class="cm"># Erreurs 5xx uniquement</span>
+                {job="backend"} |~ "access" |~ "/api/" |~ "→ 5[0-9]{2} "
+
+                <span class="cm"># Erreurs 4xx uniquement</span>
+                {job="backend"} |~ "access" |~ "/api/" |~ "→ 4[0-9]{2} "
+
+                <span class="cm"># Compter les erreurs sur 5 minutes</span>
+                sum(count_over_time({job="backend"} |~ "access" |~ "/api/" |~ "→ [45][0-9]{2} "[5m]))
+            </div>
+
+            <h4>Prometheus — jobs configurés</h4>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Job</th>
+                        <th>Cible</th>
+                        <th>Mesure</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>node</code></td>
+                        <td><code>node-exporter:9100</code></td>
+                        <td>Ressources système du VPS</td>
+                    </tr>
+                    <tr>
+                        <td><code>blackbox</code></td>
+                        <td><code>http://backend:8000/api/health</code></td>
+                        <td>Disponibilité API + BDD Neon</td>
+                    </tr>
+                    <tr>
+                        <td><code>blackbox</code></td>
+                        <td><code>http://frontend:80/</code></td>
+                        <td>Disponibilité frontend</td>
+                    </tr>
+                    <tr>
+                        <td><code>blackbox</code></td>
+                        <td><code>http://backend:8000/api</code></td>
+                        <td>Disponibilité préfixe API</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h4>Endpoint <code>/api/metrics</code> (backend natif)</h4>
+            <p>
+                JSON en mémoire, accessible aux admins JWT : compteurs de
+                requêtes, erreurs 5xx, latence moyenne et répartition par route.
+                Non compatible Prometheus — à utiliser pour diagnostic rapide, pas
+                pour les dashboards Grafana temps réel.
+            </p>
+
+            <h3>Dashboards Grafana recommandés</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID grafana.com</th>
+                        <th>Nom</th>
+                        <th>Usage</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>1860</strong></td>
+                        <td>Node Exporter Full</td>
+                        <td>CPU/RAM/disque — sélectionner <code>job=node</code>, instance <code>node-exporter:9100</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>7587</strong></td>
+                        <td>Blackbox Exporter</td>
+                        <td>Disponibilité HTTP des sondes</td>
+                    </tr>
+                    <tr>
+                        <td><strong>13639</strong></td>
+                        <td>Loki — exploration logs</td>
+                        <td>Erreurs 4xx/5xx sur routes <code>/api</code></td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Démarrage sur le serveur</h3>
+            <div class="code-block">
+                cd /opt/HEALTHAIMSRP
+                docker compose up -d backend frontend
+                docker compose -f docker-compose.monitoring.yml up -d
+                curl -s http://127.0.0.1:9090/api/v1/targets
+            </div>
+
+            <h3>Limites et évolutions</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Besoin</th>
+                        <th>État actuel</th>
+                        <th>Évolution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Erreurs 4xx/5xx par route en graphiques</td>
+                        <td>Logs Loki (regex)</td>
+                        <td><code>prometheus-fastapi-instrumentator</code></td>
+                    </tr>
+                    <tr>
+                        <td>Métriques API scrapables</td>
+                        <td><code>/api/metrics</code> JSON admin-only</td>
+                        <td>Exporter format Prometheus</td>
+                    </tr>
+                    <tr>
+                        <td>Alertes automatiques</td>
+                        <td>Non configurées</td>
+                        <td>Grafana Alerting ou Alertmanager</td>
+                    </tr>
+                    <tr>
+                        <td>Monitoring Airflow / Neon</td>
+                        <td>Hors stack</td>
+                        <td>Dashboards dédiés</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Dépannage monitoring</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Problème</th>
+                        <th>Solution</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Promtail : <code>is a directory</code></td>
+                        <td>Vérifier que <code>monitoring/promtail/promtail-config.yml</code> est un fichier</td>
+                    </tr>
+                    <tr>
+                        <td>Grafana : mot de passe refusé</td>
+                        <td><code>./scripts/reset-grafana-password.sh</code></td>
+                    </tr>
+                    <tr>
+                        <td>Dashboard Node Exporter : erreur 400</td>
+                        <td>Renseigner les variables <code>job</code> et <code>instance</code> en haut du dashboard</td>
+                    </tr>
+                    <tr>
+                        <td><code>network health_net not found</code></td>
+                        <td>Démarrer la stack app avant le monitoring ; vérifier <code>COMPOSE_NETWORK_NAME</code></td>
+                    </tr>
+                    <tr>
+                        <td>Pas de logs dans Loki</td>
+                        <td>Vérifier <code>data/logs/backend/app.log</code> et le conteneur <code>healthaim_promtail</code></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================================ SECTION 14 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">14</div>
+                <h2>Synthèse fonctionnelle (A2F, CRUD, Android, compte, tests)</h2>
+            </div>
+
+            <div class="info-box">
+                Cette section résume les fonctionnalités livrées et validées pour la soutenance :
+                authentification à deux facteurs, opérations CRUD, ouverture mobile Android,
+                création de compte utilisateur, et stratégie de tests unitaires.
+            </div>
+
+            <h3>Authentification A2F (2FA / TOTP)</h3>
+            <ul class="feature-list">
+                <li><span class="check">✓</span>Mise en place du cycle complet : setup, activation, statut et désactivation.</li>
+                <li><span class="check">✓</span>Validation des codes temporaires TOTP (compatibles Google Authenticator / Authy).</li>
+                <li><span class="check">✓</span>Renforcement du login avec contrôle des cas d'erreur (code absent/invalide).</li>
+            </ul>
+
+            <h3>Fonctionnalités CRUD</h3>
+            <ul class="feature-list">
+                <li><span class="check">✓</span>Endpoints complets Create, Read, Update, Delete sur les ressources métier.</li>
+                <li><span class="check">✓</span>Gestion des réponses d'erreur cohérentes (404, 401, 403 selon le contexte).</li>
+                <li><span class="check">✓</span>Protection par rôles (admin/non-admin) et authentification JWT.</li>
+            </ul>
+
+            <h3>Ouverture Android (Capacitor)</h3>
+            <ul class="feature-list">
+                <li><span class="check">✓</span>Intégration de la plateforme Android dans le frontend.</li>
+                <li><span class="check">✓</span>Synchronisation du build web vers le projet mobile et préparation du packaging.</li>
+                <li><span class="check">✓</span>Base prête pour les tests sur appareil/émulateur Android.</li>
+            </ul>
+
+            <h3>Création de compte utilisateur</h3>
+            <ul class="feature-list">
+                <li><span class="check">✓</span>Parcours d'inscription complet avec validation des champs principaux.</li>
+                <li><span class="check">✓</span>Stockage sécurisé du mot de passe (hash, jamais en clair).</li>
+                <li><span class="check">✓</span>Parcours validé de bout en bout : création de compte puis connexion sur ce compte.</li>
+            </ul>
+
+            <h3>Tests unitaires et fiabilité</h3>
+            <ul class="feature-list">
+                <li><span class="check">✓</span>Couverture backend via Pytest (tests API, auth, monitoring, CRUD).</li>
+                <li><span class="check">✓</span>Couverture frontend via Vitest (configuration et comportements critiques).</li>
+                <li><span class="check">✓</span>Pipeline CI/CD consolidée (lint, tests, build) avec installation frontend rendue plus robuste.</li>
+            </ul>
+        </div>
+
+        <!-- ============================================================ SECTION 15 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">15</div>
                 <h2>Conclusion &amp; Perspectives</h2>
             </div>
 
@@ -2930,7 +3609,8 @@
                         API REST complète · Auth JWT · Dashboard admin · Profil
                         utilisateur par onglets · Détection anomalies · Pipeline
                         Airflow · Design system moderne · Footer global ·
-                        Déploiement Docker · CI/CD GitHub Actions · SonarQube
+                        Déploiement Docker · CI/CD GitHub Actions · SonarQube ·
+                        Observabilité Grafana / Prometheus / Loki
                     </div>
                 </div>
                 <div class="stat-card">
@@ -2949,7 +3629,7 @@
                         Recommandations IA personnalisées · Graphiques de
                         tendances · Notifications temps réel · Application
                         mobile · Export PDF des rapports · Refresh tokens ·
-                        Tests backend automatisés
+                        Tests end-to-end
                     </div>
                 </div>
                 <div class="stat-card">
@@ -2966,8 +3646,8 @@
                         "
                     >
                         Architecture découplée · TypeScript strict · ORM typé ·
-                        Validation Pydantic v2 · 90 tests pytest · 12 tests Vitest ·
-                        Couverture backend 94 % · Ruff + ESLint · Pipeline CI/CD
+                        Validation Pydantic v2 · 93 tests pytest · 2 tests Vitest ·
+                        Couverture backend 92,91 % · Ruff + ESLint · Pipeline CI/CD
                         automatisée · Documentation auto Swagger
                     </div>
                 </div>
@@ -3020,4 +3700,3 @@
         </div>
     </body>
 </html>
-
