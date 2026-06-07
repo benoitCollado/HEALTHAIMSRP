@@ -671,14 +671,19 @@
                     <span class="toc-pg">13</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">11</span>CI/CD — GitHub Actions
+                    <span class="toc-num">11</span>Tests &amp; couverture
                     <div class="toc-dots"></div>
                     <span class="toc-pg">14</span>
                 </div>
                 <div class="toc-item">
-                    <span class="toc-num">12</span>Conclusion &amp; Perspectives
+                    <span class="toc-num">12</span>CI/CD — GitHub Actions
                     <div class="toc-dots"></div>
                     <span class="toc-pg">16</span>
+                </div>
+                <div class="toc-item">
+                    <span class="toc-num">13</span>Conclusion &amp; Perspectives
+                    <div class="toc-dots"></div>
+                    <span class="toc-pg">18</span>
                 </div>
             </div>
         </div>
@@ -2472,6 +2477,186 @@
         <div class="page page-break">
             <div class="section-header">
                 <div class="section-num">11</div>
+                <h2>Tests &amp; couverture</h2>
+            </div>
+
+            <p>
+                La stratégie de tests couvre le backend FastAPI, les contrôles
+                qualité Python, les tests frontend Vitest et l'import des rapports
+                de couverture dans SonarQube. L'objectif est de bloquer rapidement
+                les régressions fonctionnelles tout en gardant une mesure visible
+                de la couverture.
+            </p>
+
+            <div class="card-grid card-grid-4">
+                <div class="stat-card">
+                    <div class="icon">✓</div>
+                    <div class="label">Backend</div>
+                    <div class="value">93 tests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">%</div>
+                    <div class="label">Couverture backend</div>
+                    <div class="value">92,91 %</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">JS</div>
+                    <div class="label">Frontend</div>
+                    <div class="value">2 tests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="icon">CI</div>
+                    <div class="label">Seuil bloquant</div>
+                    <div class="value">70 %</div>
+                </div>
+            </div>
+
+            <h3>Commandes de validation</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Périmètre</th>
+                        <th>Commande</th>
+                        <th>Résultat / rapport</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Backend</td>
+                        <td><code>cd backend &amp;&amp; python -m pytest</code></td>
+                        <td>93 tests, couverture terminal, <code>coverage_html/</code> et <code>coverage.xml</code></td>
+                    </tr>
+                    <tr>
+                        <td>Qualité Python</td>
+                        <td><code>ruff check backend/app backend/migrations airflow/dags</code></td>
+                        <td>Lint Python, migrations Alembic et DAGs Airflow</td>
+                    </tr>
+                    <tr>
+                        <td>Format Python</td>
+                        <td><code>ruff format --check backend/app backend/migrations airflow/dags</code></td>
+                        <td>Bloque la CI si un fichier doit être reformatté</td>
+                    </tr>
+                    <tr>
+                        <td>Frontend</td>
+                        <td><code>cd Frontend &amp;&amp; npm run test:coverage</code></td>
+                        <td>2 tests Vitest, rapport <code>coverage/lcov.info</code></td>
+                    </tr>
+                    <tr>
+                        <td>Build UI</td>
+                        <td><code>npm run lint &amp;&amp; npm run build</code></td>
+                        <td>TypeScript strict et build Vite de production</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Couverture backend</h3>
+            <p>
+                La configuration <code>backend/pytest.ini</code> active
+                <code>pytest-cov</code> sur le package <code>app</code> avec un
+                seuil minimal de <strong>70 %</strong>. La couverture mesurée le
+                7 juin 2026 atteint <strong>92,91 %</strong>, avec génération des
+                rapports terminal, HTML et XML.
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fichier</th>
+                        <th>Rôle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>backend/pytest.ini</code></td>
+                        <td>Découverte des tests dans <code>app/tests</code>, seuil <code>--cov-fail-under=70</code>, rapports HTML/XML</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/.coveragerc</code></td>
+                        <td>Périmètre mesuré, exclusions de couverture et configuration du rapport HTML</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/tests/conftest.py</code></td>
+                        <td>Base SQLite isolée, fixtures SQLAlchemy et client FastAPI de test</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/coverage.xml</code></td>
+                        <td>Rapport importé par SonarQube pour l'analyse qualité</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="info-box">
+                <strong>Point d'attention :</strong>
+                <code>app/routers/admin.py</code> est encore exclu du calcul de
+                couverture. Le pourcentage backend est donc conforme à la
+                configuration actuelle, mais les routes admin doivent être testées
+                avant de retirer cette exclusion.
+            </div>
+
+            <h3>Périmètre de tests couvert</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Famille</th>
+                        <th>Validations principales</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Authentification</td>
+                        <td>Login JWT, inscription publique, 2FA TOTP, statut <code>/auth/2fa/status</code></td>
+                    </tr>
+                    <tr>
+                        <td>Sécurité</td>
+                        <td>En-têtes HTTP, accès admin, validation OpenAPI sous préfixe public <code>/api</code></td>
+                    </tr>
+                    <tr>
+                        <td>Routes métier</td>
+                        <td>Activités, consommations, métriques santé, objectifs, aliments, exercices et utilisateurs</td>
+                    </tr>
+                    <tr>
+                        <td>Observabilité</td>
+                        <td><code>/health</code>, métriques applicatives, logs et alertes email sur erreurs 500</td>
+                    </tr>
+                    <tr>
+                        <td>Frontend</td>
+                        <td>Configuration d'environnement Vite, génération LCOV via Vitest</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3>Axes d'amélioration</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Priorité</th>
+                        <th>Amélioration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Haute</strong></td>
+                        <td>Ajouter des tests pour les routes <code>/admin</code> puis les réintégrer dans la couverture</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Moyenne</strong></td>
+                        <td>Augmenter la suite Vitest avec les pages connexion, inscription, 2FA et composants de navigation</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Moyenne</strong></td>
+                        <td>Définir un seuil minimal de couverture frontend dans <code>vite.config.ts</code></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Moyenne</strong></td>
+                        <td>Ajouter des tests end-to-end Playwright/Cypress sur inscription, connexion, 2FA et dashboard</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- ============================================================ SECTION 12 -->
+        <div class="page page-break">
+            <div class="section-header">
+                <div class="section-num">12</div>
                 <h2>CI/CD — GitHub Actions</h2>
             </div>
 
@@ -2600,7 +2785,7 @@
                     </tr>
                     <tr>
                         <td>Tests</td>
-                        <td><code>python -m pytest</code> — 90 tests, couverture min. 70 %, rapports terminal, HTML et XML</td>
+                        <td><code>python -m pytest</code> — 93 tests, couverture min. 70 %, rapports terminal, HTML et XML</td>
                     </tr>
                     <tr>
                         <td>Config Ruff</td>
@@ -2651,7 +2836,7 @@
                     </tr>
                     <tr>
                         <td>Résultat audité</td>
-                        <td><strong>90 tests réussis</strong> et <strong>94,35 %</strong> de couverture avec <code>.coveragerc</code></td>
+                        <td><strong>93 tests réussis</strong> et <strong>92,91 %</strong> de couverture avec <code>.coveragerc</code></td>
                     </tr>
                 </tbody>
             </table>
@@ -2659,7 +2844,7 @@
                 <strong>Attention à l'interprétation :</strong>
                 <code>app/routers/admin.py</code> est exclu du calcul alors qu'il
                 contient une part importante de la logique métier. Le pourcentage
-                de 94,35 % est conforme à la configuration, mais il ne signifie pas
+                de 92,91 % est conforme à la configuration, mais il ne signifie pas
                 que les routes d'administration sont couvertes.
             </div>
 
@@ -2710,7 +2895,7 @@
                     </tr>
                     <tr>
                         <td>Tests + couverture</td>
-                        <td><code>npm run test:coverage</code> — 12 tests Vitest, rapport <code>lcov.info</code></td>
+                        <td><code>npm run test:coverage</code> — 2 tests Vitest, rapport <code>lcov.info</code></td>
                     </tr>
                     <tr>
                         <td>Build</td>
@@ -2721,7 +2906,7 @@
             <div class="info-box">
                 <strong>Limite frontend :</strong> Vitest génère actuellement un
                 rapport LCOV pour SonarQube, mais aucun seuil minimal de couverture
-                n'est configuré. Les 12 tests peuvent donc réussir même si la
+                n'est configuré. Les 2 tests peuvent donc réussir même si la
                 couverture globale diminue fortement.
             </div>
 
@@ -3059,10 +3244,10 @@
             </table>
         </div>
 
-        <!-- ============================================================ SECTION 12 -->
+        <!-- ============================================================ SECTION 13 -->
         <div class="page page-break">
             <div class="section-header">
-                <div class="section-num">12</div>
+                <div class="section-num">13</div>
                 <h2>Conclusion &amp; Perspectives</h2>
             </div>
 
@@ -3111,7 +3296,7 @@
                         Recommandations IA personnalisées · Graphiques de
                         tendances · Notifications temps réel · Application
                         mobile · Export PDF des rapports · Refresh tokens ·
-                        Tests backend automatisés
+                        Tests end-to-end
                     </div>
                 </div>
                 <div class="stat-card">
@@ -3128,8 +3313,8 @@
                         "
                     >
                         Architecture découplée · TypeScript strict · ORM typé ·
-                        Validation Pydantic v2 · 90 tests pytest · 12 tests Vitest ·
-                        Couverture backend 94 % · Ruff + ESLint · Pipeline CI/CD
+                        Validation Pydantic v2 · 93 tests pytest · 2 tests Vitest ·
+                        Couverture backend 92,91 % · Ruff + ESLint · Pipeline CI/CD
                         automatisée · Documentation auto Swagger
                     </div>
                 </div>
