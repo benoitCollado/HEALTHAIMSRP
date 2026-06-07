@@ -18,9 +18,11 @@ try:
         has_data    = "utilisateurs" in tables
 
         if has_data and not has_alembic:
-            # Base existante non encore gérée par Alembic → on marque sans rejouer
-            print("Base existante détectée – marquage Alembic (stamp head)...")
-            os.system("alembic stamp head")
+            # Base existante non encore geree par Alembic: on marque le schema
+            # initial, puis on applique les migrations incrementales recentes.
+            print("Base existante detectee - marquage Alembic 0001 puis upgrade head...")
+            os.system("alembic stamp 0001")
+            os.system("alembic upgrade head")
         else:
             print("Application des migrations Alembic...")
             os.system("alembic upgrade head")

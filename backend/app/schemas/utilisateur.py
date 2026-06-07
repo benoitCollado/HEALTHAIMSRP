@@ -51,5 +51,6 @@ class UtilisateurUpdate(BaseModel):
 class UtilisateurResponse(UtilisateurBase):
     # Identifiant unique de l’utilisateur
     id_utilisateur: int
+    username: str
 
     model_config = ConfigDict(from_attributes=True)

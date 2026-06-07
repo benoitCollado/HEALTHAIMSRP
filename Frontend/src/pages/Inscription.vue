@@ -1,94 +1,119 @@
 <template>
-  <div class="register-page">
-    <div class="register-bg"></div>
-
-    <div class="register-container">
-      <div class="register-brand">
-        <div class="register-logo">❤️</div>
-        <h1 class="register-title">HealthAI MSPR</h1>
-        <p class="register-subtitle">Creer un compte utilisateur</p>
+  <main class="register-page">
+    <section class="register-shell">
+      <div class="register-head">
+        <div class="brand-mark">H+</div>
+        <div>
+          <h1>Créer un compte</h1>
+          <p>Créez votre compte, puis activez la 2FA depuis votre espace sécurité.</p>
+        </div>
       </div>
 
-      <div class="register-card">
-        <h2 class="register-heading">Inscription</h2>
-        <p class="register-hint">Remplissez vos informations pour creer un compte.</p>
+      <form class="register-card" @submit.prevent="submit">
+        <div class="choice-panel">
+          <div>
+            <strong>Nouveau compte</strong>
+            <span>La 2FA reste désactivée par défaut. Vous pourrez l'activer juste après la première connexion.</span>
+          </div>
+          <router-link to="/connexion" class="choice-link">Se connecter</router-link>
+        </div>
 
-        <form @submit.prevent="submit" class="register-form">
-          <div class="field-grid">
-            <label>
-              <span>Nom d'utilisateur</span>
-              <input v-model="form.username" type="text" required />
+        <div class="form-section">
+          <h2>Identifiants</h2>
+          <div class="grid two">
+            <label for="username">
+              Nom d'utilisateur
+              <input id="username" v-model.trim="form.username" type="text" autocomplete="username" required />
             </label>
 
-            <label>
-              <span>Mot de passe</span>
-              <input v-model="form.password" :type="showPassword ? 'text' : 'password'" minlength="4" required />
+            <label for="password">
+              Mot de passe
+              <div class="password-row">
+                <input
+                  id="password"
+                  v-model="form.password"
+                  :type="showPassword ? 'text' : 'password'"
+                  autocomplete="new-password"
+                  minlength="4"
+                  required
+                />
+                <button type="button" class="secondary-button" @click="showPassword = !showPassword">
+                  {{ showPassword ? 'Masquer' : 'Voir' }}
+                </button>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <h2>Profil santé</h2>
+          <div class="grid three">
+            <label for="age">
+              Age
+              <input id="age" v-model.number="form.age" type="number" min="1" max="120" required />
             </label>
 
-            <label>
-              <span>Age</span>
-              <input v-model.number="form.age" type="number" min="1" required />
-            </label>
-
-            <label>
-              <span>Sexe</span>
-              <select v-model="form.sexe" required>
-                <option value="H">H</option>
-                <option value="F">F</option>
+            <label for="sexe">
+              Sexe
+              <select id="sexe" v-model="form.sexe" required>
+                <option value="H">Homme</option>
+                <option value="F">Femme</option>
               </select>
             </label>
 
-            <label>
-              <span>Taille (cm)</span>
-              <input v-model.number="form.taille_cm" type="number" min="1" required />
+            <label for="niveau">
+              Activité
+              <select id="niveau" v-model.number="form.niveau_activite" required>
+                <option :value="1">Très faible</option>
+                <option :value="2">Faible</option>
+                <option :value="3">Modérée</option>
+                <option :value="4">Élevée</option>
+                <option :value="5">Très élevée</option>
+              </select>
             </label>
 
-            <label>
-              <span>Poids (kg)</span>
-              <input v-model.number="form.poids_kg" type="number" min="1" required />
+            <label for="taille">
+              Taille en cm
+              <input id="taille" v-model.number="form.taille_cm" type="number" min="80" max="240" required />
             </label>
 
-            <label>
-              <span>Niveau d'activite (1-5)</span>
-              <input v-model.number="form.niveau_activite" type="number" min="1" max="5" required />
+            <label for="poids">
+              Poids en kg
+              <input id="poids" v-model.number="form.poids_kg" type="number" min="20" max="300" required />
             </label>
 
-            <label>
-              <span>Type d'abonnement</span>
-              <input v-model.number="form.type_abonnement" type="number" min="1" required />
-            </label>
-
-            <label class="full-width">
-              <span>Date d'inscription</span>
-              <input v-model="form.date_inscription" type="date" required />
-            </label>
-          </div>
-
-          <div class="actions-row">
-            <label class="checkbox-inline">
-              <input v-model="showPassword" type="checkbox" />
-              Afficher le mot de passe
+            <label for="abonnement">
+              Abonnement
+              <select id="abonnement" v-model.number="form.type_abonnement" required>
+                <option :value="1">Standard</option>
+                <option :value="2">Premium</option>
+              </select>
             </label>
           </div>
+        </div>
 
-          <div v-if="error" class="register-error">{{ error }}</div>
-          <div v-if="success" class="register-success">{{ success }}</div>
+        <p v-if="error" class="alert error">{{ error }}</p>
+        <p v-if="success" class="alert success">{{ success }}</p>
 
-          <button type="submit" class="register-btn" :disabled="isLoading">
-            {{ isLoading ? 'Creation en cours...' : 'Creer mon compte' }}
+        <div class="actions">
+          <label class="twofa-choice">
+            <input v-model="goToSecurityAfterRegister" type="checkbox" />
+            Me connecter après création pour configurer la 2FA
+          </label>
+          <button type="submit" class="primary-button" :disabled="isLoading">
+            {{ isLoading ? 'Création...' : 'Créer le compte' }}
           </button>
-
-          <router-link to="/connexion" class="back-link">J'ai deja un compte</router-link>
-        </form>
-      </div>
-    </div>
-  </div>
+        </div>
+      </form>
+    </section>
+  </main>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { API_BASE_URL } from '../config'
+import { auth } from '../services/auth'
 
 interface RegisterPayload {
   username: string
@@ -102,6 +127,10 @@ interface RegisterPayload {
   date_inscription: string
 }
 
+function todayIsoDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
 function initialForm(): RegisterPayload {
   return {
     username: '',
@@ -110,9 +139,9 @@ function initialForm(): RegisterPayload {
     sexe: 'H',
     taille_cm: 170,
     poids_kg: 70,
-    niveau_activite: 2,
+    niveau_activite: 3,
     type_abonnement: 1,
-    date_inscription: new Date().toISOString().slice(0, 10)
+    date_inscription: todayIsoDate()
   }
 }
 
@@ -121,11 +150,14 @@ export default defineComponent({
     const router = useRouter()
     const form = ref<RegisterPayload>(initialForm())
     const isLoading = ref(false)
+    const showPassword = ref(false)
+    const goToSecurityAfterRegister = ref(true)
     const error = ref('')
     const success = ref('')
-    const showPassword = ref(false)
 
     async function submit() {
+      if (isLoading.value) return
+
       error.value = ''
       success.value = ''
       isLoading.value = true
@@ -138,30 +170,53 @@ export default defineComponent({
         })
 
         if (!response.ok) {
-          let message = "Erreur lors de l'inscription"
+          let message = "Impossible de créer le compte."
           try {
-            const err = await response.json()
-            message = err?.detail || message
+            const data = await response.json()
+            message = data?.detail || message
           } catch {
-            // no-op
+            // keep fallback message
           }
           throw new Error(message)
         }
 
-        success.value = 'Compte cree avec succes. Redirection vers la connexion...'
+        success.value = goToSecurityAfterRegister.value
+          ? 'Compte créé. Connexion automatique...'
+          : 'Compte créé. Redirection vers la connexion...'
+
+        const credentials = {
+          username: form.value.username,
+          password: form.value.password
+        }
         form.value = initialForm()
 
-        setTimeout(() => {
-          router.push('/connexion')
-        }, 1200)
-      } catch (e) {
-        error.value = e instanceof Error ? e.message : "Erreur lors de l'inscription"
+        if (goToSecurityAfterRegister.value) {
+          const login = await auth.login(credentials.username, credentials.password)
+          if (login.success) {
+            window.setTimeout(() => router.push('/page-accueil'), 500)
+          } else {
+            success.value = 'Compte créé. Connectez-vous pour configurer la 2FA.'
+            window.setTimeout(() => router.push('/connexion'), 900)
+          }
+        } else {
+          window.setTimeout(() => router.push('/connexion'), 900)
+        }
+      } catch (err) {
+        error.value = err instanceof Error ? err.message : "Impossible de créer le compte."
       } finally {
         isLoading.value = false
       }
     }
 
-    return { form, isLoading, error, success, showPassword, submit }
+    return {
+      form,
+      isLoading,
+      showPassword,
+      goToSecurityAfterRegister,
+      error,
+      success,
+      submit
+    }
   }
 })
 </script>
@@ -169,150 +224,230 @@ export default defineComponent({
 <style scoped>
 .register-page {
   min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 18% 0%, rgba(22, 163, 74, 0.14), transparent 32%),
+    linear-gradient(135deg, #0f2044 0%, #1e3a5f 54%, #2563eb 100%);
+}
+
+.register-shell {
+  width: min(100%, 820px);
+}
+
+.register-head {
   display: flex;
   align-items: center;
-  justify-content: center;
-  position: relative;
-  padding: 24px;
-}
-
-.register-bg {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(135deg, #0f2044 0%, #1e3a5f 40%, #2563eb 100%);
-  z-index: 0;
-}
-
-.register-container {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 740px;
-}
-
-.register-brand {
-  text-align: center;
+  gap: 16px;
+  margin-bottom: 18px;
   color: #fff;
-  margin-bottom: 16px;
 }
 
-.register-logo {
-  font-size: 2.2rem;
+.brand-mark {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  background: rgba(255, 255, 255, 0.14);
+  font-weight: 800;
+  font-size: 1.25rem;
+  flex: 0 0 auto;
 }
 
-.register-title {
-  margin: 4px 0;
-}
-
-.register-subtitle {
+h1,
+h2,
+p {
   margin: 0;
-  color: rgba(255,255,255,0.75);
+}
+
+.register-head h1 {
+  color: #fff;
+  font-size: 1.7rem;
+}
+
+.register-head p {
+  color: rgba(255, 255, 255, 0.78);
+  margin-top: 4px;
 }
 
 .register-card {
-  background: rgba(255,255,255,0.97);
-  border-radius: 16px;
-  padding: 24px;
-  box-shadow: 0 18px 48px rgba(0,0,0,0.25);
-}
-
-.register-heading {
-  margin: 0;
-  color: #0f172a;
-}
-
-.register-hint {
-  margin: 8px 0 18px;
-  color: #64748b;
-}
-
-.field-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  gap: 22px;
+  padding: 28px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
 }
 
-.field-grid label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 0.88rem;
-  color: #334155;
+.choice-panel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #eff6ff;
 }
 
-.field-grid input,
-.field-grid select {
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  padding: 10px;
-  background: #fff;
-  color: #0f172a;
+.choice-panel div {
+  display: grid;
+  gap: 2px;
 }
 
-.full-width {
-  grid-column: 1 / -1;
+.choice-panel strong {
+  color: #1e3a8a;
+  font-size: 0.92rem;
 }
 
-.actions-row {
-  margin-top: 12px;
+.choice-panel span {
+  color: #64748b;
+  font-size: 0.84rem;
 }
 
-.checkbox-inline {
-  font-size: 0.9rem;
-  color: #334155;
+.choice-link {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-}
-
-.register-error {
-  margin-top: 12px;
-  background: #fee2e2;
-  color: #991b1b;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 12px;
   border-radius: 8px;
-  padding: 10px 12px;
-}
-
-.register-success {
-  margin-top: 12px;
-  background: #dcfce7;
-  color: #166534;
-  border-radius: 8px;
-  padding: 10px 12px;
-}
-
-.register-btn {
-  width: 100%;
-  margin-top: 14px;
-  border: 0;
-  border-radius: 10px;
-  padding: 12px;
+  background: #2563eb;
   color: #fff;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
   font-weight: 700;
-  cursor: pointer;
+  white-space: nowrap;
 }
 
-.register-btn:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.back-link {
-  display: block;
-  margin-top: 12px;
-  text-align: center;
-  color: #1d4ed8;
+.choice-link:hover {
+  background: #1d4ed8;
   text-decoration: none;
 }
 
-@media (max-width: 740px) {
-  .field-grid {
+.form-section {
+  display: grid;
+  gap: 14px;
+}
+
+.form-section h2 {
+  font-size: 1.05rem;
+  color: #0f172a;
+}
+
+.grid {
+  display: grid;
+  gap: 14px;
+}
+
+.grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.password-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.secondary-button {
+  min-width: 76px;
+  justify-content: center;
+  padding-inline: 12px;
+  background: #e2e8f0;
+  color: #334155;
+  box-shadow: none;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #cbd5e1;
+  box-shadow: none;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.twofa-choice {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #334155;
+  font-size: 0.9rem;
+}
+
+.twofa-choice input {
+  width: auto;
+}
+
+.primary-button {
+  min-width: 180px;
+  justify-content: center;
+}
+
+.alert {
+  padding: 11px 13px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.success {
+  background: #f0fdf4;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+@media (max-width: 760px) {
+  .register-head {
+    align-items: flex-start;
+  }
+
+  .grid.two,
+  .grid.three {
     grid-template-columns: 1fr;
   }
 
-  .full-width {
-    grid-column: auto;
+  .actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .choice-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .primary-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 460px) {
+  .register-card {
+    padding: 22px;
+  }
+
+  .password-row {
+    grid-template-columns: 1fr;
   }
 }
 </style>
