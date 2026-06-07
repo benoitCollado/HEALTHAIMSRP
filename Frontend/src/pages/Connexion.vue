@@ -1,326 +1,333 @@
 <template>
-  <div class="login-page">
-    <div class="login-bg"></div>
+  <main class="auth-page">
+    <section class="auth-panel">
+      <div class="brand-mark">H+</div>
+      <h1>HealthAI MSPR</h1>
+      <p class="brand-copy">Suivi santé intelligent</p>
 
-    <div class="login-container">
-      <!-- Brand -->
-      <div class="login-brand">
-        <div class="login-logo">❤️</div>
-        <h1 class="login-title">HealthAI MSPR</h1>
-        <p class="login-subtitle">Suivi santé intelligent</p>
-      </div>
+      <form class="auth-card" @submit.prevent="submit">
+        <div class="card-heading">
+          <h2>Connexion</h2>
+        </div>
 
-      <!-- Card -->
-      <div class="login-card">
-        <h2 class="login-heading">Connexion</h2>
-        <p class="login-hint">Entrez vos identifiants pour accéder à votre espace</p>
-
-        <form @submit.prevent="submit" class="login-form">
-          <div class="form-group">
-            <label for="username">Nom d'utilisateur</label>
-            <div class="input-wrapper">
-              <span class="input-icon">👤</span>
-              <input
-                id="username"
-                v-model="username"
-                :disabled="isLoading"
-                type="text"
-                placeholder="Votre identifiant"
-                autocomplete="username"
-                required
-              />
-            </div>
+        <div class="choice-panel">
+          <div>
+            <strong>Déjà inscrit ?</strong>
+            <span>Connectez-vous avec votre mot de passe. Si la 2FA est activée, le code sera demandé ensuite.</span>
           </div>
+          <router-link to="/inscription" class="choice-link">Créer un compte</router-link>
+        </div>
 
-          <div class="form-group">
-            <label for="password">Mot de passe</label>
-            <div class="input-wrapper">
-              <span class="input-icon">🔒</span>
-              <input
-                id="password"
-                v-model="password"
-                :disabled="isLoading"
-                :type="showPassword ? 'text' : 'password'"
-                placeholder="Votre mot de passe"
-                autocomplete="current-password"
-                required
-              />
-              <button type="button" class="toggle-pw" @click="showPassword = !showPassword" tabindex="-1">
-                {{ showPassword ? '🙈' : '👁️' }}
-              </button>
-            </div>
+        <label for="username">
+          Nom d'utilisateur
+          <input
+            id="username"
+            v-model.trim="username"
+            :disabled="isLoading"
+            type="text"
+            autocomplete="username"
+            placeholder="ex. admin"
+            required
+          />
+        </label>
+
+        <label for="password">
+          Mot de passe
+          <div class="password-row">
+            <input
+              id="password"
+              v-model="password"
+              :disabled="isLoading"
+              :type="showPassword ? 'text' : 'password'"
+              autocomplete="current-password"
+              placeholder="Votre mot de passe"
+              required
+            />
+            <button type="button" class="icon-button" :disabled="isLoading" @click="showPassword = !showPassword">
+              {{ showPassword ? 'Masquer' : 'Voir' }}
+            </button>
           </div>
+        </label>
 
-          <div class="form-group">
-            <label for="otp">Code 2FA (Google Authenticator / Authy)</label>
-            <div class="input-wrapper">
-              <span class="input-icon">🔢</span>
-              <input
-                id="otp"
-                v-model="otp"
-                :disabled="isLoading"
-                type="text"
-                inputmode="numeric"
-                autocomplete="one-time-code"
-                placeholder="Code 6 chiffres (si active)"
-                maxlength="6"
-              />
-            </div>
-          </div>
+        <label v-if="requiresTwoFactor" for="otp" class="twofa-step">
+          Code Google Authenticator
+          <input
+            id="otp"
+            v-model.trim="otp"
+            :disabled="isLoading"
+            type="text"
+            inputmode="numeric"
+            autocomplete="one-time-code"
+            placeholder="Code à 6 chiffres"
+            maxlength="6"
+            required
+          />
+        </label>
 
-          <div v-if="error" class="login-error">
-            <span>⚠️</span> {{ error }}
-          </div>
+        <p v-if="error" class="alert error">{{ error }}</p>
+        <p v-else-if="requiresTwoFactor" class="alert info">
+          Ouvrez Google Authenticator ou Authy, puis saisissez le code temporaire.
+        </p>
 
-          <button type="submit" :disabled="isLoading" class="login-btn">
-            <span v-if="isLoading" class="spinner"></span>
-            {{ isLoading ? 'Connexion en cours...' : 'Se connecter' }}
-          </button>
+        <button type="submit" class="primary-button" :disabled="isLoading">
+          {{ submitLabel }}
+        </button>
 
-          <router-link to="/inscription" class="register-link">
-            Creer un compte
-          </router-link>
-        </form>
-      </div>
-
-      <p class="login-footer-note">© {{ year }} EPSI · HealthAI MSPR v1.0</p>
-    </div>
-  </div>
+        <p class="auth-note">
+          Nouveau sur HealthAI ? Créez un compte, puis activez la 2FA depuis votre espace sécurité.
+        </p>
+      </form>
+    </section>
+  </main>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue'
+import { computed, defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '../services/auth'
 
 export default defineComponent({
   setup() {
+    const router = useRouter()
     const username = ref('')
     const password = ref('')
     const otp = ref('')
     const error = ref('')
     const isLoading = ref(false)
     const showPassword = ref(false)
-    const router = useRouter()
-    const year = computed(() => new Date().getFullYear())
+    const requiresTwoFactor = ref(false)
+    const canSubmit = computed(() => username.value.trim().length > 0 && password.value.length > 0)
+    const submitLabel = computed(() => {
+      if (isLoading.value) return requiresTwoFactor.value ? 'Vérification...' : 'Connexion...'
+      return requiresTwoFactor.value ? 'Valider le code 2FA' : 'Se connecter'
+    })
 
     async function submit() {
+      if (!canSubmit.value || isLoading.value) return
+
       error.value = ''
       isLoading.value = true
-      const result = await auth.login(username.value, password.value, otp.value)
 
-      if (result.success) {
-        router.push('/page-accueil')
-      } else {
-        error.value = result.error || 'Erreur de connexion'
+      try {
+        const result = await auth.login(username.value, password.value, requiresTwoFactor.value ? otp.value : '')
+        if (result.success) {
+          await router.push('/page-accueil')
+          return
+        }
+
+        if (result.error === 'Code 2FA requis') {
+          requiresTwoFactor.value = true
+          otp.value = ''
+          return
+        }
+
+        error.value = result.error || 'Identifiants invalides.'
+      } finally {
+        isLoading.value = false
       }
-
-      isLoading.value = false
     }
 
-    return { username, password, otp, error, isLoading, showPassword, year, submit }
+    return {
+      username,
+      password,
+      otp,
+      error,
+      isLoading,
+      showPassword,
+      requiresTwoFactor,
+      submitLabel,
+      submit
+    }
   }
 })
 </script>
 
 <style scoped>
-.login-page {
+.auth-page {
   min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
+  display: grid;
+  place-items: center;
   padding: 24px;
-  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 34%),
+    linear-gradient(135deg, #0f2044 0%, #1e3a5f 52%, #2563eb 100%);
 }
 
-.login-bg {
-  position: fixed;
-  inset: 0;
-  background: linear-gradient(135deg, #0f2044 0%, #1e3a5f 40%, #2563eb 100%);
-  z-index: 0;
+.auth-panel {
+  width: min(100%, 430px);
+  color: #fff;
 }
 
-.login-bg::before,
-.login-bg::after {
-  content: '';
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.04);
-}
-.login-bg::before {
-  width: 600px; height: 600px;
-  top: -200px; right: -150px;
-}
-.login-bg::after {
-  width: 400px; height: 400px;
-  bottom: -100px; left: -100px;
-}
-
-.login-container {
-  position: relative;
-  z-index: 1;
-  width: 100%;
-  max-width: 420px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-}
-
-.login-brand { text-align: center; color: #fff; }
-.login-logo  { font-size: 2.5rem; margin-bottom: 8px; }
-.login-title {
-  font-size: 1.8rem;
+.brand-mark {
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  margin: 0 auto 14px;
+  border: 1px solid rgba(255, 255, 255, 0.36);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.14);
   font-weight: 800;
-  color: #fff;
-  margin: 0 0 4px;
-  letter-spacing: -0.5px;
-}
-.login-subtitle { font-size: 0.9rem; color: rgba(255,255,255,0.6); margin: 0; }
-
-.login-card {
-  width: 100%;
-  background: rgba(255,255,255,0.97);
-  backdrop-filter: blur(20px);
-  border-radius: 20px;
-  padding: 36px 32px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.30), 0 4px 12px rgba(0,0,0,0.15);
-  border: 1px solid rgba(255,255,255,0.8);
+  font-size: 1.25rem;
 }
 
-.login-heading {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #0f172a;
-  margin: 0 0 6px;
-}
-.login-hint { font-size: 0.85rem; color: #64748b; margin: 0 0 24px; }
-
-.login-form { display: flex; flex-direction: column; }
-
-.form-group { margin-bottom: 18px; }
-.form-group label {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 6px;
-  display: block;
-}
-
-.input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.input-icon {
-  position: absolute;
-  left: 12px;
-  font-size: 0.9rem;
-  pointer-events: none;
-  z-index: 1;
-}
-
-.input-wrapper input {
-  width: 100%;
-  padding: 11px 44px 11px 38px;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 10px;
-  font-size: 0.95rem;
-  color: #0f172a;
-  background: #f8fafc;
-  transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
-  outline: none;
-}
-.input-wrapper input:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37,99,235,0.12);
-  background: #fff;
-}
-.input-wrapper input:disabled { opacity: 0.6; cursor: not-allowed; }
-
-.toggle-pw {
-  position: absolute;
-  right: 10px;
-  background: none !important;
-  border: none !important;
-  padding: 4px 6px !important;
-  cursor: pointer;
-  font-size: 0.85rem;
-  box-shadow: none !important;
-  transform: none !important;
-  color: #94a3b8;
-}
-.toggle-pw:hover { background: none !important; transform: none !important; }
-
-.login-error {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 14px;
-  background: #fef2f2;
-  color: #991b1b;
-  border-radius: 8px;
-  border-left: 3px solid #dc2626;
-  font-size: 0.87rem;
-  margin-bottom: 16px;
-}
-
-.login-btn {
-  width: 100%;
-  justify-content: center;
-  padding: 13px;
-  font-size: 0.98rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  color: #fff;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  transition: all 0.18s;
-  letter-spacing: 0.2px;
-  box-shadow: 0 4px 14px rgba(37,99,235,0.30);
-  margin-top: 4px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.login-btn:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(37,99,235,0.40);
-}
-.login-btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
-
-.register-link {
-  display: block;
-  margin-top: 12px;
+h1,
+.brand-copy {
   text-align: center;
-  color: #1d4ed8;
-  font-size: 0.9rem;
+}
+
+h1 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.8rem;
+}
+
+.brand-copy {
+  margin: 6px 0 22px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.auth-card {
+  display: grid;
+  gap: 16px;
+  padding: 28px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+  color: #0f172a;
+}
+
+.card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.card-heading h2 {
+  margin: 0;
+  font-size: 1.35rem;
+}
+
+.choice-panel {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #eff6ff;
+}
+
+.choice-panel div {
+  display: grid;
+  gap: 2px;
+}
+
+.choice-panel strong {
+  color: #1e3a8a;
+  font-size: 0.92rem;
+}
+
+.choice-panel span,
+.auth-note {
+  color: #64748b;
+  font-size: 0.84rem;
+}
+
+.choice-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.choice-link:hover {
+  background: #1d4ed8;
   text-decoration: none;
 }
 
-.register-link:hover {
-  text-decoration: underline;
-}
-
-.spinner {
-  display: inline-block;
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255,255,255,0.4);
-  border-top-color: #fff;
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  flex-shrink: 0;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-
-.login-footer-note {
-  font-size: 0.75rem;
-  color: rgba(255,255,255,0.4);
-  text-align: center;
+label {
+  display: grid;
+  gap: 7px;
   margin: 0;
+}
+
+.password-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+}
+
+.icon-button {
+  min-width: 76px;
+  justify-content: center;
+  padding-inline: 12px;
+  background: #e2e8f0;
+  color: #334155;
+  box-shadow: none;
+}
+
+.icon-button:hover:not(:disabled) {
+  background: #cbd5e1;
+  box-shadow: none;
+}
+
+.primary-button {
+  justify-content: center;
+  min-height: 44px;
+  margin-top: 4px;
+}
+
+.alert {
+  margin: 0;
+  padding: 11px 13px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.error {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+}
+
+.info {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+
+.twofa-step input {
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 22px;
+  }
+
+  .card-heading {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .password-row {
+    grid-template-columns: 1fr;
+  }
+
+  .choice-panel {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -751,12 +751,7 @@ onMounted(() => {
 
 
 <style scoped>
-.test-backend {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 2rem;
-  background: #ffffff;
-}
+
 
 h1 {
   color: #333;

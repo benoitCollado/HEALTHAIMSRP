@@ -34,22 +34,23 @@ if ! grep -qE '^SECRET_KEY=.+' .env; then
   exit 1
 fi
 
-echo "==> Build des images Docker..."
-docker compose build backend frontend
+echo "==> Arrêt des services app (backend, frontend) — Airflow non inclus..."
+docker compose stop backend frontend
+docker compose rm -f backend frontend
 
-echo "==> Redémarrage des services (connexion BDD via .env / Neon)..."
-docker compose up -d backend frontend
+echo "==> Build et redémarrage (backend, frontend uniquement)..."
+docker compose up -d --build backend frontend
 
 echo "==> Attente du backend (connexion Neon via DATABASE_URL)..."
 for i in $(seq 1 30); do
   if docker compose exec -T backend python -c \
-    "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=3)" \
+    "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)" \
     > /dev/null 2>&1; then
     echo "    Backend opérationnel (health OK, BDD externe joignable)."
     break
   fi
   if [[ "$i" -eq 30 ]]; then
-    echo "Erreur : le backend ne répond pas sur /api/health après 30 tentatives."
+    echo "Erreur : le backend ne répond pas sur /health après 30 tentatives."
     echo "Vérifiez DATABASE_URL (Neon) et les logs ci-dessous."
     docker compose logs --tail=50 backend
     exit 1
@@ -57,7 +58,7 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
-echo "==> État des conteneurs :"
+echo "==> État des conteneurs app :"
 docker compose ps backend frontend
 
 echo "==> Déploiement terminé avec succès."
