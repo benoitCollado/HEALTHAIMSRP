@@ -57,6 +57,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     # attached as a response background task so it is reliably scheduled by
     # Starlette after the 500 response is sent.
     user_id = _get_request_user_id(request)
+    request.state.error_alert_scheduled = True
     _log.error(
         "500 %s %s - %s: %s",
         request.method,

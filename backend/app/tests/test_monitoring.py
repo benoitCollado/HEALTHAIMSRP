@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from app.main import app
 from app.observability.monitoring import metrics
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
 
@@ -133,6 +134,29 @@ def test_unhandled_500_triggers_security_email_alert():
     error, method, url, user_id = mock_send.call_args.args
     assert isinstance(error, RuntimeError)
     assert method == "GET"
+    assert route_path in url
+    assert user_id is None
+
+
+def test_handled_5xx_response_triggers_security_email_alert():
+    route_path = "/__test_handled_503_alert"
+
+    if not any(getattr(route, "path", None) == route_path for route in app.routes):
+
+        @app.post(route_path)
+        def _handled_503_route():
+            return JSONResponse(status_code=503, content={"detail": "Service indisponible"})
+
+    with patch("app.middleware.send_error_alert") as mock_send:
+        with TestClient(app, raise_server_exceptions=False) as test_client:
+            response = test_client.post(route_path)
+
+    assert response.status_code == 503
+    mock_send.assert_called_once()
+    error, method, url, user_id = mock_send.call_args.args
+    assert type(error).__name__ == "HttpStatusAlertError"
+    assert "HTTP 503" in str(error)
+    assert method == "POST"
     assert route_path in url
     assert user_id is None
 

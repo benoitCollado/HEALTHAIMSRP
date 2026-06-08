@@ -2242,7 +2242,7 @@
                 <span class="cm"># Sécurité API</span>
                 SECRET_KEY=<span class="str">votre-clé-secrète-forte</span>
 
-                <span class="cm"># Alertes email critiques (erreurs 500)</span>
+                <span class="cm"># Alertes email critiques (erreurs 5xx)</span>
                 SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_USE_TLS=true
                 SMTP_USER=sender@example.com SMTP_PASS=mot-de-passe-app
                 ADMIN_EMAIL=admin@example.com
@@ -2525,7 +2525,7 @@
                     </tr>
                     <tr>
                         <td>Alertes email</td>
-                        <td>Email HTML sur erreur 500 non gérée, déclenché par le handler global FastAPI via <code>BackgroundTask</code>, SMTP configurable, cooldown anti-spam de 60 secondes.</td>
+                        <td>Email HTML sur toute réponse 5xx : exceptions 500 non gérées via le handler global FastAPI, et erreurs gérées comme <code>503 Service Unavailable</code> via le middleware de requêtes. SMTP configurable, cooldown anti-spam de 60 secondes.</td>
                     </tr>
                 </tbody>
             </table>
@@ -2738,7 +2738,7 @@
                     </tr>
                     <tr>
                         <td>Observabilité</td>
-                        <td><code>/health</code>, métriques applicatives, logs et alertes email sur erreurs 500</td>
+                        <td><code>/health</code>, métriques applicatives, logs et alertes email sur erreurs 5xx</td>
                     </tr>
                     <tr>
                         <td>Frontend</td>

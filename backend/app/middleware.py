@@ -1,12 +1,56 @@
 import logging
 import time
 
+from app.observability.email_alert import send_error_alert
 from app.observability.logger import get_logger
 from app.observability.monitoring import metrics
+from app.security import verify_token
+from starlette.background import BackgroundTask, BackgroundTasks
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 
 _access_log = get_logger("access")
+
+
+class HttpStatusAlertError(Exception):
+    """Synthetic error used for handled 5xx responses."""
+
+
+def _get_request_user_id(request: Request):
+    auth = request.headers.get("authorization", "")
+    scheme, _, token = auth.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        return None
+    payload = verify_token(token)
+    if not payload:
+        return None
+    sub = payload.get("sub")
+    try:
+        return int(sub)
+    except (TypeError, ValueError):
+        return sub
+
+
+def _attach_error_alert(request: Request, response):
+    if response.status_code < 500 or getattr(request.state, "error_alert_scheduled", False):
+        return
+
+    error = HttpStatusAlertError(f"HTTP {response.status_code} response")
+    alert_task = BackgroundTask(
+        send_error_alert,
+        error,
+        request.method,
+        str(request.url),
+        _get_request_user_id(request),
+    )
+
+    if response.background is None:
+        response.background = alert_task
+        return
+
+    background_tasks = BackgroundTasks([response.background])
+    background_tasks.add_task(alert_task)
+    response.background = background_tasks
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
@@ -46,5 +90,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             status,
             duration_ms,
         )
+
+        _attach_error_alert(request, response)
 
         return response
