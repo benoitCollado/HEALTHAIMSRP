@@ -5,12 +5,15 @@ from datetime import datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+from app.observability.logger import get_logger
+
 # ==============================
 # CONFIG
 # ==============================
 
 _last_sent: dict[str, datetime] = {}
 _COOLDOWN_SECONDS = 60
+_log = get_logger("email_alert")
 
 
 # ==============================
@@ -57,14 +60,24 @@ def send_error_alert(
     smtp_password = os.getenv("SMTP_PASS") or os.getenv("EMAIL_PASS")
     admin_email = os.getenv("ADMIN_EMAIL")
 
-    if not all([smtp_user, smtp_password, admin_email]):
-        print("[ERROR ALERT] SMTP non configuré")
+    missing = []
+    if not smtp_user:
+        missing.append("SMTP_USER ou EMAIL_USER")
+    if not smtp_password:
+        missing.append("SMTP_PASS ou EMAIL_PASS")
+    if not admin_email:
+        missing.append("ADMIN_EMAIL")
+    if missing:
+        message = f"SMTP non configure - variables manquantes: {', '.join(missing)}"
+        _log.warning("[ERROR ALERT] %s", message)
+        print(f"[ERROR ALERT] {message}")
         return
 
     # Group alerts by exception type and URL so one noisy endpoint cannot flood
     # the mailbox while unrelated errors still produce their own alert.
     error_key = f"{type(error).__name__}:{url}"
     if _is_on_cooldown(error_key):
+        _log.info("[ERROR ALERT] Alerte ignoree par cooldown: %s", error_key)
         return
     _last_sent[error_key] = datetime.utcnow()
 
@@ -149,13 +162,24 @@ def send_error_alert(
 
     # === SEND ===
     try:
+        _log.info(
+            "[ERROR ALERT] Envoi email: host=%s port=%s tls=%s from=%s to=%s url=%s",
+            smtp_host,
+            smtp_port,
+            smtp_use_tls,
+            smtp_user,
+            admin_email,
+            url,
+        )
         with smtplib.SMTP(smtp_host, smtp_port, timeout=10) as server:
             if smtp_use_tls:
                 server.starttls()
             server.login(smtp_user, smtp_password)
             server.sendmail(smtp_user, admin_email, msg.as_string())
 
-        print("[ERROR ALERT] Email envoyé")
+        _log.info("[ERROR ALERT] Email envoye")
+        print("[ERROR ALERT] Email envoye")
 
     except Exception as e:
+        _log.exception("[ERROR ALERT] Erreur envoi mail: %s", e)
         print("[ERROR ALERT] Erreur envoi mail:", e)

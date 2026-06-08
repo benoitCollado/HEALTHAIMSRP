@@ -71,7 +71,7 @@ def test_send_no_smtp_config_skips(capsys):
     with patch.dict("os.environ", {}, clear=True):
         send_error_alert(ValueError("test"))
     captured = capsys.readouterr()
-    assert "SMTP non configuré" in captured.out
+    assert "SMTP non configure" in captured.out
 
 
 def test_send_partial_config_skips(capsys):
@@ -79,7 +79,7 @@ def test_send_partial_config_skips(capsys):
     with patch.dict("os.environ", {"EMAIL_PASS": "x"}, clear=True):
         send_error_alert(ValueError("test"))
     captured = capsys.readouterr()
-    assert "SMTP non configuré" in captured.out
+    assert "SMTP non configure" in captured.out
 
 
 # ──────────────────────────────────────────────
@@ -127,7 +127,7 @@ def test_send_calls_smtp_correctly(capsys):
     assert "[ALERTE]" in args[2]
 
     captured = capsys.readouterr()
-    assert "Email envoyé" in captured.out
+    assert "Email envoye" in captured.out
 
 
 def test_send_email_contains_error_details(capsys):
