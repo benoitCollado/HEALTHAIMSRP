@@ -1,7 +1,9 @@
 from unittest.mock import patch
 
 import pytest
+from app.main import app
 from app.observability.monitoring import metrics
+from fastapi.testclient import TestClient
 from sqlalchemy.exc import OperationalError
 
 
@@ -110,6 +112,28 @@ def test_metrics_record_500_increments_errors():
     metrics.record("/api/broken", 10.0, 500)
     snap = metrics.snapshot()
     assert snap["errors_total"] == 1
+
+
+def test_unhandled_500_triggers_security_email_alert():
+    route_path = "/__test_unhandled_500_alert"
+
+    if not any(getattr(route, "path", None) == route_path for route in app.routes):
+        @app.get(route_path)
+        def _broken_route():
+            raise RuntimeError("security alert test")
+
+    with patch("app.main.send_error_alert") as mock_send:
+        with TestClient(app, raise_server_exceptions=False) as test_client:
+            response = test_client.get(route_path)
+
+    assert response.status_code == 500
+    assert response.json() == {"detail": "Erreur interne du serveur."}
+    mock_send.assert_called_once()
+    error, method, url, user_id = mock_send.call_args.args
+    assert isinstance(error, RuntimeError)
+    assert method == "GET"
+    assert route_path in url
+    assert user_id is None
 
 
 def test_metrics_record_4xx_not_error():

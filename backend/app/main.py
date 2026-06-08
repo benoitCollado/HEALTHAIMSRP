@@ -1,4 +1,3 @@
-import asyncio
 import os
 
 from app.dependencies import get_db, require_admin
@@ -20,6 +19,7 @@ from app.routers import (
 )
 from app.security import create_access_token, verify_password, verify_token, verify_totp_code
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
+from starlette.background import BackgroundTask
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
@@ -54,7 +54,8 @@ def _get_request_user_id(request: Request):
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     # Unhandled errors are logged with their traceback, then the admin alert is
-    # sent in a thread so the HTTP response is not blocked by SMTP latency.
+    # attached as a response background task so it is reliably scheduled by
+    # Starlette after the 500 response is sent.
     user_id = _get_request_user_id(request)
     _log.error(
         "500 %s %s - %s: %s",
@@ -64,9 +65,7 @@ async def global_exception_handler(request: Request, exc: Exception):
         exc,
         exc_info=(type(exc), exc, exc.__traceback__),
     )
-    loop = asyncio.get_event_loop()
-    loop.run_in_executor(
-        None,
+    alert_task = BackgroundTask(
         send_error_alert,
         exc,
         request.method,
@@ -76,6 +75,7 @@ async def global_exception_handler(request: Request, exc: Exception):
     return JSONResponse(
         status_code=500,
         content={"detail": "Erreur interne du serveur."},
+        background=alert_task,
     )
 
 

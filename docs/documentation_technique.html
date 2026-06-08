@@ -1145,7 +1145,7 @@
                         </li>
                         <li>
                             <strong>OAuth2 Password Flow</strong> — Standard
-                            d'auth
+                            d'auth RFC 6749
                         </li>
                         <li>
                             <strong>RBAC</strong> — Contrôle d'accès par rôle
@@ -1430,6 +1430,21 @@
                     </tr>
                 </tbody>
             </table>
+
+            <div class="callout">
+                <strong>OAuth2 Password Flow - RFC 6749</strong><br />
+                L'endpoint <code>POST /api/login</code> applique le flux
+                <em>Resource Owner Password Credentials Grant</em> de OAuth2,
+                defini par le standard RFC 6749. Le frontend transmet
+                <code>username</code> et <code>password</code> en
+                <code>application/x-www-form-urlencoded</code>, via
+                <code>OAuth2PasswordRequestForm</code>. Si les identifiants
+                sont valides, l'API genere un JWT signe en HS256 et retourne
+                <code>{"access_token": "...", "token_type": "bearer"}</code>.
+                Les routes protegees lisent ensuite l'en-tete
+                <code>Authorization: Bearer &lt;token&gt;</code> avec
+                <code>OAuth2PasswordBearer</code>.
+            </div>
 
             <h3>Utilisateurs — <code>/api/utilisateurs</code></h3>
             <table>
@@ -2426,6 +2441,67 @@
                 </div>
             </div>
 
+            <h3>OAuth2 Password Flow — Standard RFC 6749</h3>
+            <div class="callout">
+                <strong>Principe :</strong> le projet utilise le grant
+                <em>Resource Owner Password Credentials</em> de OAuth2. Ce flux
+                est adapte a une application de confiance controlee par le meme
+                projet que l'API : l'utilisateur saisit son login et son mot de
+                passe dans le frontend, puis l'API echange ces identifiants
+                contre un token d'acces JWT.
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Etape</th>
+                        <th>Implementation HealthAI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1. Soumission</td>
+                        <td>
+                            <code>POST /api/login</code> recoit
+                            <code>username</code> et <code>password</code> en
+                            <code>application/x-www-form-urlencoded</code>.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>2. Verification</td>
+                        <td>
+                            FastAPI parse le formulaire avec
+                            <code>OAuth2PasswordRequestForm</code>, puis le
+                            backend verifie le hash bcrypt stocke en base.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>3. Emission</td>
+                        <td>
+                            En cas de succes, l'API retourne un JWT HS256 :
+                            <code>access_token</code> + <code>token_type:
+                            bearer</code>. Le token contient l'identifiant
+                            utilisateur et le statut admin.
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>4. Acces protege</td>
+                        <td>
+                            Le frontend envoie ensuite
+                            <code>Authorization: Bearer &lt;token&gt;</code>.
+                            Les dependances <code>OAuth2PasswordBearer</code>,
+                            <code>verify_token</code> et
+                            <code>require_admin</code> controlent l'acces.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+            <p class="muted">
+                Point de vigilance : dans RFC 6749, ce flux est reserve aux
+                clients hautement fiables. Pour renforcer le niveau de securite,
+                le projet ajoute l'expiration du JWT, le hash bcrypt, le RBAC,
+                les en-tetes de securite et la 2FA TOTP configurable.
+            </p>
+
             <h3>Observabilité backend</h3>
             <table>
                 <thead>
@@ -2449,7 +2525,7 @@
                     </tr>
                     <tr>
                         <td>Alertes email</td>
-                        <td>Email HTML sur erreur 500 non gérée, SMTP configurable, cooldown anti-spam de 60 secondes.</td>
+                        <td>Email HTML sur erreur 500 non gérée, déclenché par le handler global FastAPI via <code>BackgroundTask</code>, SMTP configurable, cooldown anti-spam de 60 secondes.</td>
                     </tr>
                 </tbody>
             </table>
