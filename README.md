@@ -90,6 +90,8 @@ Les variables SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ADMIN_E
 
 ```bash
 docker compose up -d --build
+docker compose up -d --build backend frontend
+docker compose logs -f backend
 ```
 
 Services exposés par défaut :

@@ -56,15 +56,15 @@ def send_error_alert(
     smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes")
-    smtp_user = os.getenv("SMTP_USER") or os.getenv("EMAIL_USER") or os.getenv("ADMIN_EMAIL")
-    smtp_password = os.getenv("SMTP_PASS") or os.getenv("EMAIL_PASS")
+    smtp_user = os.getenv("SMTP_USER")
+    smtp_password = os.getenv("SMTP_PASS")
     admin_email = os.getenv("ADMIN_EMAIL")
 
     missing = []
     if not smtp_user:
-        missing.append("SMTP_USER ou EMAIL_USER")
+        missing.append("SMTP_USER")
     if not smtp_password:
-        missing.append("SMTP_PASS ou EMAIL_PASS")
+        missing.append("SMTP_PASS")
     if not admin_email:
         missing.append("ADMIN_EMAIL")
     if missing:
