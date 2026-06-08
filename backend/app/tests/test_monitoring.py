@@ -118,6 +118,7 @@ def test_unhandled_500_triggers_security_email_alert():
     route_path = "/__test_unhandled_500_alert"
 
     if not any(getattr(route, "path", None) == route_path for route in app.routes):
+
         @app.get(route_path)
         def _broken_route():
             raise RuntimeError("security alert test")
