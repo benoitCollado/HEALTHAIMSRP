@@ -125,8 +125,9 @@ def test_unhandled_500_triggers_security_email_alert():
             raise RuntimeError("security alert test")
 
     with patch("app.main.send_error_alert") as mock_send:
-        with TestClient(app, raise_server_exceptions=False) as test_client:
-            response = test_client.get(route_path)
+        with patch.dict("os.environ", {"ERROR_ALERT_EMAILS_IN_TESTS": "true"}):
+            with TestClient(app, raise_server_exceptions=False) as test_client:
+                response = test_client.get(route_path)
 
     assert response.status_code == 500
     assert response.json() == {"detail": "Erreur interne du serveur."}
@@ -148,8 +149,9 @@ def test_handled_5xx_response_triggers_security_email_alert():
             return JSONResponse(status_code=503, content={"detail": "Service indisponible"})
 
     with patch("app.middleware.send_error_alert") as mock_send:
-        with TestClient(app, raise_server_exceptions=False) as test_client:
-            response = test_client.post(route_path)
+        with patch.dict("os.environ", {"ERROR_ALERT_EMAILS_IN_TESTS": "true"}):
+            with TestClient(app, raise_server_exceptions=False) as test_client:
+                response = test_client.post(route_path)
 
     assert response.status_code == 503
     mock_send.assert_called_once()
@@ -171,8 +173,12 @@ def test_forbidden_403_response_triggers_security_email_alert(admin_token):
             return JSONResponse(status_code=403, content={"detail": "Admin only"})
 
     with patch("app.middleware.send_error_alert") as mock_send:
-        with TestClient(app, raise_server_exceptions=False) as test_client:
-            response = test_client.get(route_path, headers={"Authorization": f"Bearer {admin_token}"})
+        with patch.dict(
+            "os.environ",
+            {"ERROR_ALERT_EMAILS_IN_TESTS": "true", "ERROR_ALERT_ON_403": "true"},
+        ):
+            with TestClient(app, raise_server_exceptions=False) as test_client:
+                response = test_client.get(route_path, headers={"Authorization": f"Bearer {admin_token}"})
 
     assert response.status_code == 403
     mock_send.assert_called_once()
@@ -183,6 +189,24 @@ def test_forbidden_403_response_triggers_security_email_alert(admin_token):
     assert method == "GET"
     assert route_path in url
     assert user_id is not None
+
+
+def test_forbidden_403_response_does_not_alert_by_default(admin_token):
+    route_path = "/__test_forbidden_403_alert"
+
+    if not any(getattr(route, "path", None) == route_path for route in app.routes):
+
+        @app.get(route_path)
+        def _forbidden_route():
+            return JSONResponse(status_code=403, content={"detail": "Admin only"})
+
+    with patch("app.middleware.send_error_alert") as mock_send:
+        with patch.dict("os.environ", {"ERROR_ALERT_EMAILS_IN_TESTS": "true"}, clear=False):
+            with TestClient(app, raise_server_exceptions=False) as test_client:
+                response = test_client.get(route_path, headers={"Authorization": f"Bearer {admin_token}"})
+
+    assert response.status_code == 403
+    mock_send.assert_not_called()
 
 
 def test_metrics_record_4xx_not_error():

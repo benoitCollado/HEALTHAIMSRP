@@ -1,0 +1,13 @@
+<svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="HealthAI MSPR" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="8" y1="6" x2="58" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#14b8a6"/>
+      <stop offset="0.52" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#071226"/>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#bg)"/>
+  <path d="M32 12 47 18v13c0 10.9-6.2 17.6-15 21-8.8-3.4-15-10.1-15-21V18l15-6Z" fill="#ffffff" opacity=".96"/>
+  <path d="M20.5 32h6l2.5-7 5.1 14 3.1-7h6.3" fill="none" stroke="#0f766e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

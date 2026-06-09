@@ -3,36 +3,70 @@
     <Navbar title="Accueil" />
     <div id="main-content" class="page-content">
       <!-- Admin view: Navigation -->
-      <div v-if="isAdmin">
-        <h2>Page d'accueil</h2>
-        <p>Bienvenue dans le système de gestion des flux</p>
+      <div v-if="isAdmin" class="admin-home">
+        <div class="admin-hero">
+          <div>
+            <span class="eyebrow">Administration</span>
+            <h2>Page d'accueil</h2>
+            <p>Bienvenue dans le systeme de gestion des flux HealthAI.</p>
+          </div>
+        </div>
         <div class="nav-grid">
           <router-link to="/dashboard" class="nav-card">
-            <div class="nav-icon">📊</div>
-            <div>Dashboard</div>
+            <div class="nav-icon">DB</div>
+            <div>
+              <strong>Dashboard</strong>
+              <span>Indicateurs et tendances</span>
+            </div>
           </router-link>
           <router-link to="/gestion-des-flux" class="nav-card">
-            <div class="nav-icon">📋</div>
-            <div>Gestion des flux</div>
+            <div class="nav-icon">FL</div>
+            <div>
+              <strong>Gestion des flux</strong>
+              <span>Imports et pipelines</span>
+            </div>
           </router-link>
           <router-link to="/nettoyage" class="nav-card">
-            <div class="nav-icon">🧹</div>
-            <div>Nettoyage</div>
+            <div class="nav-icon">QA</div>
+            <div>
+              <strong>Nettoyage</strong>
+              <span>Qualite des donnees</span>
+            </div>
           </router-link>
           <router-link to="/utilisateurs" class="nav-card">
-            <div class="nav-icon">👥</div>
-            <div>Utilisateurs</div>
+            <div class="nav-icon">US</div>
+            <div>
+              <strong>Utilisateurs</strong>
+              <span>Comptes et roles</span>
+            </div>
           </router-link>
           <router-link to="/test-backend" class="nav-card">
-            <div class="nav-icon">🧪</div>
-            <div>Test API</div>
+            <div class="nav-icon">API</div>
+            <div>
+              <strong>Test API</strong>
+              <span>Controle backend</span>
+            </div>
           </router-link>
         </div>
       </div>
 
       <!-- User view: Profile -->
       <div v-else class="user-view">
-        <h2>Votre profil</h2>
+        <div class="user-profile-header">
+          <div>
+            <span class="eyebrow">Espace utilisateur</span>
+            <h2>Votre profil</h2>
+          </div>
+          <div class="header-twofa">
+            <div>
+              <span class="user-label">Securite A2A / 2FA</span>
+              <span class="goal-status" :class="twoFactorEnabled ? 'termine' : 'en_pause'">
+                {{ twoFactorEnabled ? 'Activee' : 'Desactivee' }}
+              </span>
+            </div>
+            <button class="action-btn" @click="activeTab = 'securite'">Configurer</button>
+          </div>
+        </div>
 
         <!-- Tab navigation -->
         <div class="user-tabs">
@@ -140,17 +174,6 @@
                 <div class="user-label">Date d'inscription</div>
                 <div class="user-value">{{ formatDate(userProfile?.date_inscription) }}</div>
               </div>
-            </div>
-
-            <div class="twofa-panel">
-              <div class="twofa-status-row">
-                <span class="user-label">Securite A2A / 2FA</span>
-                <span class="goal-status" :class="twoFactorEnabled ? 'termine' : 'en_pause'">
-                  {{ twoFactorEnabled ? 'Activee' : 'Desactivee' }}
-                </span>
-              </div>
-              <p class="helper-text">La 2FA est optionnelle: elle n'est jamais activee par defaut.</p>
-              <button class="action-btn" @click="activeTab = 'securite'">Configurer la securite A2A</button>
             </div>
           </div>
 
@@ -1152,6 +1175,39 @@ export default defineComponent({
   margin: 0 auto;
 }
 
+.user-profile-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 22px 24px;
+  margin-bottom: 14px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.user-profile-header h2 {
+  margin-bottom: 0;
+}
+
+.header-twofa {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px;
+  background: #f8fbff;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+}
+
+.header-twofa > div {
+  display: grid;
+  gap: 4px;
+  min-width: 132px;
+}
+
 .user-panel {
   background: #fff;
   padding: 24px;
@@ -1468,37 +1524,101 @@ export default defineComponent({
   margin-bottom: 6px;
 }
 
+.admin-home {
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.admin-hero {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 26px;
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+
+.admin-hero h2 {
+  margin-bottom: 6px;
+}
+
+.admin-hero p {
+  margin-bottom: 0;
+}
+
+.eyebrow {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: var(--primary-dark);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
 .nav-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
-  margin-top: 32px;
-  max-width: 900px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
 }
 .nav-card {
   display: flex;
-  flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 32px;
-  background: #fff;
+  gap: 14px;
+  min-height: 112px;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 8px;
   text-decoration: none;
-  color: #333;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
-  font-size: 18px;
-  font-weight: 500;
+  color: var(--gray-900);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
 }
 .nav-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+  border-color: rgba(37, 99, 235, 0.30);
+  box-shadow: var(--shadow);
+  text-decoration: none;
 }
 .nav-icon {
-  font-size: 48px;
+  display: flex;
+  flex: 0 0 48px;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  color: var(--primary-dark);
+  font-size: 0.78rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--primary-light), var(--accent-light));
+  border: 1px solid rgba(37, 99, 235, 0.14);
+  border-radius: 8px;
+}
+
+.nav-card strong {
+  display: block;
+  margin-bottom: 2px;
+}
+
+.nav-card span {
+  color: var(--gray-500);
+  font-size: 0.86rem;
 }
 
 @media (max-width: 900px) {
+  .user-profile-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .header-twofa {
+    justify-content: space-between;
+  }
+
   .user-grid,
   .user-grid-2 {
     grid-template-columns: 1fr;

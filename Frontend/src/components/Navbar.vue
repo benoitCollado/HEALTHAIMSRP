@@ -1,33 +1,37 @@
 <template>
-  <header class="navbar" role="banner" aria-label="En-tête de l'application">
+  <header class="navbar" role="banner" aria-label="En-tete de l'application">
     <div class="navbar-inner">
-      <router-link to="/page-accueil" class="navbar-brand" aria-label="Retour à l'accueil HealthAI MSRP">
-        <span class="navbar-logo">❤️</span>
-        HealthAI MSPR
+      <router-link to="/page-accueil" class="navbar-brand" aria-label="Retour a l'accueil HealthAI MSRP">
+        <img class="navbar-logo" :src="healthAiIcon" alt="" aria-hidden="true" />
+        <span class="brand-copy">
+          <span class="brand-name">HealthAI</span>
+          <span class="brand-subtitle">MSPR</span>
+        </span>
       </router-link>
 
+      <router-link to="/page-accueil" class="nav-link nav-home">Accueil</router-link>
       <router-link v-if="currentUser" to="/chat" class="nav-link">Chat IA</router-link>
 
       <nav v-if="isAdmin" class="navbar-nav">
-        <router-link to="/dashboard"        class="nav-link">📊 Dashboard</router-link>
-        <router-link to="/gestion-des-flux" class="nav-link">📋 Flux</router-link>
-        <router-link to="/nettoyage"        class="nav-link">🧹 Nettoyage</router-link>
-        <router-link to="/utilisateurs"     class="nav-link">👥 Utilisateurs</router-link>
-        <router-link to="/test-backend"     class="nav-link">🧪 Test API</router-link>
+        <router-link to="/dashboard" class="nav-link">Dashboard</router-link>
+        <router-link to="/gestion-des-flux" class="nav-link">Flux</router-link>
+        <router-link to="/nettoyage" class="nav-link">Nettoyage</router-link>
+        <router-link to="/utilisateurs" class="nav-link">Utilisateurs</router-link>
+        <router-link to="/test-backend" class="nav-link">Test API</router-link>
       </nav>
 
       <span class="navbar-page-title" aria-hidden="true">{{ title }}</span>
 
       <div class="navbar-user">
-        <span v-if="currentUser" class="user-info" aria-label="Utilisateur connecté : {{ currentUser.username }}">
+        <span v-if="currentUser" class="user-info" :aria-label="`Utilisateur connecte : ${currentUser.username}`">
           <span class="user-avatar">{{ userInitial }}</span>
           {{ currentUser.username }}
           <span class="user-role" :class="{ admin: isAdmin }">
             {{ isAdmin ? 'Admin' : 'Utilisateur' }}
           </span>
         </span>
-        <button v-if="currentUser" @click="logout" class="btn-logout" aria-label="Se déconnecter">
-          Déconnexion
+        <button v-if="currentUser" class="btn-logout" aria-label="Se deconnecter" @click="logout">
+          Deconnexion
         </button>
       </div>
     </div>
@@ -35,8 +39,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted } from 'vue'
+import { computed, defineComponent, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import healthAiIcon from '../assets/healthai_icon.svg'
 import { auth, type User } from '../services/auth'
 
 export default defineComponent({
@@ -56,146 +61,195 @@ export default defineComponent({
       router.push('/connexion')
     }
 
-    return { currentUser, isAdmin, userInitial, logout }
+    return { currentUser, healthAiIcon, isAdmin, userInitial, logout }
   }
 })
 </script>
 
 <style scoped>
 .navbar {
-  background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
-  color: #fff;
-  padding: 0 24px;
-  height: 60px;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.20);
   position: sticky;
   top: 0;
   z-index: 100;
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  padding: 0 24px;
+  color: var(--gray-900);
+  background: rgba(255, 255, 255, 0.86);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(16px);
 }
 
 .navbar-inner {
   display: flex;
   align-items: center;
-  gap: 16px;
-  max-width: 1400px;
+  gap: 14px;
   width: 100%;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
-/* Brand */
 .navbar-brand {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-  color: #fff;
-  font-size: 1rem;
-  font-weight: 700;
-  white-space: nowrap;
   flex-shrink: 0;
-  letter-spacing: 0.3px;
+  align-items: center;
+  gap: 10px;
+  color: var(--gray-900);
+  font-size: 1rem;
+  font-weight: 800;
+  text-decoration: none;
+  white-space: nowrap;
 }
-.navbar-brand:hover { opacity: 0.85; text-decoration: none; }
-.navbar-logo { font-size: 1.2rem; }
 
-/* Nav links */
+.navbar-brand:hover {
+  opacity: 0.9;
+  text-decoration: none;
+}
+
+.navbar-logo {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.24);
+}
+
+.brand-copy {
+  display: grid;
+  line-height: 1.05;
+}
+
+.brand-name {
+  font-size: 1.02rem;
+}
+
+.brand-subtitle {
+  color: var(--gray-500);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
 .navbar-nav {
   display: flex;
-  align-items: center;
-  gap: 4px;
   flex: 1;
+  align-items: center;
+  gap: 6px;
 }
 
 .nav-link {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  color: rgba(255,255,255,0.85);
+  padding: 8px 12px;
+  color: var(--gray-600);
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 650;
   text-decoration: none;
-  transition: background 0.15s, color 0.15s;
   white-space: nowrap;
+  border-radius: 8px;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
 }
-.nav-link:hover { background: rgba(255,255,255,0.15); color: #fff; text-decoration: none; }
+
+.nav-link:hover {
+  color: var(--gray-900);
+  text-decoration: none;
+  background: var(--gray-100);
+}
+
 .nav-link.router-link-active {
-  background: rgba(255,255,255,0.2);
-  color: #fff;
-  font-weight: 600;
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.16);
 }
 
-/* Page title */
 .navbar-page-title {
-  font-size: 0.9rem;
-  opacity: 0.75;
-  white-space: nowrap;
   flex-shrink: 0;
+  color: var(--gray-500);
+  font-size: 0.9rem;
+  white-space: nowrap;
 }
 
-/* User info */
 .navbar-user {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 10px;
   margin-left: auto;
-  flex-shrink: 0;
 }
 
 .user-info {
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--gray-700);
   font-size: 0.875rem;
-  color: rgba(255,255,255,0.9);
+  font-weight: 600;
 }
 
 .user-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.25);
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
+  width: 30px;
+  height: 30px;
+  color: #fff;
   font-size: 0.85rem;
-  flex-shrink: 0;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--primary), #14b8a6);
+  border-radius: 50%;
 }
 
 .user-role {
   padding: 2px 8px;
-  border-radius: 12px;
+  color: var(--gray-600);
   font-size: 0.72rem;
-  font-weight: 700;
-  background: rgba(255,255,255,0.18);
-  color: #fff;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  background: var(--gray-100);
+  border-radius: 999px;
 }
-.user-role.admin { background: rgba(251,191,36,0.3); color: #fde68a; }
+
+.user-role.admin {
+  color: #0369a1;
+  background: #ecfeff;
+}
 
 .btn-logout {
-  padding: 6px 14px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  background: rgba(255,255,255,0.15);
+  padding: 8px 13px;
   color: #fff;
-  border: 1px solid rgba(255,255,255,0.3);
-  border-radius: 6px;
-  cursor: pointer;
-  transition: background 0.15s;
+  font-size: 0.82rem;
+  font-weight: 700;
   white-space: nowrap;
+  cursor: pointer;
+  background: var(--gray-900);
+  border: 1px solid var(--gray-900);
+  border-radius: 8px;
+  transition: background 0.15s, border-color 0.15s;
 }
-.btn-logout:hover { background: rgba(255,255,255,0.25); transform: none; box-shadow: none; }
 
-/* Responsive */
+.btn-logout:hover {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+  box-shadow: none;
+  transform: none;
+}
+
 @media (max-width: 900px) {
-  .navbar-nav { display: none; }
-  .navbar-page-title { display: none; }
-  .user-info { display: none; }
+  .navbar-nav,
+  .navbar-page-title,
+  .user-info {
+    display: none;
+  }
+}
+
+@media (max-width: 540px) {
+  .navbar {
+    padding: 0 14px;
+  }
+
+  .brand-subtitle {
+    display: none;
+  }
 }
 </style>

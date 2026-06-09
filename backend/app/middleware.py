@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 
 from app.observability.email_alert import send_error_alert
@@ -20,6 +21,24 @@ class ForbiddenAccessAlertError(Exception):
     """Synthetic error used for HTTP 403 security alerts."""
 
 
+def _flag_enabled(name: str, default: bool = True) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _email_alerts_enabled() -> bool:
+    app_env = os.getenv("APP_ENV", "").strip().lower()
+    if app_env in {"test", "testing"} and not _flag_enabled("ERROR_ALERT_EMAILS_IN_TESTS", False):
+        return False
+    return _flag_enabled("ERROR_ALERT_EMAIL_ENABLED", True)
+
+
+def _forbidden_alerts_enabled() -> bool:
+    return _flag_enabled("ERROR_ALERT_ON_403", False)
+
+
 def _get_request_user_id(request: Request):
     auth = request.headers.get("authorization", "")
     scheme, _, token = auth.partition(" ")
@@ -36,7 +55,12 @@ def _get_request_user_id(request: Request):
 
 
 def _attach_error_alert(request: Request, response):
+    if not _email_alerts_enabled():
+        return
+
     if response.status_code == 403:
+        if not _forbidden_alerts_enabled():
+            return
         error = ForbiddenAccessAlertError(
             "ALERTE SECURITE: acces interdit HTTP 403. Cela peut indiquer une tentative d'acces non autorisee."
         )

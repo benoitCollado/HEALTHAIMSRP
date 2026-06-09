@@ -175,26 +175,39 @@ export default defineComponent({
 
 <style scoped>
 .dashboard-container {
-  padding: 24px;
-  max-width: 1100px;
+  padding: 28px 24px;
+  max-width: 1180px;
   width: 100%;
   margin: 0 auto;
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  gap: 18px;
 }
 
 .card {
-  background: #fff;
-  padding: 16px;
+  position: relative;
+  overflow: hidden;
+  padding: 18px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--shadow);
+}
+
+.card::before {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  content: "";
+  background: linear-gradient(90deg, var(--accent), var(--primary));
 }
 
 .card h2 {
   font-size: 1rem;
   margin: 0 0 12px 0;
-  color: #2f4b66;
+  color: var(--gray-900);
 }
 
 .kpi-grid {
@@ -207,31 +220,32 @@ export default defineComponent({
   flex: 1;
   min-width: 80px;
   padding: 12px;
-  background: #f7f9fc;
-  border-radius: 6px;
+  background: #f8fbff;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
 }
 
 .kpi-value {
   display: block;
   font-size: 1.5rem;
-  font-weight: 700;
-  color: #2f4b66;
+  font-weight: 800;
+  color: var(--primary-dark);
 }
 
 .kpi-label {
   font-size: 0.85rem;
-  color: #5a6c7d;
+  color: var(--gray-500);
 }
 
 .loading, .error {
   grid-column: 1 / -1;
   padding: 12px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .loading {
-  background: #f5f7fa;
-  color: #2f4b66;
+  background: var(--primary-light);
+  color: var(--primary-dark);
 }
 
 .error {

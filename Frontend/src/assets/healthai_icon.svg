@@ -1,0 +1,23 @@
+<svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-labelledby="title desc" xmlns="http://www.w3.org/2000/svg">
+  <title id="title">HealthAI MSPR</title>
+  <desc id="desc">Icone HealthAI avec bouclier, signal cardiaque et accents IA.</desc>
+  <defs>
+    <linearGradient id="healthai-bg" x1="8" y1="6" x2="58" y2="60" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#14b8a6"/>
+      <stop offset="0.52" stop-color="#2563eb"/>
+      <stop offset="1" stop-color="#4338ca"/>
+    </linearGradient>
+    <linearGradient id="healthai-shield" x1="18" y1="14" x2="48" y2="50" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#dff7ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="16" fill="#071226"/>
+  <rect x="4" y="4" width="56" height="56" rx="14" fill="url(#healthai-bg)"/>
+  <path d="M32 12 47 18v13c0 10.9-6.2 17.6-15 21-8.8-3.4-15-10.1-15-21V18l15-6Z" fill="url(#healthai-shield)" opacity=".96"/>
+  <path d="M32 17.5 42 21.5v9.2c0 7.2-3.9 11.8-10 14.6-6.1-2.8-10-7.4-10-14.6v-9.2l10-4Z" fill="#e8fbff"/>
+  <path d="M20.5 32h6l2.5-7 5.1 14 3.1-7h6.3" fill="none" stroke="#0f766e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="41.5" cy="18.5" r="2.2" fill="#6366f1"/>
+  <circle cx="46.5" cy="23.5" r="1.5" fill="#22d3ee"/>
+  <circle cx="23.5" cy="17.5" r="1.5" fill="#22d3ee"/>
+</svg>
