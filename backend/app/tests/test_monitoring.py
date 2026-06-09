@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import pytest
+import app.middleware as middleware_module
 from app.main import _get_cors_origins, app
 from app.observability.monitoring import metrics
 from fastapi.responses import JSONResponse
@@ -11,8 +12,12 @@ from sqlalchemy.exc import OperationalError
 @pytest.fixture(autouse=True)
 def reset_metrics():
     metrics.reset()
+    middleware_module._forbidden_attempts.clear()
+    middleware_module._last_forbidden_alert.clear()
     yield
     metrics.reset()
+    middleware_module._forbidden_attempts.clear()
+    middleware_module._last_forbidden_alert.clear()
 
 
 # ──────────────────────────────────────────────
@@ -101,6 +106,29 @@ def test_metrics_counts_errors(client, admin_headers):
     assert body["errors_total"] == 0  # 401 is not a 5xx
 
 
+def test_access_log_includes_user_ip_and_4xx_category(client, admin_headers):
+    with patch("app.middleware._access_log.log") as mock_log:
+        response = client.delete(
+            "/objectifs/99999",
+            headers={**admin_headers, "X-Forwarded-For": "203.0.113.10, 10.0.0.1"},
+        )
+
+    assert response.status_code == 404
+    log_calls = [
+        call
+        for call in mock_log.call_args_list
+        if call.args[1] == "%s %s -> %d category=%s user=%s ip=%s duration_ms=%.1f"
+    ]
+    assert log_calls
+    _, _, method, route, status, category, user, ip, _duration = log_calls[-1].args
+    assert method == "DELETE"
+    assert route == "/objectifs/99999"
+    assert status == 404
+    assert category == "client_error"
+    assert user != "anonymous"
+    assert ip == "203.0.113.10"
+
+
 def test_metrics_avg_duration_positive(client, admin_headers):
     client.get("/exercices", headers=admin_headers)
     response = client.get("/metrics", headers=admin_headers)
@@ -180,7 +208,7 @@ def test_handled_5xx_response_triggers_security_email_alert():
     assert user_id is None
 
 
-def test_forbidden_403_response_triggers_security_email_alert(admin_token):
+def test_forbidden_403_burst_triggers_security_email_alert(admin_token):
     route_path = "/__test_forbidden_403_alert"
 
     if not any(getattr(route, "path", None) == route_path for route in app.routes):
@@ -192,23 +220,31 @@ def test_forbidden_403_response_triggers_security_email_alert(admin_token):
     with patch("app.middleware.send_error_alert") as mock_send:
         with patch.dict(
             "os.environ",
-            {"ERROR_ALERT_EMAILS_IN_TESTS": "true", "ERROR_ALERT_ON_403": "true"},
+            {
+                "ERROR_ALERT_EMAILS_IN_TESTS": "true",
+                "ERROR_ALERT_ON_403": "true",
+                "ERROR_ALERT_403_THRESHOLD": "3",
+                "ERROR_ALERT_403_WINDOW_SECONDS": "60",
+                "ERROR_ALERT_403_COOLDOWN_SECONDS": "60",
+            },
         ):
             with TestClient(app, raise_server_exceptions=False) as test_client:
-                response = test_client.get(route_path, headers={"Authorization": f"Bearer {admin_token}"})
+                for _ in range(3):
+                    response = test_client.get(route_path, headers={"Authorization": f"Bearer {admin_token}"})
 
     assert response.status_code == 403
     mock_send.assert_called_once()
     error, method, url, user_id = mock_send.call_args.args
     assert type(error).__name__ == "ForbiddenAccessAlertError"
     assert "HTTP 403" in str(error)
+    assert "3 refus" in str(error)
     assert "tentative" in str(error)
     assert method == "GET"
     assert route_path in url
     assert user_id is not None
 
 
-def test_forbidden_403_response_does_not_alert_by_default(admin_token):
+def test_single_forbidden_403_response_does_not_alert(admin_token):
     route_path = "/__test_forbidden_403_alert"
 
     if not any(getattr(route, "path", None) == route_path for route in app.routes):

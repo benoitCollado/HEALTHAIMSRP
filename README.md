@@ -87,7 +87,7 @@ GRAFANA_ADMIN_PASSWORD=<mot-de-passe-grafana>
 
 `CORS_ALLOWED_ORIGINS` contient les origines frontend autorisees, separees par des virgules. En production, utiliser l'origine du site sans `/api` ni slash final, par exemple `https://healthai.benoitcollado.com`.
 
-Les variables SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ADMIN_EMAIL`) activent les alertes email sur erreurs 5xx. Les alertes email sur reponses 403 sont desactivees par defaut pour eviter le bruit des refus attendus; les reactiver avec `ERROR_ALERT_ON_403=true` si besoin.
+Les variables SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ADMIN_EMAIL`) activent les alertes email sur erreurs 5xx. Un 403 isole n'envoie pas d'email; une rafale de 403 pour le meme client/utilisateur declenche une alerte securite selon `ERROR_ALERT_403_THRESHOLD`, `ERROR_ALERT_403_WINDOW_SECONDS` et `ERROR_ALERT_403_COOLDOWN_SECONDS`.
 
 ## Démarrage avec Docker
 

@@ -2248,11 +2248,13 @@
                 <span class="cm"># Sécurité API</span>
                 SECRET_KEY=<span class="str">votre-clé-secrète-forte</span>
 
-                <span class="cm"># Alertes email critiques (erreurs 5xx, 403 optionnelles)</span>
+                <span class="cm"># Alertes email critiques (erreurs 5xx, rafales 403)</span>
                 SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_USE_TLS=true
                 SMTP_USER=sender@example.com SMTP_PASS=mot-de-passe-app
                 ADMIN_EMAIL=admin@example.com
-                ERROR_ALERT_EMAIL_ENABLED=true ERROR_ALERT_ON_403=false
+                ERROR_ALERT_EMAIL_ENABLED=true ERROR_ALERT_ON_403=true
+                ERROR_ALERT_403_THRESHOLD=5 ERROR_ALERT_403_WINDOW_SECONDS=300
+                ERROR_ALERT_403_COOLDOWN_SECONDS=300
 
                 <span class="cm"># CORS production (origine frontend sans /api ni slash final)</span>
                 CORS_ALLOWED_ORIGINS=<span class="str">https://healthai.example.com</span>
@@ -2604,7 +2606,7 @@
                     </tr>
                     <tr>
                         <td>Alertes email</td>
-                        <td>Email HTML sur toute réponse 5xx : exceptions 500 non gérées via le handler global FastAPI, et erreurs gérées comme <code>503 Service Unavailable</code> via le middleware de requêtes. Les alertes sur <code>403 Forbidden</code> sont optionnelles et désactivées par défaut avec <code>ERROR_ALERT_ON_403=false</code> pour éviter le bruit des refus attendus. SMTP configurable, cooldown anti-spam de 60 secondes.</td>
+                        <td>Email HTML sur toute réponse 5xx : exceptions 500 non gérées via le handler global FastAPI, et erreurs gérées comme <code>503 Service Unavailable</code> via le middleware de requêtes. Un <code>403 Forbidden</code> isolé n'envoie pas d'email; une rafale de 403 pour le même client/utilisateur déclenche une alerte sécurité selon <code>ERROR_ALERT_403_THRESHOLD</code>, <code>ERROR_ALERT_403_WINDOW_SECONDS</code> et <code>ERROR_ALERT_403_COOLDOWN_SECONDS</code>. SMTP configurable, cooldown anti-spam de 60 secondes par erreur.</td>
                     </tr>
                 </tbody>
             </table>
@@ -2817,7 +2819,7 @@
                     </tr>
                     <tr>
                         <td>Observabilité</td>
-                        <td><code>/health</code>, métriques applicatives, logs, alertes email sur erreurs 5xx et alertes 403 optionnelles</td>
+                        <td><code>/health</code>, métriques applicatives, logs, alertes email sur erreurs 5xx et alertes sur rafales 403</td>
                     </tr>
                     <tr>
                         <td>Frontend</td>
@@ -3069,7 +3071,7 @@
                     </tr>
                     <tr>
                         <td>Observabilité</td>
-                        <td><code>/health</code>, métriques en mémoire, journalisation, alertes email 5xx et alertes 403 optionnelles</td>
+                        <td><code>/health</code>, métriques en mémoire, journalisation, alertes email 5xx et alertes sur rafales 403</td>
                     </tr>
                     <tr>
                         <td>Limite actuelle</td>
@@ -3705,7 +3707,7 @@
             <h3>Fonctionnalités CRUD</h3>
             <ul class="feature-list">
                 <li><span class="check">✓</span>Endpoints complets Create, Read, Update, Delete sur les ressources métier.</li>
-                <li><span class="check">✓</span>Gestion des réponses d'erreur cohérentes (404, 401, 403 selon le contexte), avec alerte sécurité email sur les accès interdits 403.</li>
+                <li><span class="check">✓</span>Gestion des réponses d'erreur cohérentes (404, 401, 403 selon le contexte), avec alerte sécurité email uniquement sur rafale de 403 suspecte.</li>
                 <li><span class="check">✓</span>Protection par rôles (admin/non-admin) et authentification JWT.</li>
             </ul>
 

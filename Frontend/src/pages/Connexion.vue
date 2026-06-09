@@ -1,21 +1,25 @@
 <template>
   <main class="auth-page">
-    <section class="auth-panel">
-      <div class="brand-mark">H+</div>
-      <h1>HealthAI MSPR</h1>
-      <p class="brand-copy">Suivi santé intelligent</p>
+    <section class="auth-shell" aria-labelledby="login-title">
+      <div class="brand-strip">
+        <img class="brand-icon" :src="healthAiIcon" alt="" aria-hidden="true" />
+        <div>
+          <p class="brand-kicker">HealthAI MSPR</p>
+          <h1>Suivi sante intelligent</h1>
+        </div>
+      </div>
 
       <form class="auth-card" @submit.prevent="submit">
         <div class="card-heading">
-          <h2>Connexion</h2>
+          <div>
+            <p class="eyebrow">Espace securise</p>
+            <h2 id="login-title">Connexion</h2>
+          </div>
         </div>
 
-        <div class="choice-panel">
-          <div>
-            <strong>Déjà inscrit ?</strong>
-            <span>Connectez-vous avec votre mot de passe. Si la 2FA est activée, le code sera demandé ensuite.</span>
-          </div>
-          <router-link to="/inscription" class="choice-link">Créer un compte</router-link>
+        <div class="helper-panel">
+          <strong>Deja inscrit ?</strong>
+          <span>Connectez-vous avec votre mot de passe. Si la 2FA est activee, le code sera demande ensuite.</span>
         </div>
 
         <label for="username">
@@ -43,7 +47,7 @@
               placeholder="Votre mot de passe"
               required
             />
-            <button type="button" class="icon-button" :disabled="isLoading" @click="showPassword = !showPassword">
+            <button type="button" class="secondary-button" :disabled="isLoading" @click="showPassword = !showPassword">
               {{ showPassword ? 'Masquer' : 'Voir' }}
             </button>
           </div>
@@ -58,14 +62,14 @@
             type="text"
             inputmode="numeric"
             autocomplete="one-time-code"
-            placeholder="Code à 6 chiffres"
+            placeholder="Code a 6 chiffres"
             maxlength="6"
             required
           />
         </label>
 
-        <p v-if="error" class="alert error">{{ error }}</p>
-        <p v-else-if="requiresTwoFactor" class="alert info">
+        <p v-if="error" class="auth-alert error">{{ error }}</p>
+        <p v-else-if="requiresTwoFactor" class="auth-alert info">
           Ouvrez Google Authenticator ou Authy, puis saisissez le code temporaire.
         </p>
 
@@ -73,9 +77,10 @@
           {{ submitLabel }}
         </button>
 
-        <p class="auth-note">
-          Nouveau sur HealthAI ? Créez un compte, puis activez la 2FA depuis votre espace sécurité.
-        </p>
+        <div class="create-account-panel">
+          <span>Nouveau sur HealthAI ?</span>
+          <router-link to="/inscription" class="choice-link">Creer un compte</router-link>
+        </div>
       </form>
     </section>
   </main>
@@ -84,6 +89,7 @@
 <script lang="ts">
 import { computed, defineComponent, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import healthAiIcon from '../assets/healthai_icon.svg'
 import { auth } from '../services/auth'
 
 export default defineComponent({
@@ -98,7 +104,7 @@ export default defineComponent({
     const requiresTwoFactor = ref(false)
     const canSubmit = computed(() => username.value.trim().length > 0 && password.value.length > 0)
     const submitLabel = computed(() => {
-      if (isLoading.value) return requiresTwoFactor.value ? 'Vérification...' : 'Connexion...'
+      if (isLoading.value) return requiresTwoFactor.value ? 'Verification...' : 'Connexion...'
       return requiresTwoFactor.value ? 'Valider le code 2FA' : 'Se connecter'
     })
 
@@ -132,6 +138,7 @@ export default defineComponent({
       password,
       otp,
       error,
+      healthAiIcon,
       isLoading,
       showPassword,
       requiresTwoFactor,
@@ -144,109 +151,173 @@ export default defineComponent({
 
 <style scoped>
 .auth-page {
-  min-height: 100vh;
   display: grid;
+  min-height: 100vh;
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at top left, rgba(37, 99, 235, 0.16), transparent 34%),
-    linear-gradient(135deg, #0f2044 0%, #1e3a5f 52%, #2563eb 100%);
+    radial-gradient(circle at 18% 0%, rgba(20, 184, 166, 0.16), transparent 34%),
+    radial-gradient(circle at 86% 10%, rgba(37, 99, 235, 0.18), transparent 32%),
+    linear-gradient(135deg, #071226 0%, #24364f 54%, #2563eb 100%);
 }
 
-.auth-panel {
-  width: min(100%, 430px);
+.auth-shell {
+  width: min(100%, 460px);
+}
+
+.brand-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-bottom: 18px;
   color: #fff;
 }
 
-.brand-mark {
+.brand-icon {
   width: 52px;
   height: 52px;
-  display: grid;
-  place-items: center;
-  margin: 0 auto 14px;
-  border: 1px solid rgba(255, 255, 255, 0.36);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.14);
-  font-weight: 800;
-  font-size: 1.25rem;
+  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.32);
 }
 
-h1,
-.brand-copy {
-  text-align: center;
-}
-
-h1 {
+.brand-strip h1,
+.brand-strip p {
   margin: 0;
-  color: #fff;
-  font-size: 1.8rem;
 }
 
-.brand-copy {
-  margin: 6px 0 22px;
-  color: rgba(255, 255, 255, 0.78);
+.brand-strip h1 {
+  color: #fff;
+  font-size: 1.28rem;
+}
+
+.brand-kicker {
+  color: rgba(255, 255, 255, 0.70);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
 }
 
 .auth-card {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   padding: 28px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.98);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
   color: #0f172a;
+  background: rgba(255, 255, 255, 0.98);
+  border: 1px solid rgba(226, 232, 240, 0.88);
+  border-radius: 8px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
 }
 
 .card-heading {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 14px;
+}
+
+.card-heading h2,
+.eyebrow {
+  margin: 0;
 }
 
 .card-heading h2 {
-  margin: 0;
-  font-size: 1.35rem;
+  color: #0f172a;
+  font-size: 1.55rem;
 }
 
-.choice-panel {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  gap: 14px;
-  padding: 12px;
+.eyebrow {
+  color: #2563eb;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.auth-badge {
+  flex: 0 0 auto;
+  padding: 5px 9px;
+  color: #0369a1;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: #ecfeff;
+  border-radius: 999px;
+}
+
+.helper-panel,
+.create-account-panel {
+  padding: 14px;
+  background: #f8fbff;
   border: 1px solid #dbeafe;
-  border-radius: 10px;
-  background: #eff6ff;
+  border-radius: 8px;
 }
 
-.choice-panel div {
+.helper-panel {
   display: grid;
-  gap: 2px;
+  gap: 5px;
 }
 
-.choice-panel strong {
+.helper-panel strong {
   color: #1e3a8a;
-  font-size: 0.92rem;
 }
 
-.choice-panel span,
-.auth-note {
+.helper-panel span,
+.create-account-panel span {
   color: #64748b;
-  font-size: 0.84rem;
+  font-size: 0.9rem;
+}
+
+label {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  color: #334155;
+  font-weight: 700;
+}
+
+.password-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 96px;
+  gap: 10px;
+}
+
+.secondary-button {
+  justify-content: center;
+  min-height: 48px;
+  padding-inline: 12px;
+  color: #334155;
+  background: #e2e8f0;
+  box-shadow: none;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: #cbd5e1;
+  box-shadow: none;
+}
+
+.primary-button {
+  justify-content: center;
+  min-height: 52px;
+  font-size: 1rem;
+}
+
+.create-account-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
 }
 
 .choice-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
-  padding: 7px 12px;
-  border-radius: 8px;
-  background: #2563eb;
+  min-height: 40px;
+  padding: 9px 14px;
   color: #fff;
-  font-weight: 700;
+  font-weight: 800;
   white-space: nowrap;
+  background: #2563eb;
+  border-radius: 8px;
 }
 
 .choice-link:hover {
@@ -254,80 +325,58 @@ h1 {
   text-decoration: none;
 }
 
-label {
-  display: grid;
-  gap: 7px;
-  margin: 0;
-}
-
-.password-row {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 8px;
-}
-
-.icon-button {
-  min-width: 76px;
-  justify-content: center;
-  padding-inline: 12px;
-  background: #e2e8f0;
-  color: #334155;
-  box-shadow: none;
-}
-
-.icon-button:hover:not(:disabled) {
-  background: #cbd5e1;
-  box-shadow: none;
-}
-
-.primary-button {
-  justify-content: center;
-  min-height: 44px;
-  margin-top: 4px;
-}
-
-.alert {
+.auth-alert {
   margin: 0;
   padding: 11px 13px;
-  border-radius: 8px;
   font-size: 0.9rem;
+  border-radius: 8px;
 }
 
 .error {
-  background: #fef2f2;
   color: #991b1b;
+  background: #fef2f2;
   border: 1px solid #fecaca;
 }
 
 .info {
-  background: #eff6ff;
   color: #1e40af;
+  background: #eff6ff;
   border: 1px solid #bfdbfe;
 }
 
 .twofa-step input {
-  font-weight: 700;
-  letter-spacing: 0.16em;
+  font-weight: 800;
   text-align: center;
+  letter-spacing: 0.16em;
 }
 
-@media (max-width: 480px) {
+@media (max-width: 520px) {
+  .auth-page {
+    align-items: start;
+    padding: 18px;
+  }
+
+  .brand-strip {
+    align-items: flex-start;
+  }
+
   .auth-card {
     padding: 22px;
   }
 
-  .card-heading {
-    align-items: flex-start;
+  .card-heading,
+  .create-account-panel {
+    align-items: stretch;
     flex-direction: column;
-    gap: 4px;
   }
 
   .password-row {
     grid-template-columns: 1fr;
   }
 
-  .choice-panel {
-    grid-template-columns: 1fr;
+  .choice-link,
+  .secondary-button {
+    width: 100%;
   }
 }
 </style>

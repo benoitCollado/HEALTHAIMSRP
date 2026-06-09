@@ -251,7 +251,7 @@ Si cette variable n'est pas definie, les origines locales de developpement sont 
 
 ### Alertes email
 
-Les alertes email couvrent les erreurs 5xx quand SMTP est configure. Les alertes sur reponses 403 sont desactivees par defaut pour eviter le spam des refus attendus; les reactiver avec `ERROR_ALERT_ON_403=true` si besoin.
+Les alertes email couvrent les erreurs 5xx quand SMTP est configure. Un 403 isole n'envoie pas d'email; une rafale de 403 pour le meme client/utilisateur declenche une alerte securite selon `ERROR_ALERT_403_THRESHOLD`, `ERROR_ALERT_403_WINDOW_SECONDS` et `ERROR_ALERT_403_COOLDOWN_SECONDS`.
 
 ---
 
