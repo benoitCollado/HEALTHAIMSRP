@@ -6,6 +6,8 @@
         HealthAI MSPR
       </router-link>
 
+      <router-link v-if="currentUser" to="/chat" class="nav-link">Chat IA</router-link>
+
       <nav v-if="isAdmin" class="navbar-nav">
         <router-link to="/dashboard"        class="nav-link">📊 Dashboard</router-link>
         <router-link to="/gestion-des-flux" class="nav-link">📋 Flux</router-link>

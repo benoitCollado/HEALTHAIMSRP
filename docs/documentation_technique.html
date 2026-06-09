@@ -1600,6 +1600,12 @@
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Catalogue des exercices physiques</td>
                     </tr>
+                    <tr>
+                        <td><span class="badge b-post">POST</span></td>
+                        <td><code>/api/chat/</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Chat utilisateur HealthAI MSPR via API Mistral, avec contexte limité au suivi santé et à l'utilisation de la plateforme</td>
+                    </tr>
                 </tbody>
             </table>
 
@@ -2250,6 +2256,10 @@
                 <span class="cm"># Logs applicatifs</span>
                 LOG_DIR=logs
 
+                <span class="cm"># Chat IA utilisateur (Mistral)</span>
+                KEY_MISTRAL_API=<span class="str">votre-cle-api-mistral</span>
+                MISTRAL_MODEL=mistral-small-latest
+
                 <span class="cm"># Ports (optionnels, valeurs par défaut)</span>
                 FRONTEND_PORT=127.0.0.1:89 BACKEND_PORT=127.0.0.1:8089
                 AIRFLOW_PORT=8080
@@ -2502,6 +2512,71 @@
                 les en-tetes de securite et la 2FA TOTP configurable.
             </p>
 
+            <h3>Chat IA utilisateur avec Mistral</h3>
+            <p>
+                Le module de chat ajoute un assistant LLM simple pour les
+                utilisateurs authentifies. L'interface Vue expose la page
+                <code>/chat</code> et appelle le backend via
+                <code>POST /api/chat/</code>. La cle Mistral reste uniquement
+                cote serveur : le navigateur envoie le message utilisateur et
+                un historique court, puis le backend relaie la requete vers
+                <code>https://api.mistral.ai/v1/chat/completions</code>.
+            </p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Element</th>
+                        <th>Role technique</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>backend/app/routers/chat.py</code></td>
+                        <td>Routeur FastAPI protege par JWT, construction du prompt systeme HealthAI MSPR et appel HTTP Mistral via <code>httpx</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/schemas/chat.py</code></td>
+                        <td>Validation Pydantic du message, de l'historique limite a 10 messages et de la reponse <code>answer</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>Frontend/src/pages/ChatAssistant.vue</code></td>
+                        <td>Interface utilisateur avec zone de conversation, suggestions, et etats chargement/erreur.</td>
+                    </tr>
+                    <tr>
+                        <td><code>Frontend/src/services/chatApi.ts</code></td>
+                        <td>Service frontend qui ajoute <code>Authorization: Bearer &lt;token&gt;</code> et transmet le message au backend.</td>
+                    </tr>
+                </tbody>
+            </table>
+            <div class="code-block">
+                <span class="cm"># Requete frontend vers backend</span>
+                POST /api/chat/
+                Authorization: Bearer &lt;jwt&gt;
+                Content-Type: application/json
+
+                {
+                  "message": "Comment suivre mes objectifs sante ?",
+                  "history": [
+                    { "role": "assistant", "content": "Bonjour, comment puis-je aider ?" }
+                  ]
+                }
+
+                <span class="cm"># Reponse backend</span>
+                {
+                  "answer": "Vous pouvez suivre vos objectifs depuis votre profil..."
+                }
+            </div>
+            <p>
+                Le prompt systeme cadre l'assistant sur le suivi sante, les
+                objectifs, l'alimentation, l'activite physique, les metriques et
+                l'utilisation de HealthAI MSPR. Il precise egalement que le chat
+                ne remplace pas un professionnel de sante et ne doit pas fournir
+                de diagnostic medical. Les erreurs de configuration renvoient
+                <code>503</code> si la cle Mistral est absente ou refusee, et
+                <code>502</code> si l'API Mistral est indisponible ou renvoie une
+                reponse invalide.
+            </p>
+
             <h3>Observabilité backend</h3>
             <table>
                 <thead>
@@ -2734,7 +2809,7 @@
                     </tr>
                     <tr>
                         <td>Routes métier</td>
-                        <td>Activités, consommations, métriques santé, objectifs, aliments, exercices et utilisateurs</td>
+                        <td>Activités, consommations, métriques santé, objectifs, aliments, exercices, utilisateurs et chat utilisateur IA</td>
                     </tr>
                     <tr>
                         <td>Observabilité</td>
@@ -2986,7 +3061,7 @@
                     </tr>
                     <tr>
                         <td>Routes métier</td>
-                        <td>CRUD activités, consommations, métriques, objectifs, aliments, exercices et utilisateurs</td>
+                        <td>CRUD activités, consommations, métriques, objectifs, aliments, exercices et utilisateurs, plus endpoint de chat IA Mistral</td>
                     </tr>
                     <tr>
                         <td>Observabilité</td>

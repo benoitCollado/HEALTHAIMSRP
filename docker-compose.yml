@@ -19,6 +19,8 @@ services:
       API_ROOT_PATH: ${API_ROOT_PATH:-/api}
       DATA_DIR: /data
       LOG_DIR: /app/logs
+      KEY_MISTRAL_API: ${KEY_MISTRAL_API:-}
+      MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
       AIRFLOW_API_URL: ${AIRFLOW_API_URL:-http://host.docker.internal:8080}
       AIRFLOW_USER: ${AIRFLOW_USER:-airflow}
       AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}

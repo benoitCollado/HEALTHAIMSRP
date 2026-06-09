@@ -10,6 +10,7 @@ from app.routers import (
     activites,
     admin,
     aliments,
+    chat,
     consommations,
     exercices,
     metriques_sante,
@@ -159,3 +160,4 @@ app.include_router(metriques_sante.router)
 app.include_router(objectifs.router)
 app.include_router(two_factor.router)
 app.include_router(admin.router)
+app.include_router(chat.router)

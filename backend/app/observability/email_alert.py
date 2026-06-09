@@ -37,6 +37,15 @@ def _get_stacktrace(error: Exception) -> str:
     return tb
 
 
+def _first_env(*names: str) -> str | None:
+    """Return the first non-empty environment value among compatible aliases."""
+    for name in names:
+        value = os.getenv(name)
+        if value and value.strip():
+            return value.strip()
+    return None
+
+
 # ==============================
 # MAIN FUNCTION
 # ==============================
@@ -53,18 +62,18 @@ def send_error_alert(
     """
 
     # === ENV ===
-    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes")
-    admin_email = os.getenv("ADMIN_EMAIL")
-    smtp_user = os.getenv("SMTP_USER") or os.getenv("EMAIL_USER") or admin_email
-    smtp_password = os.getenv("SMTP_PASS") or os.getenv("EMAIL_PASS")
+    smtp_host = _first_env("SMTP_HOST") or "smtp.gmail.com"
+    smtp_port = int(_first_env("SMTP_PORT") or "587")
+    smtp_use_tls = (_first_env("SMTP_USE_TLS") or "true").lower() in ("1", "true", "yes")
+    admin_email = _first_env("ADMIN_EMAIL")
+    smtp_user = _first_env("SMTP_USER", "EMAIL_USER") or admin_email
+    smtp_password = _first_env("SMTP_PASS", "EMAIL_PASS")
 
     missing = []
     if not smtp_user:
-        missing.append("SMTP_USER")
+        missing.append("SMTP_USER or EMAIL_USER")
     if not smtp_password:
-        missing.append("SMTP_PASS")
+        missing.append("SMTP_PASS or EMAIL_PASS")
     if not admin_email:
         missing.append("ADMIN_EMAIL")
     if missing:
