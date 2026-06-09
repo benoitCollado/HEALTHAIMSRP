@@ -81,10 +81,13 @@ DATABASE_URL=postgresql://<user>:<password>@<host>.neon.tech/<dbname>?sslmode=re
 SECRET_KEY=<cle-secrete-longue-et-aleatoire>
 API_ROOT_PATH=/api
 VITE_API_URL=/api
+CORS_ALLOWED_ORIGINS=http://localhost:89,http://127.0.0.1:89,https://healthai.benoitcollado.com
 GRAFANA_ADMIN_PASSWORD=<mot-de-passe-grafana>
 ```
 
-Les variables SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ADMIN_EMAIL`) activent les alertes email sur erreurs 500.
+`CORS_ALLOWED_ORIGINS` contient les origines frontend autorisees, separees par des virgules. En production, utiliser l'origine du site sans `/api` ni slash final, par exemple `https://healthai.benoitcollado.com`.
+
+Les variables SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ADMIN_EMAIL`) activent les alertes email sur erreurs 5xx. Les alertes email sur reponses 403 sont desactivees par defaut pour eviter le bruit des refus attendus; les reactiver avec `ERROR_ALERT_ON_403=true` si besoin.
 
 ## Démarrage avec Docker
 
@@ -192,4 +195,3 @@ La CI GitHub Actions lance les tests backend, les tests frontend, le build Vite,
 - Les tokens JWT sont signés avec `SECRET_KEY`.
 - Les erreurs 500 non gérées sont journalisées et peuvent déclencher une alerte email.
 - Les en-têtes HTTP de sécurité sont ajoutés par middleware backend.
-

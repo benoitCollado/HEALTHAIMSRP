@@ -235,6 +235,26 @@ Le middleware `SecurityHeadersMiddleware` (`app/middleware.py`) ajoute automatiq
 
 ---
 
+## Configuration production
+
+### CORS
+
+Le backend lit `CORS_ALLOWED_ORIGINS`, une liste d'origines frontend separees par des virgules.
+En production, renseigner l'origine du site sans `/api` ni slash final :
+
+```env
+CORS_ALLOWED_ORIGINS=https://healthai.benoitcollado.com
+```
+
+Si cette variable n'est pas definie, les origines locales de developpement sont autorisees par defaut :
+`http://localhost:89`, `http://127.0.0.1:89`, `http://localhost:5173` et `http://127.0.0.1:5173`.
+
+### Alertes email
+
+Les alertes email couvrent les erreurs 5xx quand SMTP est configure. Les alertes sur reponses 403 sont desactivees par defaut pour eviter le spam des refus attendus; les reactiver avec `ERROR_ALERT_ON_403=true` si besoin.
+
+---
+
 ## Variables d'environnement
 
 ```env

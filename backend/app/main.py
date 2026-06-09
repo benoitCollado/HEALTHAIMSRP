@@ -20,15 +20,30 @@ from app.routers import (
 )
 from app.security import create_access_token, verify_password, verify_token, verify_totp_code
 from fastapi import Depends, FastAPI, Form, HTTPException, Request
-from starlette.background import BackgroundTask
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
 
 _log = get_logger("main")
+
+
+def _get_cors_origins() -> list[str]:
+    configured = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    origins = [origin.strip().rstrip("/") for origin in configured.split(",") if origin.strip()]
+    if origins:
+        return origins
+
+    return [
+        "http://localhost:89",
+        "http://127.0.0.1:89",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
 
 app = FastAPI(
     title="HealthAI Coach API",
@@ -85,7 +100,7 @@ app.add_middleware(RequestLoggingMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_get_cors_origins(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

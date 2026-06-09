@@ -1,7 +1,7 @@
 from unittest.mock import patch
 
 import pytest
-from app.main import app
+from app.main import _get_cors_origins, app
 from app.observability.monitoring import metrics
 from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
@@ -46,6 +46,23 @@ def test_health_has_security_headers(client):
 # ──────────────────────────────────────────────
 # /metrics
 # ──────────────────────────────────────────────
+
+
+def test_cors_origins_from_env(monkeypatch):
+    monkeypatch.setenv("CORS_ALLOWED_ORIGINS", " https://healthai.example.com/ , http://localhost:89 ")
+    assert _get_cors_origins() == ["https://healthai.example.com", "http://localhost:89"]
+
+
+def test_cors_preflight_allows_local_frontend(client):
+    response = client.options(
+        "/health",
+        headers={
+            "Origin": "http://localhost:89",
+            "Access-Control-Request-Method": "GET",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:89"
 
 
 def test_metrics_requires_admin(client):
