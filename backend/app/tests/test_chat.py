@@ -17,13 +17,7 @@ def test_chat_calls_mistral(client, admin_headers, monkeypatch):
 
     mock_response = MagicMock()
     mock_response.json.return_value = {
-        "choices": [
-            {
-                "message": {
-                    "content": "HealthAI MSPR peut vous aider a suivre vos objectifs."
-                }
-            }
-        ]
+        "choices": [{"message": {"content": "HealthAI MSPR peut vous aider a suivre vos objectifs."}}]
     }
     mock_response.raise_for_status.return_value = None
 
@@ -42,9 +36,7 @@ def test_chat_calls_mistral(client, admin_headers, monkeypatch):
         )
 
     assert response.status_code == 200
-    assert response.json() == {
-        "answer": "HealthAI MSPR peut vous aider a suivre vos objectifs."
-    }
+    assert response.json() == {"answer": "HealthAI MSPR peut vous aider a suivre vos objectifs."}
 
     call_kwargs = mock_client.__enter__.return_value.post.call_args.kwargs
     assert call_kwargs["headers"]["Authorization"] == "Bearer test-key"

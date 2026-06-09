@@ -26,11 +26,7 @@ professionnel de sante en cas de symptome, douleur, urgence ou decision medicale
 
 
 def _get_mistral_api_key() -> str | None:
-    return (
-        os.getenv("KEY_MISTRAL_API")
-        or os.getenv("KEY_MISTRALL_API")
-        or os.getenv("MISTRAL_API_KEY")
-    )
+    return os.getenv("KEY_MISTRAL_API") or os.getenv("KEY_MISTRALL_API") or os.getenv("MISTRAL_API_KEY")
 
 
 @router.post("/", response_model=ChatResponse)

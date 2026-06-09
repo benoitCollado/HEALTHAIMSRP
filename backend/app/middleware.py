@@ -38,8 +38,7 @@ def _get_request_user_id(request: Request):
 def _attach_error_alert(request: Request, response):
     if response.status_code == 403:
         error = ForbiddenAccessAlertError(
-            "ALERTE SECURITE: acces interdit HTTP 403. "
-            "Cela peut indiquer une tentative d'acces non autorisee."
+            "ALERTE SECURITE: acces interdit HTTP 403. Cela peut indiquer une tentative d'acces non autorisee."
         )
     elif response.status_code >= 500 and not getattr(request.state, "error_alert_scheduled", False):
         error = HttpStatusAlertError(f"HTTP {response.status_code} response")
