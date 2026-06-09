@@ -56,9 +56,9 @@ def send_error_alert(
     smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
     smtp_port = int(os.getenv("SMTP_PORT", "587"))
     smtp_use_tls = os.getenv("SMTP_USE_TLS", "true").lower() in ("1", "true", "yes")
-    smtp_user = os.getenv("SMTP_USER")
-    smtp_password = os.getenv("SMTP_PASS")
     admin_email = os.getenv("ADMIN_EMAIL")
+    smtp_user = os.getenv("SMTP_USER") or os.getenv("EMAIL_USER") or admin_email
+    smtp_password = os.getenv("SMTP_PASS") or os.getenv("EMAIL_PASS")
 
     missing = []
     if not smtp_user:
@@ -84,6 +84,15 @@ def send_error_alert(
     # === DATA ===
     now = datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
     tb = _get_stacktrace(error)
+    is_security_alert = type(error).__name__ == "ForbiddenAccessAlertError"
+    alert_title = "Alerte securite HTTP 403" if is_security_alert else "Erreur API"
+    alert_intro = (
+        "Acces interdit detecte. Verifiez si cette requete correspond a une tentative "
+        "d'intrusion, un token vole, ou un utilisateur sans droits admin."
+        if is_security_alert
+        else "Erreur backend detectee."
+    )
+    subject_prefix = "[ALERTE SECURITE 403]" if is_security_alert else "[ALERTE]"
 
     # === HTML ===
     html = f"""
@@ -92,11 +101,12 @@ def send_error_alert(
       <div style="max-width:700px;margin:auto;background:#fff;border-radius:8px;overflow:hidden">
 
         <div style="background:#c0392b;padding:20px;color:#fff">
-          <h2 style="margin:0">⚠ Erreur API</h2>
+          <h2 style="margin:0">{alert_title}</h2>
           <p style="margin:4px 0 0">{now}</p>
         </div>
 
         <div style="padding:20px">
+          <p style="font-weight:bold;color:#c0392b">{alert_intro}</p>
           <table style="width:100%;border-collapse:collapse">
             <tr>
               <td style="padding:8px;font-weight:bold">Type</td>
@@ -138,7 +148,9 @@ def send_error_alert(
 
     # === TEXT fallback (important pour certains clients mail) ===
     text = f"""
-    Erreur API
+    {alert_title}
+
+    {alert_intro}
 
     Date: {now}
     Type: {type(error).__name__}
@@ -153,7 +165,7 @@ def send_error_alert(
 
     # === EMAIL ===
     msg = MIMEMultipart("alternative")
-    msg["Subject"] = f"[ALERTE] {type(error).__name__} - {method} {url}"
+    msg["Subject"] = f"{subject_prefix} {type(error).__name__} - {method} {url}"
     msg["From"] = smtp_user
     msg["To"] = admin_email
 

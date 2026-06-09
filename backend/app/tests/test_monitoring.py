@@ -161,6 +161,30 @@ def test_handled_5xx_response_triggers_security_email_alert():
     assert user_id is None
 
 
+def test_forbidden_403_response_triggers_security_email_alert(admin_token):
+    route_path = "/__test_forbidden_403_alert"
+
+    if not any(getattr(route, "path", None) == route_path for route in app.routes):
+
+        @app.get(route_path)
+        def _forbidden_route():
+            return JSONResponse(status_code=403, content={"detail": "Admin only"})
+
+    with patch("app.middleware.send_error_alert") as mock_send:
+        with TestClient(app, raise_server_exceptions=False) as test_client:
+            response = test_client.get(route_path, headers={"Authorization": f"Bearer {admin_token}"})
+
+    assert response.status_code == 403
+    mock_send.assert_called_once()
+    error, method, url, user_id = mock_send.call_args.args
+    assert type(error).__name__ == "ForbiddenAccessAlertError"
+    assert "HTTP 403" in str(error)
+    assert "tentative" in str(error)
+    assert method == "GET"
+    assert route_path in url
+    assert user_id is not None
+
+
 def test_metrics_record_4xx_not_error():
     metrics.record("/api/missing", 5.0, 404)
     snap = metrics.snapshot()

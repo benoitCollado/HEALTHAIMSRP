@@ -2242,7 +2242,7 @@
                 <span class="cm"># Sécurité API</span>
                 SECRET_KEY=<span class="str">votre-clé-secrète-forte</span>
 
-                <span class="cm"># Alertes email critiques (erreurs 5xx)</span>
+                <span class="cm"># Alertes email critiques (erreurs 5xx et alertes sécurité 403)</span>
                 SMTP_HOST=smtp.gmail.com SMTP_PORT=587 SMTP_USE_TLS=true
                 SMTP_USER=sender@example.com SMTP_PASS=mot-de-passe-app
                 ADMIN_EMAIL=admin@example.com
@@ -2525,7 +2525,7 @@
                     </tr>
                     <tr>
                         <td>Alertes email</td>
-                        <td>Email HTML sur toute réponse 5xx : exceptions 500 non gérées via le handler global FastAPI, et erreurs gérées comme <code>503 Service Unavailable</code> via le middleware de requêtes. SMTP configurable, cooldown anti-spam de 60 secondes.</td>
+                        <td>Email HTML sur toute réponse 5xx : exceptions 500 non gérées via le handler global FastAPI, et erreurs gérées comme <code>503 Service Unavailable</code> via le middleware de requêtes. Les réponses <code>403 Forbidden</code> déclenchent aussi une alerte sécurité explicite (<code>[ALERTE SECURITE 403]</code>) pour signaler une tentative d'accès non autorisée potentielle, avec méthode, URL et utilisateur si le JWT est lisible. SMTP configurable, cooldown anti-spam de 60 secondes.</td>
                     </tr>
                 </tbody>
             </table>
@@ -2738,7 +2738,7 @@
                     </tr>
                     <tr>
                         <td>Observabilité</td>
-                        <td><code>/health</code>, métriques applicatives, logs et alertes email sur erreurs 5xx</td>
+                        <td><code>/health</code>, métriques applicatives, logs, alertes email sur erreurs 5xx et alertes sécurité sur réponses 403</td>
                     </tr>
                     <tr>
                         <td>Frontend</td>
@@ -2990,7 +2990,7 @@
                     </tr>
                     <tr>
                         <td>Observabilité</td>
-                        <td><code>/health</code>, métriques en mémoire, journalisation et alertes email</td>
+                        <td><code>/health</code>, métriques en mémoire, journalisation, alertes email 5xx et alertes sécurité 403</td>
                     </tr>
                     <tr>
                         <td>Limite actuelle</td>
@@ -3626,7 +3626,7 @@
             <h3>Fonctionnalités CRUD</h3>
             <ul class="feature-list">
                 <li><span class="check">✓</span>Endpoints complets Create, Read, Update, Delete sur les ressources métier.</li>
-                <li><span class="check">✓</span>Gestion des réponses d'erreur cohérentes (404, 401, 403 selon le contexte).</li>
+                <li><span class="check">✓</span>Gestion des réponses d'erreur cohérentes (404, 401, 403 selon le contexte), avec alerte sécurité email sur les accès interdits 403.</li>
                 <li><span class="check">✓</span>Protection par rôles (admin/non-admin) et authentification JWT.</li>
             </ul>
 
