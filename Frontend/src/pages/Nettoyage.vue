@@ -57,11 +57,11 @@
             </thead>
             <tbody>
               <tr v-for="r in rows" :key="r.id">
-                <td>{{ r.id }}</td>
-                <td>{{ r.type_affichage }}</td>
-                <td>{{ r.description }}</td>
-                <td>{{ r.detail }}</td>
-                <td>
+                <td data-label="ID">{{ r.id }}</td>
+                <td data-label="Type">{{ r.type_affichage }}</td>
+                <td data-label="Description">{{ r.description }}</td>
+                <td data-label="Detail">{{ r.detail }}</td>
+                <td data-label="Actions">
                   <div class="btn-group">
                     <button
                       type="button"
@@ -267,7 +267,8 @@ export default defineComponent({
   background: #fff;
   padding: 16px;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.20);
+  box-shadow: var(--shadow);
 }
 
 .card h2 {
@@ -340,6 +341,9 @@ export default defineComponent({
 .table {
   width: 100%;
   border-collapse: collapse;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
 }
 
 .table th, .table td {
@@ -462,6 +466,62 @@ export default defineComponent({
     width: 100%;
     max-width: none;
     padding: 18px;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table {
+    border: 0;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tr {
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .table td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 8px 0;
+    text-align: right;
+    border-bottom: 1px solid var(--gray-100);
+    overflow-wrap: anywhere;
+  }
+
+  .table td:last-child {
+    display: block;
+    border-bottom: 0;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    flex: 0 0 38%;
+    color: var(--gray-500);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .table td:last-child::before {
+    display: none;
   }
 }
 </style>

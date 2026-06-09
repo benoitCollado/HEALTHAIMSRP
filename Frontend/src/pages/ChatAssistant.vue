@@ -5,8 +5,9 @@
       <section class="chat-shell" aria-labelledby="chat-title">
         <header class="chat-header">
           <div>
+            <span class="chat-eyebrow">Assistant IA</span>
             <h1 id="chat-title">Assistant HealthAI MSPR</h1>
-            <p>Posez une question sur votre suivi sante ou l'utilisation de la plateforme.</p>
+            <p>Posez une question sur vos donnees sante, vos objectifs ou le fonctionnement de la plateforme.</p>
           </div>
           <button class="btn btn-outline" type="button" @click="resetChat" :disabled="messages.length === 0 || loading">
             Nouveau chat
@@ -17,16 +18,21 @@
 
         <div class="chat-window" role="log" aria-live="polite" aria-label="Conversation">
           <div v-if="messages.length === 0" class="empty-state">
+            <div class="empty-mark">AI</div>
             <h2>Comment puis-je vous aider ?</h2>
+            <p>Choisissez un exemple ou ecrivez directement votre question.</p>
             <div class="suggestions">
               <button type="button" @click="useSuggestion('Comment suivre mes objectifs sante dans HealthAI MSPR ?')">
-                Objectifs sante
+                <span>Objectifs sante</span>
+                <small>Suivi, progression, conseils</small>
               </button>
               <button type="button" @click="useSuggestion('Que puis-je analyser avec mes metriques sante ?')">
-                Metriques
+                <span>Metriques</span>
+                <small>Poids, sommeil, cardio, pas</small>
               </button>
               <button type="button" @click="useSuggestion('Comment la plateforme gere les flux de donnees ?')">
-                Flux de donnees
+                <span>Flux de donnees</span>
+                <small>Import, controle, nettoyage</small>
               </button>
             </div>
           </div>
@@ -116,17 +122,17 @@ export default defineComponent({
 <style scoped>
 .chat-page {
   width: 100%;
-  max-width: 980px;
+  max-width: 900px;
   margin: 0 auto;
-  padding: 28px 20px;
+  padding: 16px 18px;
 }
 
 .chat-shell {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 116px);
-  background: var(--white);
-  border: 1px solid var(--gray-200);
+  min-height: calc(100vh - 180px);
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 8px;
   box-shadow: var(--shadow);
   overflow: hidden;
@@ -137,68 +143,131 @@ export default defineComponent({
   align-items: flex-start;
   justify-content: space-between;
   gap: 16px;
-  padding: 22px 24px;
-  border-bottom: 1px solid var(--gray-200);
+  padding: 16px 18px;
+  background: linear-gradient(180deg, #fff, #f8fbff);
+  border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.chat-eyebrow {
+  display: inline-flex;
+  margin-bottom: 6px;
+  color: var(--primary-dark);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .chat-header h1 {
   margin: 0 0 4px;
-  font-size: 1.35rem;
+  font-size: 1.12rem;
 }
 
 .chat-header p {
+  font-size: 0.9rem;
   margin: 0;
   color: var(--gray-500);
 }
 
 .chat-window {
   flex: 1;
-  min-height: 420px;
-  max-height: calc(100vh - 290px);
+  min-height: 330px;
+  max-height: calc(100vh - 330px);
   overflow-y: auto;
-  padding: 24px;
-  background: var(--gray-50);
+  padding: 20px;
+  background:
+    linear-gradient(180deg, rgba(248, 251, 255, 0.92), rgba(255, 255, 255, 0.92)),
+    linear-gradient(90deg, rgba(226, 232, 240, 0.38) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(226, 232, 240, 0.38) 1px, transparent 1px);
+  background-size: auto, 36px 36px, 36px 36px;
 }
 
 .empty-state {
   display: grid;
+  justify-items: center;
   align-content: center;
-  min-height: 330px;
+  min-height: 300px;
   text-align: center;
 }
 
+.empty-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 10px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-radius: 8px;
+  box-shadow: var(--shadow-blue);
+}
+
 .empty-state h2 {
-  font-size: 1.2rem;
+  margin-bottom: 6px;
+  font-size: 1.15rem;
+}
+
+.empty-state p {
+  max-width: 460px;
+  margin-bottom: 16px;
+  color: var(--gray-500);
 }
 
 .suggestions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
-  margin-top: 12px;
+  width: min(100%, 620px);
+  margin-top: 2px;
 }
 
 .suggestions button {
+  display: grid;
+  gap: 4px;
+  min-height: 70px;
+  padding: 11px 12px;
+  text-align: left;
   background: var(--white);
-  color: var(--primary);
-  border: 1px solid var(--gray-300);
+  color: var(--gray-900);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 8px;
   box-shadow: none;
 }
 
+.suggestions button:hover {
+  border-color: rgba(37, 99, 235, 0.34);
+  background: #f8fbff;
+}
+
+.suggestions span {
+  color: var(--primary-dark);
+  font-weight: 800;
+}
+
+.suggestions small {
+  color: var(--gray-500);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: normal;
+}
+
 .chat-message {
-  max-width: 78%;
-  margin-bottom: 14px;
-  padding: 12px 14px;
-  border: 1px solid var(--gray-200);
+  max-width: min(78%, 620px);
+  margin-bottom: 12px;
+  padding: 11px 13px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
   border-radius: 8px;
   background: var(--white);
+  box-shadow: var(--shadow-sm);
 }
 
 .chat-message.user {
   margin-left: auto;
-  background: var(--primary);
-  border-color: var(--primary);
+  background: linear-gradient(135deg, var(--primary), #0f766e);
+  border-color: transparent;
 }
 
 .chat-message.user p,
@@ -208,6 +277,7 @@ export default defineComponent({
 
 .chat-message.assistant {
   margin-right: auto;
+  background: #fff;
 }
 
 .message-author {
@@ -227,15 +297,15 @@ export default defineComponent({
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
-  padding: 16px;
-  border-top: 1px solid var(--gray-200);
+  padding: 12px 14px;
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
   background: var(--white);
 }
 
 .chat-form textarea {
-  resize: vertical;
-  min-height: 72px;
-  max-height: 180px;
+  resize: none;
+  border-color: rgba(148, 163, 184, 0.34);
+  box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.02);
 }
 
 .sr-only {
@@ -252,11 +322,11 @@ export default defineComponent({
 
 @media (max-width: 720px) {
   .chat-page {
-    padding: 12px;
+    padding: 10px;
   }
 
   .chat-shell {
-    min-height: calc(100vh - 84px);
+    min-height: calc(100vh - 88px);
   }
 
   .chat-header,
@@ -265,8 +335,27 @@ export default defineComponent({
     flex-direction: column;
   }
 
+  .chat-window {
+    min-height: 320px;
+    max-height: none;
+    padding: 14px 10px;
+  }
+
+  .suggestions {
+    grid-template-columns: 1fr;
+  }
+
   .chat-message {
     max-width: 100%;
+  }
+
+  .chat-form {
+    padding: 12px;
+  }
+
+  .chat-form button {
+    width: 100%;
+    min-height: 46px;
   }
 }
 </style>

@@ -95,10 +95,10 @@
               </thead>
               <tbody>
                 <tr v-for="c in data.consommations" :key="c.id_consommation">
-                  <td>{{ c.date_consommation }}</td>
-                  <td>{{ c.quantite_g }}</td>
-                  <td>{{ c.calories_calculees }}</td>
-                  <td>{{ c.id_aliment }}</td>
+                  <td data-label="Date">{{ c.date_consommation }}</td>
+                  <td data-label="Quantite">{{ c.quantite_g }}</td>
+                  <td data-label="Calories">{{ c.calories_calculees }}</td>
+                  <td data-label="ID aliment">{{ c.id_aliment }}</td>
                 </tr>
               </tbody>
             </table>
@@ -120,10 +120,10 @@
               </thead>
               <tbody>
                 <tr v-for="a in data.activites" :key="a.id_activite">
-                  <td>{{ a.date_activite }}</td>
-                  <td>{{ a.duree_minutes }}</td>
-                  <td>{{ a.calories_depensees }}</td>
-                  <td>{{ a.id_exercice }}</td>
+                  <td data-label="Date">{{ a.date_activite }}</td>
+                  <td data-label="Duree">{{ a.duree_minutes }}</td>
+                  <td data-label="Calories">{{ a.calories_depensees }}</td>
+                  <td data-label="ID exercice">{{ a.id_exercice }}</td>
                 </tr>
               </tbody>
             </table>
@@ -146,11 +146,11 @@
               </thead>
               <tbody>
                 <tr v-for="m in data.metriques" :key="m.id_metrique">
-                  <td>{{ m.date_mesure }}</td>
-                  <td>{{ m.poids_kg ?? '-' }}</td>
-                  <td>{{ m.frequence_cardiaque ?? '-' }}</td>
-                  <td>{{ m.duree_sommeil_h ?? '-' }}</td>
-                  <td>{{ m.pas ?? '-' }}</td>
+                  <td data-label="Date">{{ m.date_mesure }}</td>
+                  <td data-label="Poids">{{ m.poids_kg ?? '-' }}</td>
+                  <td data-label="FC">{{ m.frequence_cardiaque ?? '-' }}</td>
+                  <td data-label="Sommeil">{{ m.duree_sommeil_h ?? '-' }}</td>
+                  <td data-label="Pas">{{ m.pas ?? '-' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -173,11 +173,11 @@
               </thead>
               <tbody>
                 <tr v-for="o in data.objectifs" :key="o.id_objectif">
-                  <td>{{ o.type_objectif }}</td>
-                  <td>{{ o.description }}</td>
-                  <td>{{ o.date_debut }}</td>
-                  <td>{{ o.date_fin }}</td>
-                  <td>{{ o.statut }}</td>
+                  <td data-label="Type">{{ o.type_objectif }}</td>
+                  <td data-label="Description">{{ o.description }}</td>
+                  <td data-label="Debut">{{ o.date_debut }}</td>
+                  <td data-label="Fin">{{ o.date_fin }}</td>
+                  <td data-label="Statut">{{ o.statut }}</td>
                 </tr>
               </tbody>
             </table>
@@ -329,7 +329,8 @@ export default defineComponent({
   background: #fff;
   padding: 16px;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.20);
+  box-shadow: var(--shadow);
   margin-bottom: 16px;
 }
 
@@ -361,6 +362,7 @@ export default defineComponent({
 .profil-item {
   padding: 8px 12px;
   background: #f7f9fc;
+  border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 6px;
 }
 
@@ -442,6 +444,9 @@ export default defineComponent({
 
 .table-wrapper {
   overflow-x: auto;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  background: #fff;
 }
 
 .table {
@@ -515,6 +520,59 @@ export default defineComponent({
     width: 100%;
     justify-content: center;
     text-align: center;
+  }
+
+  .table-wrapper {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tr {
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .table td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 8px 0;
+    text-align: right;
+    border-bottom: 1px solid var(--gray-100);
+    overflow-wrap: anywhere;
+  }
+
+  .table td:last-child {
+    border-bottom: 0;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    flex: 0 0 40%;
+    color: var(--gray-500);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
   }
 }
 </style>

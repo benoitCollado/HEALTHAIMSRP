@@ -1,7 +1,7 @@
 <template>
-  <header class="navbar" role="banner" aria-label="En-tete de l'application">
+  <header class="navbar" :class="{ 'menu-open': isMenuOpen }" role="banner" aria-label="En-tete de l'application">
     <div class="navbar-inner">
-      <router-link to="/page-accueil" class="navbar-brand" aria-label="Retour a l'accueil HealthAI MSRP">
+      <router-link to="/page-accueil" class="navbar-brand" aria-label="Retour a l'accueil HealthAI MSRP" @click="closeMenu">
         <img class="navbar-logo" :src="healthAiIcon" alt="" aria-hidden="true" />
         <span class="brand-copy">
           <span class="brand-name">HealthAI</span>
@@ -9,15 +9,44 @@
         </span>
       </router-link>
 
-      <router-link to="/page-accueil" class="nav-link nav-home">Accueil</router-link>
-      <router-link v-if="currentUser" to="/chat" class="nav-link">Chat IA</router-link>
+      <button
+        v-if="currentUser"
+        type="button"
+        class="menu-toggle"
+        :aria-expanded="isMenuOpen ? 'true' : 'false'"
+        aria-controls="main-navigation"
+        aria-label="Ouvrir ou fermer le menu"
+        @click="toggleMenu"
+      >
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+        <span aria-hidden="true"></span>
+      </button>
 
-      <nav v-if="isAdmin" class="navbar-nav">
-        <router-link to="/dashboard" class="nav-link">Dashboard</router-link>
-        <router-link to="/gestion-des-flux" class="nav-link">Flux</router-link>
-        <router-link to="/nettoyage" class="nav-link">Nettoyage</router-link>
-        <router-link to="/utilisateurs" class="nav-link">Utilisateurs</router-link>
-        <router-link to="/test-backend" class="nav-link">Test API</router-link>
+      <nav id="main-navigation" v-if="currentUser" class="navbar-nav" :class="{ open: isMenuOpen }" aria-label="Navigation principale">
+        <router-link to="/page-accueil" class="nav-link nav-home" @click="closeMenu">Accueil</router-link>
+        <router-link to="/chat" class="nav-link" @click="closeMenu">Chat IA</router-link>
+        <button
+          v-for="action in pageActions"
+          :key="action.id"
+          type="button"
+          class="nav-link nav-action"
+          :class="{ active: activeAction === action.id }"
+          @click="selectAction(action.id)"
+        >
+          <span class="nav-action-label">{{ action.label }}</span>
+          <span v-if="action.count !== undefined" class="nav-count">{{ action.count }}</span>
+        </button>
+        <template v-if="isAdmin">
+          <router-link to="/dashboard" class="nav-link" @click="closeMenu">Dashboard</router-link>
+          <router-link to="/gestion-des-flux" class="nav-link" @click="closeMenu">Flux</router-link>
+          <router-link to="/nettoyage" class="nav-link" @click="closeMenu">Nettoyage</router-link>
+          <router-link to="/utilisateurs" class="nav-link" @click="closeMenu">Utilisateurs</router-link>
+          <router-link to="/test-backend" class="nav-link" @click="closeMenu">Test API</router-link>
+        </template>
+        <button type="button" class="nav-link nav-logout" @click="logout">
+          Deconnexion
+        </button>
       </nav>
 
       <span class="navbar-page-title" aria-hidden="true">{{ title }}</span>
@@ -39,15 +68,24 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, onMounted, ref } from 'vue'
+import { computed, defineComponent, onMounted, PropType, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import healthAiIcon from '../assets/healthai_icon.svg'
 import { auth, type User } from '../services/auth'
 
 export default defineComponent({
-  props: { title: { type: String, required: true } },
-  setup() {
+  props: {
+    title: { type: String, required: true },
+    pageActions: {
+      type: Array as PropType<Array<{ id: string; label: string; icon?: string; count?: number }>>,
+      default: () => []
+    },
+    activeAction: { type: String, default: '' }
+  },
+  emits: ['select-action'],
+  setup(_props, { emit }) {
     const currentUser = ref<User | null>(null)
+    const isMenuOpen = ref(false)
     const router = useRouter()
     const isAdmin = computed(() => auth.isAdmin())
     const userInitial = computed(() => currentUser.value?.username?.charAt(0).toUpperCase() ?? '?')
@@ -56,12 +94,26 @@ export default defineComponent({
       currentUser.value = auth.getCurrentUser()
     })
 
+    function closeMenu() {
+      isMenuOpen.value = false
+    }
+
+    function toggleMenu() {
+      isMenuOpen.value = !isMenuOpen.value
+    }
+
+    function selectAction(actionId: string) {
+      emit('select-action', actionId)
+      closeMenu()
+    }
+
     function logout() {
+      closeMenu()
       auth.logout()
       router.push('/connexion')
     }
 
-    return { currentUser, healthAiIcon, isAdmin, userInitial, logout }
+    return { currentUser, healthAiIcon, isAdmin, isMenuOpen, userInitial, closeMenu, toggleMenu, selectAction, logout }
   }
 })
 </script>
@@ -74,7 +126,7 @@ export default defineComponent({
   display: flex;
   min-height: 68px;
   align-items: center;
-  padding: 0 24px;
+  padding: 12px 24px;
   color: var(--gray-900);
   background: rgba(255, 255, 255, 0.86);
   border-bottom: 1px solid rgba(148, 163, 184, 0.22);
@@ -83,11 +135,12 @@ export default defineComponent({
 }
 
 .navbar-inner {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
   width: 100%;
-  max-width: 1400px;
+  max-width: 1600px;
   margin: 0 auto;
   min-width: 0;
 }
@@ -136,21 +189,41 @@ export default defineComponent({
   display: flex;
   flex: 1;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   min-width: 0;
+  overflow-x: auto;
+  padding: 2px 0;
+  scrollbar-width: thin;
+}
+
+.menu-toggle {
+  display: none;
 }
 
 .nav-link {
   display: inline-flex;
   align-items: center;
-  padding: 8px 12px;
+  justify-content: center;
+  gap: 6px;
+  min-height: 42px;
+  padding: 8px 14px;
   color: var(--gray-600);
   font-size: 0.875rem;
   font-weight: 650;
   text-decoration: none;
   white-space: nowrap;
+  background: transparent;
+  border: 0;
   border-radius: 8px;
+  box-shadow: none;
+  cursor: pointer;
+  transform: none;
   transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+
+.nav-action {
+  flex: 0 0 auto;
+  min-width: 112px;
 }
 
 .nav-link:hover {
@@ -163,6 +236,35 @@ export default defineComponent({
   color: var(--primary-dark);
   background: var(--primary-light);
   box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.16);
+}
+
+.nav-action.active {
+  color: var(--primary-dark);
+  background: var(--primary-light);
+  box-shadow: inset 0 0 0 1px rgba(37, 99, 235, 0.16);
+}
+
+.nav-action:last-of-type {
+  min-width: 136px;
+}
+
+.nav-action-label {
+  overflow: visible;
+  text-overflow: clip;
+}
+
+.nav-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 800;
+  background: var(--primary);
+  border-radius: 999px;
 }
 
 .navbar-page-title {
@@ -238,10 +340,117 @@ export default defineComponent({
   transform: none;
 }
 
+.nav-logout {
+  display: none;
+}
+
 @media (max-width: 900px) {
-  .navbar-nav,
   .navbar-page-title,
   .user-info {
+    display: none;
+  }
+
+  .navbar {
+    padding: 10px 16px;
+  }
+
+  .navbar-inner {
+    gap: 10px;
+  }
+
+  .navbar-brand {
+    flex: 1 1 auto;
+  }
+
+  .menu-toggle {
+    display: inline-flex;
+    flex: 0 0 42px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    min-height: 42px;
+    padding: 0;
+    gap: 4px;
+    background: var(--gray-900);
+    border: 1px solid var(--gray-900);
+    border-radius: 8px;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .menu-toggle:hover {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    box-shadow: none;
+    transform: none;
+  }
+
+  .menu-toggle span {
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: #fff;
+    border-radius: 999px;
+    transition: transform 0.18s ease, opacity 0.18s ease;
+  }
+
+  .menu-open .menu-toggle span:nth-child(1) {
+    transform: translateY(6px) rotate(45deg);
+  }
+
+  .menu-open .menu-toggle span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .menu-open .menu-toggle span:nth-child(3) {
+    transform: translateY(-6px) rotate(-45deg);
+  }
+
+  .navbar-nav {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    left: 0;
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.98);
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    backdrop-filter: blur(16px);
+  }
+
+  .navbar-nav.open {
+    display: flex;
+  }
+
+  .nav-link,
+  .navbar-nav .nav-link {
+    justify-content: flex-start;
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    background: var(--gray-100);
+  }
+
+  .nav-logout {
+    display: inline-flex;
+    justify-content: center;
+    color: #fff;
+    background: var(--gray-900);
+  }
+
+  .nav-logout:hover {
+    color: #fff;
+    background: var(--primary-dark);
+  }
+
+  .btn-logout {
     display: none;
   }
 }
@@ -253,32 +462,12 @@ export default defineComponent({
   }
 
   .navbar-inner {
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 8px;
   }
 
-  .navbar-brand {
-    flex: 1 1 auto;
-    order: 1;
-  }
-
   .navbar-user {
-    order: 2;
     margin-left: 0;
-  }
-
-  .nav-home,
-  .navbar-brand + .nav-link:not(.nav-home) {
-    flex: 1 1 calc(50% - 4px);
-    justify-content: center;
-    order: 3;
-    min-width: 0;
-    background: var(--gray-100);
-  }
-
-  .btn-logout {
-    min-height: 38px;
-    padding: 7px 10px;
   }
 }
 

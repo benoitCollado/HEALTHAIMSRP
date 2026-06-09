@@ -7,18 +7,9 @@
         <span class="footer-sep">/</span>
         <span class="footer-tagline">Suivi sante intelligent</span>
       </div>
-
-      <div class="footer-links">
-        <span>Tableau de bord</span>
-        <span class="footer-dot">/</span>
-        <span>Gestion des flux</span>
-        <span class="footer-dot">/</span>
-        <span>Nettoyage</span>
-      </div>
-
       <div class="footer-meta">
         <span>Copyright {{ year }} EPSI</span>
-        <span class="footer-version">v1.0.0</span>
+        <span class="footer-version">v 1.0.1</span>
       </div>
     </div>
   </footer>

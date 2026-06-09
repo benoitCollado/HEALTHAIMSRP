@@ -120,16 +120,16 @@
             </thead>
             <tbody>
               <tr v-for="u in utilisateurs" :key="u.id_utilisateur">
-                <td>{{ u.id_utilisateur }}</td>
-                <td>{{ u.username }}</td>
-                <td>{{ u.age }}</td>
-                <td>{{ u.sexe }}</td>
-                <td>{{ u.date_inscription }}</td>
-                <td>{{ u.stats.nb_consommations }}</td>
-                <td>{{ u.stats.nb_activites }}</td>
-                <td>{{ u.stats.nb_metriques }}</td>
-                <td>{{ u.stats.nb_objectifs }}</td>
-                <td>
+                <td data-label="ID">{{ u.id_utilisateur }}</td>
+                <td data-label="Utilisateur">{{ u.username }}</td>
+                <td data-label="Age">{{ u.age }}</td>
+                <td data-label="Sexe">{{ u.sexe }}</td>
+                <td data-label="Inscription">{{ u.date_inscription }}</td>
+                <td data-label="Consommations">{{ u.stats.nb_consommations }}</td>
+                <td data-label="Activites">{{ u.stats.nb_activites }}</td>
+                <td data-label="Metriques">{{ u.stats.nb_metriques }}</td>
+                <td data-label="Objectifs">{{ u.stats.nb_objectifs }}</td>
+                <td data-label="Actions">
                   <router-link
                     :to="`/utilisateurs/${u.id_utilisateur}`"
                     class="btn btn-small"
@@ -261,7 +261,8 @@ export default defineComponent({
   background: #fff;
   padding: 16px;
   border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.20);
+  box-shadow: var(--shadow);
   margin-bottom: 16px;
 }
 
@@ -303,7 +304,9 @@ export default defineComponent({
   cursor: pointer;
   font-size: 0.95rem;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn:hover {
@@ -358,6 +361,9 @@ export default defineComponent({
 
 .table-wrapper {
   overflow-x: auto;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  background: #fff;
 }
 
 .table {
@@ -443,6 +449,63 @@ export default defineComponent({
 
   .form-grid {
     grid-template-columns: 1fr;
+  }
+
+  .table-wrapper {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .table,
+  .table tbody,
+  .table tr,
+  .table td {
+    display: block;
+    width: 100%;
+  }
+
+  .table thead {
+    display: none;
+  }
+
+  .table tr {
+    padding: 10px 12px;
+    margin-bottom: 10px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .table td {
+    display: flex;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 8px 0;
+    text-align: right;
+    border-bottom: 1px solid var(--gray-100);
+    overflow-wrap: anywhere;
+  }
+
+  .table td:last-child {
+    display: block;
+    border-bottom: 0;
+  }
+
+  .table td::before {
+    content: attr(data-label);
+    flex: 0 0 42%;
+    color: var(--gray-500);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .table td:last-child::before {
+    display: none;
   }
 }
 </style>

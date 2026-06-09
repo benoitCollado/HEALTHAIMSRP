@@ -1,6 +1,11 @@
 <template>
   <div class="canvas nav-page">
-    <Navbar title="Accueil" />
+    <Navbar
+      title="Accueil"
+      :page-actions="isAdmin ? [] : userHeaderActions"
+      :active-action="activeTab"
+      @select-action="activeTab = $event"
+    />
     <div id="main-content" class="page-content">
       <!-- Admin view: Navigation -->
       <div v-if="isAdmin" class="admin-home">
@@ -52,36 +57,6 @@
 
       <!-- User view: Profile -->
       <div v-else class="user-view">
-        <div class="user-profile-header">
-          <div>
-            <span class="eyebrow">Espace utilisateur</span>
-            <h2>Votre profil</h2>
-          </div>
-          <div class="header-twofa">
-            <div>
-              <span class="user-label">Securite A2A / 2FA</span>
-              <span class="goal-status" :class="twoFactorEnabled ? 'termine' : 'en_pause'">
-                {{ twoFactorEnabled ? 'Activee' : 'Desactivee' }}
-              </span>
-            </div>
-            <button class="action-btn" @click="activeTab = 'securite'">Configurer</button>
-          </div>
-        </div>
-
-        <!-- Tab navigation -->
-        <div class="user-tabs">
-          <button
-            v-for="tab in tabs"
-            :key="tab.id"
-            class="user-tab"
-            :class="{ active: activeTab === tab.id }"
-            @click="activeTab = tab.id"
-          >
-            {{ tab.icon }} {{ tab.label }}
-            <span v-if="tab.count !== undefined" class="tab-count">{{ tab.count }}</span>
-          </button>
-        </div>
-
         <div class="user-panel">
           <div v-if="userLoading" class="user-loading">Chargement des données utilisateur...</div>
           <div v-else-if="userError" class="user-error">{{ userError }}</div>
@@ -216,13 +191,13 @@
                 </thead>
                 <tbody>
                   <tr v-for="metric in userMetrics" :key="metric.id_metrique">
-                    <td>{{ formatDate(metric.date_mesure) }}</td>
-                    <td>{{ metric.poids_kg ?? '-' }}</td>
-                    <td>{{ metric.frequence_cardiaque ?? '-' }}</td>
-                    <td>{{ metric.duree_sommeil_h ?? '-' }}</td>
-                    <td>{{ metric.calories_brulees ?? '-' }}</td>
-                    <td>{{ metric.pas ?? '-' }}</td>
-                    <td><button class="table-action" @click="toggleMetricForm(metric)">Modifier</button></td>
+                    <td data-label="Date">{{ formatDate(metric.date_mesure) }}</td>
+                    <td data-label="Poids">{{ metric.poids_kg ?? '-' }}</td>
+                    <td data-label="FC">{{ metric.frequence_cardiaque ?? '-' }}</td>
+                    <td data-label="Sommeil">{{ metric.duree_sommeil_h ?? '-' }}</td>
+                    <td data-label="Calories">{{ metric.calories_brulees ?? '-' }}</td>
+                    <td data-label="Pas">{{ metric.pas ?? '-' }}</td>
+                    <td data-label="Actions"><button class="table-action" @click="toggleMetricForm(metric)">Modifier</button></td>
                   </tr>
                 </tbody>
               </table>
@@ -270,11 +245,11 @@
                 </thead>
                 <tbody>
                   <tr v-for="activity in userActivities" :key="activity.id_activite">
-                    <td>{{ formatDate(activity.date_activite) }}</td>
-                    <td>{{ getExerciseName(activity.id_exercice) }}</td>
-                    <td>{{ activity.duree_minutes }}</td>
-                    <td>{{ activity.calories_depensees }} kcal</td>
-                    <td><button class="table-action" @click="toggleActivityForm(activity)">Modifier</button></td>
+                    <td data-label="Date">{{ formatDate(activity.date_activite) }}</td>
+                    <td data-label="Exercice">{{ getExerciseName(activity.id_exercice) }}</td>
+                    <td data-label="Duree">{{ activity.duree_minutes }}</td>
+                    <td data-label="Calories">{{ activity.calories_depensees }} kcal</td>
+                    <td data-label="Actions"><button class="table-action" @click="toggleActivityForm(activity)">Modifier</button></td>
                   </tr>
                 </tbody>
               </table>
@@ -336,11 +311,11 @@
                 </thead>
                 <tbody>
                   <tr v-for="c in userConsumptions" :key="c.id_consommation">
-                    <td>{{ formatDate(c.date_consommation) }}</td>
-                    <td>{{ getAlimentName(c.id_aliment) }}</td>
-                    <td>{{ c.quantite_g }} g</td>
-                    <td>{{ c.calories_calculees }} kcal</td>
-                    <td><button class="table-action" @click="toggleConsumptionForm(c)">Modifier</button></td>
+                    <td data-label="Date">{{ formatDate(c.date_consommation) }}</td>
+                    <td data-label="Aliment">{{ getAlimentName(c.id_aliment) }}</td>
+                    <td data-label="Quantite">{{ c.quantite_g }} g</td>
+                    <td data-label="Calories">{{ c.calories_calculees }} kcal</td>
+                    <td data-label="Actions"><button class="table-action" @click="toggleConsumptionForm(c)">Modifier</button></td>
                   </tr>
                 </tbody>
               </table>
@@ -390,16 +365,16 @@
                 </thead>
                 <tbody>
                   <tr v-for="goal in userGoals" :key="goal.id_objectif">
-                    <td>{{ goal.type_objectif }}</td>
-                    <td>{{ goal.description }}</td>
-                    <td>
+                    <td data-label="Type">{{ goal.type_objectif }}</td>
+                    <td data-label="Description">{{ goal.description }}</td>
+                    <td data-label="Statut">
                       <span class="goal-status" :class="goal.statut?.toLowerCase().replace(/\s+/g, '-')">
                         {{ goal.statut }}
                       </span>
                     </td>
-                    <td>{{ formatDate(goal.date_debut) }}</td>
-                    <td>{{ formatDate(goal.date_fin) }}</td>
-                    <td><button class="table-action" @click="toggleGoalForm(goal)">Modifier</button></td>
+                    <td data-label="Debut">{{ formatDate(goal.date_debut) }}</td>
+                    <td data-label="Fin">{{ formatDate(goal.date_fin) }}</td>
+                    <td data-label="Actions"><button class="table-action" @click="toggleGoalForm(goal)">Modifier</button></td>
                   </tr>
                 </tbody>
               </table>
@@ -713,13 +688,13 @@ export default defineComponent({
     const consumptionForm = ref<ConsumptionForm>(createConsumptionForm())
     const goalForm = ref<GoalForm>(createGoalForm())
 
-    const tabs = computed(() => [
-      { id: 'profil', label: 'Profil', icon: '👤' },
-      { id: 'securite', label: 'Securite A2A', icon: '🔐' },
-      { id: 'sante', label: 'Santé', icon: '❤️', count: userMetrics.value.length },
-      { id: 'activites', label: 'Activités', icon: '🏃', count: userActivities.value.length },
-      { id: 'alimentation', label: 'Alimentation', icon: '🍽️', count: userConsumptions.value.length },
-      { id: 'objectifs', label: 'Objectifs', icon: '🎯', count: userGoals.value.length }
+    const userHeaderActions = computed(() => [
+      { id: 'profil', label: 'Profil' },
+      { id: 'sante', label: 'Sante', count: userMetrics.value.length },
+      { id: 'activites', label: 'Activites', count: userActivities.value.length },
+      { id: 'alimentation', label: 'Alimentation', count: userConsumptions.value.length },
+      { id: 'objectifs', label: 'Objectifs', count: userGoals.value.length },
+      { id: 'securite', label: 'Securite A2A' }
     ])
 
     const formatDate = (dateValue?: string) => {
@@ -1126,7 +1101,7 @@ export default defineComponent({
       userError,
       userSuccess,
       activeTab,
-      tabs,
+      userHeaderActions,
       savingKey,
       isEditingProfile,
       showMetricForm,
@@ -1175,44 +1150,12 @@ export default defineComponent({
   margin: 0 auto;
 }
 
-.user-profile-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 22px 24px;
-  margin-bottom: 14px;
-  background: rgba(255, 255, 255, 0.94);
-  border: 1px solid rgba(148, 163, 184, 0.22);
-  border-radius: 8px;
-  box-shadow: var(--shadow);
-}
-
-.user-profile-header h2 {
-  margin-bottom: 0;
-}
-
-.header-twofa {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 10px;
-  background: #f8fbff;
-  border: 1px solid rgba(148, 163, 184, 0.18);
-  border-radius: 8px;
-}
-
-.header-twofa > div {
-  display: grid;
-  gap: 4px;
-  min-width: 132px;
-}
-
 .user-panel {
   background: #fff;
   padding: 24px;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(148, 163, 184, 0.20);
+  box-shadow: var(--shadow);
 }
 
 .section-header {
@@ -1227,55 +1170,6 @@ export default defineComponent({
   margin-bottom: 24px;
   padding-bottom: 24px;
   border-bottom: 1px solid #eee;
-}
-
-.user-tabs {
-  display: flex;
-  gap: 4px;
-  margin-bottom: 12px;
-  flex-wrap: wrap;
-}
-
-.user-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: none;
-  border-radius: 6px 6px 0 0;
-  background: #e8edf3;
-  color: #555;
-  font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s, color 0.15s;
-}
-
-.user-tab:hover {
-  background: #d0d8e4;
-  color: #333;
-}
-
-.user-tab.active {
-  background: #fff;
-  color: #1e3a5f;
-  font-weight: 700;
-  box-shadow: 0 -2px 0 #2563eb inset;
-}
-
-.tab-count {
-  background: #2563eb;
-  color: #fff;
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 1px 6px;
-  border-radius: 10px;
-  min-width: 18px;
-  text-align: center;
-}
-
-.user-tab.active .tab-count {
-  background: #2563eb;
 }
 
 .goal-status {
@@ -1302,8 +1196,9 @@ export default defineComponent({
 .user-card,
 .user-subpanel {
   padding: 12px;
-  background: #f6f6f6;
-  border-radius: 6px;
+  background: #f8fbff;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
 }
 
 .field-block {
@@ -1496,6 +1391,9 @@ export default defineComponent({
 
 .table-wrap {
   overflow-x: auto;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  background: #fff;
 }
 
 .simple-table {
@@ -1507,12 +1405,17 @@ export default defineComponent({
 .simple-table th,
 .simple-table td {
   border-bottom: 1px solid #e8edf3;
-  padding: 8px 10px;
+  padding: 10px 12px;
   text-align: left;
 }
 
 .simple-table th {
   background: #f7f9fc;
+  color: var(--gray-500);
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .user-list {
@@ -1610,22 +1513,6 @@ export default defineComponent({
 }
 
 @media (max-width: 900px) {
-  .user-profile-header {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .header-twofa {
-    align-items: stretch;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .header-twofa .action-btn {
-    width: 100%;
-    justify-content: center;
-  }
-
   .user-grid,
   .user-grid-2 {
     grid-template-columns: 1fr;
@@ -1656,9 +1543,93 @@ export default defineComponent({
   }
 }
 @media (max-width: 500px) {
+  .user-view {
+    max-width: none;
+  }
+
   .user-panel,
   .admin-hero {
     padding: 16px;
+  }
+
+  .entry-form {
+    padding: 12px;
+  }
+
+  .table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .simple-table,
+  .simple-table tbody,
+  .simple-table tr,
+  .simple-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .simple-table thead {
+    display: none;
+  }
+
+  .simple-table {
+    border-collapse: separate;
+    border-spacing: 0 10px;
+  }
+
+  .simple-table tr {
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .simple-table td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    min-height: 34px;
+    padding: 8px 0;
+    color: var(--gray-900);
+    text-align: right;
+    border-bottom: 1px solid var(--gray-100);
+    overflow-wrap: anywhere;
+  }
+
+  .simple-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .simple-table td::before {
+    content: attr(data-label);
+    flex: 0 0 38%;
+    color: var(--gray-500);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  .simple-table td[data-label="Actions"] {
+    display: block;
+    padding-top: 10px;
+    text-align: left;
+  }
+
+  .simple-table td[data-label="Actions"]::before {
+    display: none;
+  }
+
+  .table-action {
+    width: 100%;
+    min-height: 40px;
+    justify-content: center;
   }
 
   .nav-grid {

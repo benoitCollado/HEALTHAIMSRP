@@ -3,17 +3,24 @@
     <!-- RGAA : lien d'évitement pour accéder au contenu principal -->
     <a href="#main-content" class="skip-link">Aller au contenu principal</a>
     <router-view />
-    <AppFooter />
+    <AppFooter v-if="showFooter" />
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue'
+import { computed, defineComponent } from 'vue'
+import { useRoute } from 'vue-router'
 import AppFooter from './components/AppFooter.vue'
 
 export default defineComponent({
   name: 'App',
-  components: { AppFooter }
+  components: { AppFooter },
+  setup() {
+    const route = useRoute()
+    const showFooter = computed(() => !['/connexion', '/inscription'].includes(route.path))
+
+    return { showFooter }
+  }
 })
 </script>
 

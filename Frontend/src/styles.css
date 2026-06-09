@@ -333,25 +333,60 @@ label {
 
 /* --- Responsive ------------------------------------------- */
 @media (max-width: 768px) {
+  html { font-size: 15px; }
+
   .page-content { padding: 16px 12px; }
-  .card { padding: 16px; }
+
+  .card {
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+  }
+
   button, .btn {
     min-height: 42px;
     white-space: normal;
+    justify-content: center;
+    text-align: center;
   }
+
+  input,
+  select,
+  textarea {
+    min-height: 42px;
+    font-size: 1rem;
+  }
+
   .flex-between {
     align-items: stretch;
     flex-direction: column;
   }
+
+  .table-wrap {
+    border-radius: 8px;
+  }
+
   h1 { font-size: 1.4rem; }
   h2 { font-size: 1.15rem; }
 }
 
 @media (max-width: 420px) {
+  body {
+    background: #f7f9fc;
+  }
+
   .page-content { padding: 12px 10px; }
+
+  .card {
+    padding: 14px;
+  }
+
   table { font-size: 0.84rem; }
   thead th,
   tbody td {
     padding: 9px 10px;
+  }
+
+  .alert {
+    padding: 10px 12px;
   }
 }
