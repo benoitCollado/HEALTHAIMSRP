@@ -73,7 +73,7 @@ textarea:focus-visible {
 }
 
 /* --- Reset & Base ----------------------------------------- */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; min-width: 0; }
 
 html { font-size: 16px; scroll-behavior: smooth; }
 
@@ -85,7 +85,10 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
+
+img, svg, video, canvas { max-width: 100%; }
 
 /* Subtle ambient background glow */
 body::before {
@@ -215,6 +218,7 @@ tbody tr:last-child td { border-bottom: none; }
 tbody tr:hover td { background: #f0f6ff; transition: background 0.12s; }
 .table-wrap {
   overflow-x: auto;
+  max-width: 100%;
   border-radius: var(--radius-lg);
   border: 1px solid rgba(148, 163, 184, 0.22);
   box-shadow: var(--shadow-sm);
@@ -330,6 +334,24 @@ label {
 /* --- Responsive ------------------------------------------- */
 @media (max-width: 768px) {
   .page-content { padding: 16px 12px; }
+  .card { padding: 16px; }
+  button, .btn {
+    min-height: 42px;
+    white-space: normal;
+  }
+  .flex-between {
+    align-items: stretch;
+    flex-direction: column;
+  }
   h1 { font-size: 1.4rem; }
   h2 { font-size: 1.15rem; }
+}
+
+@media (max-width: 420px) {
+  .page-content { padding: 12px 10px; }
+  table { font-size: 0.84rem; }
+  thead th,
+  tbody td {
+    padding: 9px 10px;
+  }
 }

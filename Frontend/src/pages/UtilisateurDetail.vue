@@ -487,4 +487,34 @@ export default defineComponent({
   background: #e8f5e9;
   color: #2e7d32;
 }
+
+@media (max-width: 700px) {
+  .detail-container {
+    padding: 16px 12px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .header-row,
+  .header-actions,
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .profil-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .btn,
+  .btn-back,
+  .form-actions button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+}
 </style>

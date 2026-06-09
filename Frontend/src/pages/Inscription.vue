@@ -234,6 +234,7 @@ export default defineComponent({
 
 .register-shell {
   width: min(100%, 820px);
+  min-width: 0;
 }
 
 .register-head {
@@ -276,6 +277,8 @@ p {
 .register-card {
   display: grid;
   gap: 22px;
+  width: 100%;
+  min-width: 0;
   padding: 28px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.98);
@@ -359,6 +362,7 @@ label {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 8px;
+  min-width: 0;
 }
 
 .secondary-button {
@@ -418,6 +422,11 @@ label {
 }
 
 @media (max-width: 760px) {
+  .register-page {
+    align-items: start;
+    padding: 16px;
+  }
+
   .register-head {
     align-items: flex-start;
   }
@@ -436,8 +445,15 @@ label {
     grid-template-columns: 1fr;
   }
 
+  .choice-link,
+  .secondary-button {
+    width: 100%;
+    justify-content: center;
+  }
+
   .primary-button {
     width: 100%;
+    min-width: 0;
   }
 }
 

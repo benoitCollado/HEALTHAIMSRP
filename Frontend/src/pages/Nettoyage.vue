@@ -429,4 +429,39 @@ export default defineComponent({
   display: flex;
   gap: 12px;
 }
+
+@media (max-width: 640px) {
+  .nettoyage-container {
+    padding: 16px 12px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .actions-bar,
+  .btn-group,
+  .modal-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .actions-bar select,
+  .actions-bar .btn,
+  .btn-group .btn,
+  .modal-actions .btn {
+    width: 100%;
+  }
+
+  .modal-overlay {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .modal {
+    width: 100%;
+    max-width: none;
+    padding: 18px;
+  }
+}
 </style>

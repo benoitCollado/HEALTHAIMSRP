@@ -89,6 +89,7 @@ export default defineComponent({
   width: 100%;
   max-width: 1400px;
   margin: 0 auto;
+  min-width: 0;
 }
 
 .navbar-brand {
@@ -101,6 +102,7 @@ export default defineComponent({
   font-weight: 800;
   text-decoration: none;
   white-space: nowrap;
+  min-width: 0;
 }
 
 .navbar-brand:hover {
@@ -135,6 +137,7 @@ export default defineComponent({
   flex: 1;
   align-items: center;
   gap: 6px;
+  min-width: 0;
 }
 
 .nav-link {
@@ -243,13 +246,63 @@ export default defineComponent({
   }
 }
 
+@media (max-width: 720px) {
+  .navbar {
+    min-height: unset;
+    padding: 10px 14px;
+  }
+
+  .navbar-inner {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .navbar-brand {
+    flex: 1 1 auto;
+    order: 1;
+  }
+
+  .navbar-user {
+    order: 2;
+    margin-left: 0;
+  }
+
+  .nav-home,
+  .navbar-brand + .nav-link:not(.nav-home) {
+    flex: 1 1 calc(50% - 4px);
+    justify-content: center;
+    order: 3;
+    min-width: 0;
+    background: var(--gray-100);
+  }
+
+  .btn-logout {
+    min-height: 38px;
+    padding: 7px 10px;
+  }
+}
+
 @media (max-width: 540px) {
   .navbar {
-    padding: 0 14px;
+    padding: 10px 12px;
   }
 
   .brand-subtitle {
     display: none;
+  }
+
+  .navbar-logo {
+    width: 34px;
+    height: 34px;
+  }
+
+  .brand-name {
+    font-size: 0.95rem;
+  }
+
+  .nav-link {
+    padding: 8px 10px;
+    font-size: 0.82rem;
   }
 }
 </style>

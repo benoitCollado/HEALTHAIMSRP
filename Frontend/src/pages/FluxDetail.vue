@@ -1,10 +1,10 @@
 <template>
   <div class="canvas">
     <Navbar :title="flux?.nom || 'Flux'" />
-    <div id="main-content" style="padding:24px;max-width:1000px;margin:0 auto;">
-        <div style="display:flex;justify-content:space-between;align-items:center">
+    <div id="main-content" class="flux-detail-content">
+        <div class="flux-detail-header">
           <h2>{{ flux?.nom }}</h2>
-          <div style="display:flex;gap:8px;align-items:center">
+          <div class="flux-detail-actions">
             <button v-if="isEncours" @click="validerFlux" aria-label="Valider le flux">Valider</button>
             <button @click="toggleEdit" :aria-label="editMode ? 'Annuler les modifications' : 'Modifier le flux'">{{ editMode ? 'Annuler' : 'Modifier' }}</button>
             <button @click="refuserFlux" style="background:#f39c12;color:#fff" aria-label="Refuser le flux">Refuser</button>
@@ -12,7 +12,7 @@
         </div> 
       <p>{{ flux?.description }}</p>
 
-      <div style="display:flex;gap:16px;margin-bottom:16px;">
+      <div class="flux-stats-row">
         <div style="padding:12px;background:#fff;border-radius:6px;flex:1">
           <strong>% exploitable</strong>
           <div style="font-size:24px">{{ flux?.stats?.exploitablePct }}%</div>
@@ -27,7 +27,7 @@
         </div>
       </div>
 
-      <div style="display:flex;gap:20px">
+      <div class="flux-detail-grid">
         <div style="flex:1;background:#fff;padding:12px;border-radius:6px">
           <h3>Requêtes pré-définies</h3>
           <div v-for="(q, i) in flux?.sampleQueries || []" :key="i" style="margin-bottom:8px">
@@ -377,3 +377,76 @@ export default defineComponent({
   }
 })
 </script>
+
+<style scoped>
+.flux-detail-content {
+  width: 100%;
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.flux-detail-header,
+.flux-detail-actions,
+.flux-stats-row,
+.flux-detail-grid {
+  display: flex;
+  gap: 16px;
+}
+
+.flux-detail-header {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flux-detail-actions {
+  align-items: center;
+  gap: 8px;
+}
+
+.flux-stats-row {
+  margin-bottom: 16px;
+}
+
+.flux-stats-row > div,
+.flux-detail-grid > div {
+  min-width: 0;
+}
+
+.flux-detail-grid {
+  gap: 20px;
+}
+
+.flux-detail-content table {
+  max-width: 100%;
+}
+
+.flux-detail-content pre {
+  overflow-x: auto;
+}
+
+@media (max-width: 720px) {
+  .flux-detail-content {
+    padding: 16px 12px;
+  }
+
+  .flux-detail-header,
+  .flux-detail-actions,
+  .flux-stats-row,
+  .flux-detail-grid {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .flux-detail-actions button,
+  .flux-detail-content button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .flux-detail-content table {
+    display: block;
+    overflow-x: auto;
+  }
+}
+</style>

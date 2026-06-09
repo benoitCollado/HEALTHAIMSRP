@@ -180,7 +180,7 @@ export default defineComponent({
   width: 100%;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
   gap: 18px;
 }
 
@@ -251,5 +251,21 @@ export default defineComponent({
 .error {
   background: #ffebee;
   color: #c62828;
+}
+
+@media (max-width: 640px) {
+  .dashboard-container {
+    grid-template-columns: 1fr;
+    padding: 16px 12px;
+    gap: 14px;
+  }
+
+  .kpi-grid {
+    gap: 8px;
+  }
+
+  .kpi {
+    min-width: min(100%, 120px);
+  }
 }
 </style>

@@ -1078,7 +1078,7 @@ button:disabled {
 
 .section-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 1fr));
   gap: 2rem;
 }
 
@@ -1156,8 +1156,21 @@ pre::-webkit-scrollbar-thumb:hover {
 
 /* Responsive */
 @media (max-width: 768px) {
+  .test-container,
+  .dashboard-container,
+  .main-content {
+    padding-inline: 12px;
+  }
+
+  .user-metrics-card,
+  .group-content,
+  .group-header {
+    padding: 1rem;
+  }
+
   .section-row {
     grid-template-columns: 1fr;
+    gap: 1rem;
   }
   
   .controls {

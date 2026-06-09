@@ -683,4 +683,59 @@ export default defineComponent({
   border-radius: 4px;
   cursor: pointer;
 }
+
+@media (max-width: 760px) {
+  .flux-container {
+    grid-template-columns: 1fr;
+    padding: 16px 12px;
+  }
+
+  .meta-grid {
+    gap: 10px;
+  }
+
+  .meta-item {
+    flex: 1 1 140px;
+  }
+
+  .csv-tabs,
+  .csv-actions,
+  .modal-actions {
+    flex-wrap: wrap;
+  }
+
+  .csv-item {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .csv-name {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .csv-actions {
+    margin-left: 0;
+  }
+
+  .csv-actions .btn-sm,
+  .modal-actions button,
+  .btn-airflow {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .modal-overlay {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: none;
+    max-height: calc(100vh - 24px);
+    padding: 16px;
+  }
+}
 </style>

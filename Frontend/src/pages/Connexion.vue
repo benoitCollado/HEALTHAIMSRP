@@ -153,6 +153,7 @@ export default defineComponent({
 .auth-page {
   display: grid;
   min-height: 100vh;
+  min-height: 100dvh;
   place-items: center;
   padding: 24px;
   background:
@@ -163,6 +164,7 @@ export default defineComponent({
 
 .auth-shell {
   width: min(100%, 460px);
+  min-width: 0;
 }
 
 .brand-strip {
@@ -201,6 +203,8 @@ export default defineComponent({
 .auth-card {
   display: grid;
   gap: 18px;
+  width: 100%;
+  min-width: 0;
   padding: 28px;
   color: #0f172a;
   background: rgba(255, 255, 255, 0.98);
@@ -272,12 +276,18 @@ label {
   margin: 0;
   color: #334155;
   font-weight: 700;
+  min-width: 0;
 }
 
 .password-row {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 96px;
   gap: 10px;
+  min-width: 0;
+}
+
+.password-row input {
+  min-width: 0;
 }
 
 .secondary-button {
@@ -298,6 +308,8 @@ label {
   justify-content: center;
   min-height: 52px;
   font-size: 1rem;
+  width: 100%;
+  white-space: normal;
 }
 
 .create-account-panel {
@@ -315,6 +327,7 @@ label {
   padding: 9px 14px;
   color: #fff;
   font-weight: 800;
+  text-align: center;
   white-space: nowrap;
   background: #2563eb;
   border-radius: 8px;
@@ -350,33 +363,86 @@ label {
   letter-spacing: 0.16em;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
   .auth-page {
     align-items: start;
-    padding: 18px;
+    padding: 16px;
+  }
+
+  .auth-shell {
+    width: 100%;
   }
 
   .brand-strip {
-    align-items: flex-start;
+    align-items: center;
+    justify-content: flex-start;
+    margin-bottom: 14px;
+  }
+
+  .brand-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+  }
+
+  .brand-strip h1 {
+    font-size: 1.05rem;
   }
 
   .auth-card {
-    padding: 22px;
+    gap: 14px;
+    padding: 18px;
   }
 
   .card-heading,
   .create-account-panel {
     align-items: stretch;
     flex-direction: column;
+    gap: 10px;
+  }
+
+  .card-heading h2 {
+    font-size: 1.35rem;
+  }
+
+  .helper-panel,
+  .create-account-panel {
+    padding: 12px;
   }
 
   .password-row {
     grid-template-columns: 1fr;
+    gap: 8px;
   }
 
   .choice-link,
   .secondary-button {
     width: 100%;
+  }
+
+  .secondary-button,
+  .primary-button,
+  .choice-link {
+    min-height: 46px;
+  }
+}
+
+@media (max-width: 360px) {
+  .auth-page {
+    padding: 10px;
+  }
+
+  .auth-card {
+    padding: 14px;
+  }
+
+  .brand-strip {
+    gap: 10px;
+  }
+
+  .helper-panel span,
+  .create-account-panel span {
+    font-size: 0.84rem;
   }
 }
 </style>

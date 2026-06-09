@@ -414,4 +414,35 @@ export default defineComponent({
   white-space: nowrap;
   border: 0;
 }
+
+@media (max-width: 700px) {
+  .utilisateurs-container {
+    padding: 16px 12px;
+  }
+
+  .card {
+    padding: 14px;
+  }
+
+  .section-header,
+  .search-bar,
+  .form-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .search-input {
+    max-width: none;
+  }
+
+  .btn,
+  .form-actions button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+}
 </style>

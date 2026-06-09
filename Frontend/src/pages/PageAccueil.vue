@@ -1616,7 +1616,14 @@ export default defineComponent({
   }
 
   .header-twofa {
+    align-items: stretch;
+    flex-direction: column;
     justify-content: space-between;
+  }
+
+  .header-twofa .action-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .user-grid,
@@ -1633,10 +1640,33 @@ export default defineComponent({
     flex-direction: column;
     align-items: stretch;
   }
+
+  .form-actions,
+  .twofa-actions,
+  .twofa-code-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .form-actions button,
+  .twofa-actions button,
+  .twofa-code-row button {
+    width: 100%;
+    justify-content: center;
+  }
 }
 @media (max-width: 500px) {
+  .user-panel,
+  .admin-hero {
+    padding: 16px;
+  }
+
   .nav-grid {
     grid-template-columns: 1fr;
+  }
+
+  .nav-card {
+    min-height: auto;
   }
 }
 </style>
