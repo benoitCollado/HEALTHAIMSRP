@@ -30,10 +30,7 @@ def _minio_client(endpoint: str | None = None):
     secret_key = os.getenv("MINIO_SECRET_KEY")
 
     if not access_key or not secret_key:
-        raise HTTPException(
-            status_code=500,
-            detail="Configuration MiniIO invalide"
-        )
+        raise HTTPException(status_code=500, detail="Configuration MiniIO invalide")
 
     return Minio(
         endpoint or os.getenv("MINIO_ENDPOINT", "minio:9000"),
@@ -75,9 +72,7 @@ def upload_user_image(user_id: str, file: UploadFile) -> dict[str, str]:
 
     ensure_bucket()
     extension = ALLOWED_IMAGE_TYPES[file.content_type]
-    object_key = (
-        f"users/{user_id}/meals/{uuid4().hex}{extension}"
-    )
+    object_key = f"users/{user_id}/meals/{uuid4().hex}{extension}"
     client = _minio_client()
     client.put_object(
         _bucket_name(),

@@ -53,10 +53,7 @@ def chat_with_mistral(payload: ChatRequest, user: dict = Depends(get_current_use
     messages.extend(message.model_dump() for message in payload.history[-10:])
     user_message = payload.message.strip()
     if payload.images:
-        image_lines = [
-            f"- {image.filename or 'image'}: {image.object_key}"
-            for image in payload.images
-        ]
+        image_lines = [f"- {image.filename or 'image'}: {image.object_key}" for image in payload.images]
         user_message = f"{user_message}\n\nImages jointes par l'utilisateur:\n" + "\n".join(image_lines)
     messages.append({"role": "user", "content": user_message})
 
