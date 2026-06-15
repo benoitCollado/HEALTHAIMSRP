@@ -126,6 +126,8 @@ Les images jointes au Chat IA sont stockées dans le bucket `MINIO_BUCKET`, avec
 users/{id_utilisateur}/chat/{uuid}.{extension}
 ```
 
+Avant stockage, le backend redimensionne les images à 640 x 640 pixels maximum et les convertit en JPEG optimisé.
+
 Import des données de départ :
 
 ```bash

@@ -2566,7 +2566,7 @@
                     </tr>
                     <tr>
                         <td><code>backend/app/object_storage.py</code></td>
-                        <td>Client MiniIO, creation du bucket, controle type/taille image, stockage sous <code>users/{id_utilisateur}/chat/</code> et generation d'URL temporaire.</td>
+                        <td>Client MiniIO, creation du bucket, controle type/taille image, redimensionnement, conversion JPEG optimisee, stockage sous <code>users/{id_utilisateur}/chat/</code> et generation d'URL temporaire.</td>
                     </tr>
                     <tr>
                         <td><code>backend/app/schemas/chat.py</code></td>
@@ -2622,8 +2622,9 @@
                 <code>503</code> si la cle Mistral est absente ou refusee, et
                 <code>502</code> si l'API Mistral est indisponible ou renvoie une
                 reponse invalide. Les images sont acceptees uniquement aux formats
-                JPEG, PNG, WebP ou GIF, limitees a 5 Mo, et stockees dans le bucket
-                MiniIO configure par <code>MINIO_BUCKET</code>.
+                JPEG, PNG, WebP ou GIF, limitees a 5 Mo, redimensionnees a
+                640 x 640 pixels maximum, converties en JPEG optimise, puis
+                stockees dans le bucket MiniIO configure par <code>MINIO_BUCKET</code>.
             </p>
 
             <h3>Observabilité backend</h3>

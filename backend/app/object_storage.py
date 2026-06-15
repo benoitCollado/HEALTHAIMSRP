@@ -1,4 +1,6 @@
 import os
+from io import BytesIO
+from pathlib import Path
 from datetime import timedelta
 from uuid import uuid4
 
@@ -11,6 +13,8 @@ ALLOWED_IMAGE_TYPES = {
     "image/gif": ".gif",
 }
 MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024
+MAX_IMAGE_DIMENSION_PX = 640
+IMAGE_JPEG_QUALITY = 82
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -57,6 +61,39 @@ def presigned_image_url(object_key: str) -> str:
     return client.presigned_get_object(_bucket_name(), object_key, expires=timedelta(hours=1))
 
 
+def _optimized_image(file: UploadFile) -> tuple[BytesIO, int, str, str]:
+    try:
+        from PIL import Image, ImageOps, UnidentifiedImageError
+    except ImportError as exc:
+        raise HTTPException(status_code=503, detail="Optimisation image non configuree") from exc
+
+    try:
+        image = Image.open(file.file)
+        image = ImageOps.exif_transpose(image)
+    except UnidentifiedImageError as exc:
+        raise HTTPException(status_code=400, detail="Image invalide") from exc
+
+    image.thumbnail((MAX_IMAGE_DIMENSION_PX, MAX_IMAGE_DIMENSION_PX))
+
+    if image.mode in ("RGBA", "LA") or (image.mode == "P" and "transparency" in image.info):
+        background = Image.new("RGB", image.size, (255, 255, 255))
+        background.paste(image.convert("RGBA"), mask=image.convert("RGBA").split()[-1])
+        image = background
+    else:
+        image = image.convert("RGB")
+
+    buffer = BytesIO()
+    image.save(
+        buffer,
+        format="JPEG",
+        quality=IMAGE_JPEG_QUALITY,
+        optimize=True,
+        progressive=True,
+    )
+    buffer.seek(0)
+    return buffer, buffer.getbuffer().nbytes, "image/jpeg", ".jpg"
+
+
 def upload_user_image(user_id: str, file: UploadFile) -> dict[str, str]:
     if file.content_type not in ALLOWED_IMAGE_TYPES:
         raise HTTPException(status_code=400, detail="Format image non supporte")
@@ -70,21 +107,22 @@ def upload_user_image(user_id: str, file: UploadFile) -> dict[str, str]:
     if size > MAX_IMAGE_SIZE_BYTES:
         raise HTTPException(status_code=400, detail="Image trop volumineuse")
 
+    optimized_file, optimized_size, content_type, extension = _optimized_image(file)
     ensure_bucket()
-    extension = ALLOWED_IMAGE_TYPES[file.content_type]
-    object_key = f"users/{user_id}/meals/{uuid4().hex}{extension}"
+    object_key = f"users/{user_id}/chat/{uuid4().hex}{extension}"
     client = _minio_client()
     client.put_object(
         _bucket_name(),
         object_key,
-        file.file,
-        length=size,
-        content_type=file.content_type,
+        optimized_file,
+        length=optimized_size,
+        content_type=content_type,
     )
 
+    original_name = Path(file.filename or f"image{extension}").stem
     return {
         "object_key": object_key,
         "url": presigned_image_url(object_key),
-        "content_type": file.content_type,
-        "filename": file.filename or f"image{extension}",
+        "content_type": content_type,
+        "filename": f"{original_name}{extension}",
     }

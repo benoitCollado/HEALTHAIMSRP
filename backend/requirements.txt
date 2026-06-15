@@ -13,3 +13,4 @@ httpx
 httpx2
 python-multipart
 minio
+pillow
