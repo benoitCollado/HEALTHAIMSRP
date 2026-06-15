@@ -35,10 +35,10 @@ if ! grep -qE '^SECRET_KEY=.+' .env; then
 fi
 
 # Ces exports priment sur un ancien .env serveur qui exposerait encore MiniIO
-# sur 127.0.0.1:9000, port souvent deja utilise.
-export MINIO_PORT="${MINIO_PORT:-127.0.0.1:9100}"
-export MINIO_CONSOLE_PORT="${MINIO_CONSOLE_PORT:-127.0.0.1:9101}"
-export MINIO_PUBLIC_ENDPOINT="${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:9100}"
+# sur 127.0.0.1:9000 ou 127.0.0.1:9100, ports souvent deja utilises.
+export MINIO_PORT="127.0.0.1:9100"
+export MINIO_CONSOLE_PORT="127.0.0.1:9101"
+export MINIO_PUBLIC_ENDPOINT="127.0.0.1:9100"
 
 echo "==> Arret des services app (minio, backend, frontend) - Airflow non inclus..."
 docker compose stop backend frontend minio

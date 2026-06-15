@@ -114,8 +114,8 @@ Services exposés par défaut :
 | Swagger / OpenAPI | http://localhost:89/api/docs |
 | Backend direct | http://localhost:8089 |
 | Airflow | http://localhost:8080 |
-| MiniIO API | http://localhost:9100 |
-| MiniIO Console | http://localhost:9101 |
+| MiniIO API | http://localhost:19100 |
+| MiniIO Console | http://localhost:19101 |
 
 Identifiants Airflow par défaut : `airflow` / `airflow`.
 Identifiants MiniIO : valeurs de `MINIO_ACCESS_KEY` et `MINIO_SECRET_KEY` dans `.env`.
