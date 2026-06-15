@@ -18,6 +18,7 @@ _OBJECTIF = {
 def user_headers(client, db_session):
     user = Utilisateur(
         username="userobj",
+        email="userobj@example.com",
         password_hash=hash_password("pass"),
         age=28,
         sexe="F",

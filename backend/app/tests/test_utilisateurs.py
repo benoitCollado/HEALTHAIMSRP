@@ -25,6 +25,7 @@ def test_create_utilisateur(client, admin_headers):
         "type_abonnement": 1,
         "date_inscription": "2026-02-05",
         "username": "testuser",
+        "email": "testuser@example.com",
         "password": "testpassword",
     }
 
@@ -32,3 +33,30 @@ def test_create_utilisateur(client, admin_headers):
 
     assert response.status_code == 201
     assert response.json()["age"] == 25
+    assert response.json()["email"] == "testuser@example.com"
+
+
+def test_create_utilisateur_rejects_duplicate_email(client, admin_headers):
+    first = {
+        "age": 25,
+        "sexe": "H",
+        "taille_cm": 180,
+        "poids_kg": 75,
+        "niveau_activite": 2,
+        "type_abonnement": 1,
+        "date_inscription": "2026-02-05",
+        "username": "emailuser1",
+        "email": "same@example.com",
+        "password": "testpassword",
+    }
+    second = {
+        **first,
+        "username": "emailuser2",
+    }
+
+    assert client.post("/utilisateurs", json=first, headers=admin_headers).status_code == 201
+
+    response = client.post("/utilisateurs", json=second, headers=admin_headers)
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "Cette adresse mail est deja utilisee"

@@ -2,8 +2,9 @@ import os
 
 import httpx
 from app.dependencies import get_current_user
-from app.schemas.chat import ChatRequest, ChatResponse
-from fastapi import APIRouter, Depends, HTTPException
+from app.object_storage import upload_user_image
+from app.schemas.chat import ChatImageResponse, ChatRequest, ChatResponse
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 
 router = APIRouter(prefix="/chat", tags=["Chat IA"])
 
@@ -29,15 +30,35 @@ def _get_mistral_api_key() -> str | None:
     return os.getenv("KEY_MISTRAL_API") or os.getenv("KEY_MISTRALL_API") or os.getenv("MISTRAL_API_KEY")
 
 
+@router.post("/images", response_model=ChatImageResponse, status_code=201)
+def upload_chat_image(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
+    user_id = str(user.get("sub") or "")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Utilisateur invalide")
+    return upload_user_image(user_id, file)
+
+
 @router.post("/", response_model=ChatResponse)
 def chat_with_mistral(payload: ChatRequest, user: dict = Depends(get_current_user)):
+    user_id = str(user.get("sub") or "")
     api_key = _get_mistral_api_key()
     if not api_key:
         raise HTTPException(status_code=503, detail="API Mistral non configuree")
 
+    for image in payload.images:
+        if not image.object_key.startswith(f"users/{user_id}/chat/"):
+            raise HTTPException(status_code=403, detail="Image non autorisee")
+
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     messages.extend(message.model_dump() for message in payload.history[-10:])
-    messages.append({"role": "user", "content": payload.message.strip()})
+    user_message = payload.message.strip()
+    if payload.images:
+        image_lines = [
+            f"- {image.filename or 'image'}: {image.object_key}"
+            for image in payload.images
+        ]
+        user_message = f"{user_message}\n\nImages jointes par l'utilisateur:\n" + "\n".join(image_lines)
+    messages.append({"role": "user", "content": user_message})
 
     try:
         with httpx.Client(timeout=20.0) as client:

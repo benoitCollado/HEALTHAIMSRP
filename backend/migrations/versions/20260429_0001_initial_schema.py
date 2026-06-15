@@ -22,6 +22,7 @@ def upgrade() -> None:
         "utilisateurs",
         sa.Column("id_utilisateur", sa.Integer(), primary_key=True, autoincrement=True),
         sa.Column("username", sa.String(50), nullable=False, unique=True),
+        sa.Column("email", sa.String(255), nullable=False, unique=True),
         sa.Column("password_hash", sa.String(255), nullable=False),
         sa.Column("age", sa.Integer(), nullable=False),
         sa.Column("sexe", sa.String(1), nullable=False),

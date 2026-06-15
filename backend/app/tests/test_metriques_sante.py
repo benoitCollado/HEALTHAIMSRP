@@ -19,6 +19,7 @@ _METRIQUE = {
 def user_headers(client, db_session):
     user = Utilisateur(
         username="usermet",
+        email="usermet@example.com",
         password_hash=hash_password("pass"),
         age=30,
         sexe="H",

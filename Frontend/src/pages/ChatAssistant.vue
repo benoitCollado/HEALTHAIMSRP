@@ -45,6 +45,19 @@
           >
             <div class="message-author">{{ message.role === 'user' ? 'Vous' : 'HealthAI' }}</div>
             <p>{{ message.content }}</p>
+            <div v-if="message.images?.length" class="message-images" aria-label="Images jointes">
+              <a
+                v-for="image in message.images"
+                :key="image.object_key"
+                :href="image.url"
+                target="_blank"
+                rel="noreferrer"
+                class="image-chip"
+              >
+                <img :src="image.url" :alt="image.filename" />
+                <span>{{ image.filename }}</span>
+              </a>
+            </div>
           </div>
 
           <div v-if="loading" class="chat-message assistant">
@@ -55,16 +68,38 @@
 
         <form class="chat-form" @submit.prevent="submitMessage">
           <label class="sr-only" for="chat-input">Message</label>
-          <textarea
-            id="chat-input"
-            v-model="draft"
-            rows="3"
-            maxlength="2000"
-            placeholder="Exemple : aide-moi a comprendre mes metriques sante"
-            :disabled="loading"
-            @keydown.enter.exact.prevent="submitMessage"
-          ></textarea>
-          <button type="submit" :disabled="loading || !draft.trim()">Envoyer</button>
+          <div class="composer">
+            <textarea
+              id="chat-input"
+              v-model="draft"
+              rows="3"
+              maxlength="2000"
+              placeholder="Exemple : aide-moi a comprendre mes metriques sante"
+              :disabled="loading"
+              @keydown.enter.exact.prevent="submitMessage"
+            ></textarea>
+            <div v-if="attachedImages.length" class="attachment-preview" aria-label="Images selectionnees">
+              <div v-for="image in attachedImages" :key="image.object_key" class="attachment-item">
+                <img :src="image.url" :alt="image.filename" />
+                <span>{{ image.filename }}</span>
+                <button type="button" aria-label="Retirer l'image" :disabled="loading" @click="removeImage(image.object_key)">
+                  x
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="chat-actions">
+            <label class="attach-button" :class="{ disabled: loading || uploadingImage }">
+              <input
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                :disabled="loading || uploadingImage"
+                @change="handleImageChange"
+              />
+              {{ uploadingImage ? 'Ajout...' : 'Image' }}
+            </label>
+            <button type="submit" :disabled="loading || (!draft.trim() && attachedImages.length === 0)">Envoyer</button>
+          </div>
         </form>
       </section>
     </main>
@@ -74,7 +109,7 @@
 <script lang="ts">
 import { defineComponent, ref } from 'vue'
 import Navbar from '../components/Navbar.vue'
-import { sendChatMessage, type ChatMessage } from '../services/chatApi'
+import { sendChatMessage, uploadChatImage, type ChatImage, type ChatMessage } from '../services/chatApi'
 
 export default defineComponent({
   components: { Navbar },
@@ -82,10 +117,13 @@ export default defineComponent({
     const draft = ref('')
     const error = ref('')
     const loading = ref(false)
+    const uploadingImage = ref(false)
     const messages = ref<ChatMessage[]>([])
+    const attachedImages = ref<ChatImage[]>([])
 
     function resetChat() {
       messages.value = []
+      attachedImages.value = []
       error.value = ''
       draft.value = ''
     }
@@ -94,18 +132,47 @@ export default defineComponent({
       draft.value = text
     }
 
+    function removeImage(objectKey: string) {
+      attachedImages.value = attachedImages.value.filter((image) => image.object_key !== objectKey)
+    }
+
+    async function handleImageChange(event: Event) {
+      const input = event.target as HTMLInputElement
+      const file = input.files?.[0]
+      input.value = ''
+      if (!file || uploadingImage.value || loading.value) return
+
+      if (attachedImages.value.length >= 4) {
+        error.value = 'Vous pouvez joindre au maximum 4 images.'
+        return
+      }
+
+      error.value = ''
+      uploadingImage.value = true
+      try {
+        const uploaded = await uploadChatImage(file)
+        attachedImages.value.push(uploaded)
+      } catch (err) {
+        error.value = err instanceof Error ? err.message : "Impossible d'envoyer l'image."
+      } finally {
+        uploadingImage.value = false
+      }
+    }
+
     async function submitMessage() {
       const content = draft.value.trim()
-      if (!content || loading.value) return
+      if ((!content && attachedImages.value.length === 0) || loading.value) return
 
       error.value = ''
       draft.value = ''
+      const images = [...attachedImages.value]
+      attachedImages.value = []
       const history = [...messages.value]
-      messages.value.push({ role: 'user', content })
+      messages.value.push({ role: 'user', content: content || 'Image jointe', images })
       loading.value = true
 
       try {
-        const answer = await sendChatMessage(content, history)
+        const answer = await sendChatMessage(content || 'Analyse cette image.', history, images)
         messages.value.push({ role: 'assistant', content: answer })
       } catch (err) {
         error.value = err instanceof Error ? err.message : 'Assistant indisponible.'
@@ -114,7 +181,19 @@ export default defineComponent({
       }
     }
 
-    return { draft, error, loading, messages, resetChat, submitMessage, useSuggestion }
+    return {
+      attachedImages,
+      draft,
+      error,
+      handleImageChange,
+      loading,
+      messages,
+      removeImage,
+      resetChat,
+      submitMessage,
+      uploadingImage,
+      useSuggestion
+    }
   }
 })
 </script>
@@ -302,10 +381,98 @@ export default defineComponent({
   background: var(--white);
 }
 
+.composer {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
 .chat-form textarea {
   resize: none;
   border-color: rgba(148, 163, 184, 0.34);
   box-shadow: inset 0 1px 0 rgba(15, 23, 42, 0.02);
+}
+
+.chat-actions {
+  display: grid;
+  align-content: end;
+  gap: 8px;
+}
+
+.attach-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 10px 14px;
+  border: 1px solid rgba(37, 99, 235, 0.28);
+  border-radius: 8px;
+  color: var(--primary-dark);
+  font-weight: 800;
+  cursor: pointer;
+  background: #eff6ff;
+}
+
+.attach-button input {
+  display: none;
+}
+
+.attach-button.disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+.attachment-preview,
+.message-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attachment-item,
+.image-chip {
+  display: inline-grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  max-width: min(100%, 280px);
+  padding: 6px;
+  border: 1px solid rgba(148, 163, 184, 0.26);
+  border-radius: 8px;
+  background: #f8fbff;
+  color: var(--gray-900);
+}
+
+.image-chip {
+  grid-template-columns: 42px minmax(0, 1fr);
+  margin-top: 8px;
+  text-decoration: none;
+}
+
+.attachment-item img,
+.image-chip img {
+  width: 42px;
+  height: 42px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
+.attachment-item span,
+.image-chip span {
+  overflow: hidden;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-item button {
+  min-width: 30px;
+  min-height: 30px;
+  padding: 0;
+  background: #e2e8f0;
+  color: #334155;
+  box-shadow: none;
 }
 
 .sr-only {
@@ -356,6 +523,10 @@ export default defineComponent({
   .chat-form button {
     width: 100%;
     min-height: 46px;
+  }
+
+  .chat-actions {
+    grid-template-columns: 1fr;
   }
 }
 </style>

@@ -1,6 +1,7 @@
 CREATE TABLE utilisateurs (
     id_utilisateur SERIAL PRIMARY KEY,
     username VARCHAR(50) UNIQUE NOT NULL,
+    email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     age INT NOT NULL,
     sexe CHAR(1) NOT NULL CHECK (sexe IN ('H','F')),

@@ -230,6 +230,7 @@ export async function exportDonneesNettoyees(typeDonnees: string = 'all'): Promi
 export interface UtilisateurAdmin {
   id_utilisateur: number
   username: string
+  email: string
   age: number
   sexe: string
   taille_cm: number
@@ -253,6 +254,7 @@ export interface UtilisateursResponse {
 
 export interface UtilisateurCreatePayload {
   username: string
+  email: string
   password: string
   age: number
   sexe: string

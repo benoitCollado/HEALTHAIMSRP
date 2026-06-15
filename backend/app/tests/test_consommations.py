@@ -17,6 +17,7 @@ _CONSOMMATION = {
 def user_headers(client, db_session):
     user = Utilisateur(
         username="usercons",
+        email="usercons@example.com",
         password_hash=hash_password("pass"),
         age=25,
         sexe="H",

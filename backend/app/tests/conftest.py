@@ -61,6 +61,7 @@ def admin_token(client, db_session):
     """Create an admin user and return a valid token."""
     admin_user = Utilisateur(
         username="admin",
+        email="admin@example.com",
         password_hash=hash_password("admin123"),
         age=30,
         sexe="H",

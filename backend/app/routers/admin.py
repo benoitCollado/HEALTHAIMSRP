@@ -471,6 +471,7 @@ def search_utilisateurs(
             {
                 "id_utilisateur": u.id_utilisateur,
                 "username": u.username,
+                "email": u.email,
                 "age": u.age,
                 "sexe": u.sexe,
                 "taille_cm": u.taille_cm,
@@ -552,6 +553,7 @@ def get_utilisateur_donnees(
         "utilisateur": {
             "id_utilisateur": u.id_utilisateur,
             "username": u.username,
+            "email": u.email,
             "age": u.age,
             "sexe": u.sexe,
             "taille_cm": u.taille_cm,

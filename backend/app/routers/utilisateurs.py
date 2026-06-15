@@ -17,6 +17,10 @@ def _create_user(utilisateur: UtilisateurCreate, db: Session, *, is_admin: bool 
     if existing_user:
         raise HTTPException(status_code=400, detail="Ce nom d'utilisateur est deja utilise")
 
+    existing_email = db.query(Utilisateur).filter(Utilisateur.email == utilisateur.email).first()
+    if existing_email:
+        raise HTTPException(status_code=400, detail="Cette adresse mail est deja utilisee")
+
     data = utilisateur.model_dump(exclude={"password"})
     data["password_hash"] = hash_password(utilisateur.password)
     data["is_admin"] = is_admin

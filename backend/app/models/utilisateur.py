@@ -13,6 +13,9 @@ class Utilisateur(Base):
     # Nom d’utilisateur unique pour la connexion
     username = Column(String(50), unique=True, nullable=False)
 
+    # Adresse mail unique et obligatoire de l'utilisateur
+    email = Column(String(255), unique=True, nullable=False, index=True)
+
     # Mot de passe chiffré (hashé), jamais stocké en clair
     password_hash = Column(String(255), nullable=False)
 

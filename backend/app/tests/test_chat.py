@@ -43,3 +43,39 @@ def test_chat_calls_mistral(client, admin_headers, monkeypatch):
     assert call_kwargs["json"]["model"] == "mistral-small-latest"
     assert call_kwargs["json"]["messages"][0]["role"] == "system"
     assert call_kwargs["json"]["messages"][-1]["content"] == "A quoi sert HealthAI MSPR ?"
+
+
+def test_chat_upload_image_uses_user_storage(client, admin_headers):
+    uploaded = {
+        "object_key": "users/1/chat/image.png",
+        "url": "http://localhost:9000/healthai-chat-images/users/1/chat/image.png",
+        "content_type": "image/png",
+        "filename": "image.png",
+    }
+
+    with patch("app.routers.chat.upload_user_image", return_value=uploaded) as upload:
+        response = client.post(
+            "/chat/images",
+            headers=admin_headers,
+            files={"file": ("image.png", b"fake", "image/png")},
+        )
+
+    assert response.status_code == 201
+    assert response.json() == uploaded
+    assert upload.call_args.args[0] == "1"
+
+
+def test_chat_rejects_image_from_another_user(client, admin_headers, monkeypatch):
+    monkeypatch.setenv("KEY_MISTRAL_API", "test-key")
+
+    response = client.post(
+        "/chat/",
+        headers=admin_headers,
+        json={
+            "message": "Analyse cette image",
+            "images": [{"object_key": "users/999/chat/image.png", "filename": "image.png"}],
+        },
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Image non autorisee"

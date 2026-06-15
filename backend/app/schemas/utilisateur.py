@@ -1,6 +1,6 @@
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
 
 
 # Schéma de base pour un utilisateur
@@ -25,8 +25,17 @@ class UtilisateurBase(BaseModel):
 class UtilisateurCreate(UtilisateurBase):
     # Nom d’utilisateur (unique)
     username: str
+    email: str
     # Mot de passe en clair (sera hashé côté backend)
     password: str
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, value: str) -> str:
+        email = value.strip().lower()
+        if "@" not in email or "." not in email.rsplit("@", 1)[-1]:
+            raise ValueError("Adresse mail invalide")
+        return email
 
 
 # Schéma utilisé pour la mise à jour partielle d’un utilisateur
@@ -52,5 +61,6 @@ class UtilisateurResponse(UtilisateurBase):
     # Identifiant unique de l’utilisateur
     id_utilisateur: int
     username: str
+    email: str
 
     model_config = ConfigDict(from_attributes=True)

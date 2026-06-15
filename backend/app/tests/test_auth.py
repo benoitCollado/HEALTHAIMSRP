@@ -8,6 +8,7 @@ from app.security import _totp_at, generate_totp_secret, hash_password
 def test_login_ok(client, db_session):
     admin = Utilisateur(
         username="admin",
+        email="admin@example.com",
         password_hash=hash_password("admin123"),
         age=30,
         sexe="H",
@@ -38,6 +39,7 @@ def test_login_ok(client, db_session):
 def test_two_factor_status_endpoint(client, db_session):
     user = Utilisateur(
         username="user2fa",
+        email="user2fa@example.com",
         password_hash=hash_password("pass123"),
         age=30,
         sexe="H",
@@ -65,6 +67,7 @@ def test_public_register_endpoint_is_not_shadowed_by_user_id_route(client):
         "/utilisateurs/register",
         json={
             "username": "newuser",
+            "email": "newuser@example.com",
             "password": "pass123",
             "age": 28,
             "sexe": "F",
@@ -84,6 +87,7 @@ def test_login_requires_valid_otp_when_two_factor_enabled(client, db_session):
     secret = generate_totp_secret()
     user = Utilisateur(
         username="secureuser",
+        email="secureuser@example.com",
         password_hash=hash_password("pass123"),
         age=30,
         sexe="H",

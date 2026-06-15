@@ -26,6 +26,11 @@
               <input id="username" v-model.trim="form.username" type="text" autocomplete="username" required />
             </label>
 
+            <label for="email">
+              Adresse mail
+              <input id="email" v-model.trim="form.email" type="email" autocomplete="email" required />
+            </label>
+
             <label for="password">
               Mot de passe
               <div class="password-row">
@@ -117,6 +122,7 @@ import { auth } from '../services/auth'
 
 interface RegisterPayload {
   username: string
+  email: string
   password: string
   age: number
   sexe: 'H' | 'F'
@@ -134,6 +140,7 @@ function todayIsoDate(): string {
 function initialForm(): RegisterPayload {
   return {
     username: '',
+    email: '',
     password: '',
     age: 25,
     sexe: 'H',

@@ -17,6 +17,7 @@ _ACTIVITE = {
 def user_headers(client, db_session):
     user = Utilisateur(
         username="useract",
+        email="useract@example.com",
         password_hash=hash_password("pass"),
         age=25,
         sexe="F",

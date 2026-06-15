@@ -45,6 +45,10 @@
               <input v-model="createForm.username" type="text" required />
             </label>
             <label>
+              <span>Adresse mail</span>
+              <input v-model="createForm.email" type="email" required />
+            </label>
+            <label>
               <span>Mot de passe</span>
               <input v-model="createForm.password" type="password" required minlength="4" />
             </label>
@@ -108,6 +112,7 @@
               <tr>
                 <th scope="col">ID</th>
                 <th scope="col">Nom d'utilisateur</th>
+                <th scope="col">Adresse mail</th>
                 <th scope="col">Âge</th>
                 <th scope="col">Sexe</th>
                 <th scope="col">Inscription</th>
@@ -122,6 +127,7 @@
               <tr v-for="u in utilisateurs" :key="u.id_utilisateur">
                 <td data-label="ID">{{ u.id_utilisateur }}</td>
                 <td data-label="Utilisateur">{{ u.username }}</td>
+                <td data-label="Email">{{ u.email }}</td>
                 <td data-label="Age">{{ u.age }}</td>
                 <td data-label="Sexe">{{ u.sexe }}</td>
                 <td data-label="Inscription">{{ u.date_inscription }}</td>
@@ -166,6 +172,7 @@ let debounceTimer: ReturnType<typeof setTimeout> | null = null
 function createInitialForm(): UtilisateurCreatePayload {
   return {
     username: '',
+    email: '',
     password: '',
     age: 30,
     sexe: 'H',

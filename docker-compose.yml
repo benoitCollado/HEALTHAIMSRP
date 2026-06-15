@@ -8,6 +8,8 @@ services:
     restart: always
     ports:
       - "${BACKEND_PORT:-127.0.0.1:8089}:8000"
+    depends_on:
+      - minio
     volumes:
       - ./data:/data
       - ./data/logs/backend:/app/logs
@@ -21,6 +23,11 @@ services:
       LOG_DIR: /app/logs
       KEY_MISTRAL_API: ${KEY_MISTRAL_API:-}
       MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
+      MINIO_ENDPOINT: minio:9000
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:9000}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-healthai}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-healthai-secret}
+      MINIO_BUCKET: ${MINIO_BUCKET:-healthai-chat-images}
       AIRFLOW_API_URL: ${AIRFLOW_API_URL:-http://host.docker.internal:8080}
       AIRFLOW_USER: ${AIRFLOW_USER:-airflow}
       AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
@@ -29,6 +36,22 @@ services:
         if [ -f /data/seed_db.py ]; then python /data/seed_db.py || true; fi &&
         exec ./start.sh
       "
+    networks:
+      - health_net
+
+  minio:
+    image: minio/minio:RELEASE.2025-04-22T22-12-26Z
+    container_name: minio_healthai
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY must be set}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY must be set}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "${MINIO_PORT:-127.0.0.1:9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-127.0.0.1:9001}:9001"
     networks:
       - health_net
 
@@ -192,6 +215,7 @@ services:
 
 volumes:
   airflow_db_data:
+  minio_data:
 
 networks:
   health_net:
