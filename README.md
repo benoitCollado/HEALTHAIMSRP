@@ -90,7 +90,7 @@ GRAFANA_ADMIN_PASSWORD=<mot-de-passe-grafana>
 MINIO_ACCESS_KEY=healthai_app
 MINIO_SECRET_KEY=<mot-de-passe-minio>
 MINIO_BUCKET=healthai-chat-images
-MINIO_PUBLIC_ENDPOINT=127.0.0.1:9100
+MINIO_PUBLIC_ENDPOINT=127.0.0.1:19100
 ```
 
 `CORS_ALLOWED_ORIGINS` contient les origines frontend autorisees, separees par des virgules. En production, utiliser l'origine du site sans `/api` ni slash final, par exemple `https://healthai.benoitcollado.com`.

@@ -35,10 +35,11 @@ if ! grep -qE '^SECRET_KEY=.+' .env; then
 fi
 
 # Ces exports priment sur un ancien .env serveur qui exposerait encore MiniIO
-# sur 127.0.0.1:9000 ou 127.0.0.1:9100, ports souvent deja utilises.
-export MINIO_PORT="127.0.0.1:9100"
-export MINIO_CONSOLE_PORT="127.0.0.1:9101"
-export MINIO_PUBLIC_ENDPOINT="127.0.0.1:9100"
+# sur 127.0.0.1:9000 ou 127.0.0.1:9100. Le port 9100 est garde pour
+# node-exporter quand la stack monitoring est active.
+export MINIO_PORT="127.0.0.1:19100"
+export MINIO_CONSOLE_PORT="127.0.0.1:19101"
+export MINIO_PUBLIC_ENDPOINT="127.0.0.1:19100"
 
 echo "==> Arret des services app (minio, backend, frontend) - Airflow non inclus..."
 docker compose stop backend frontend minio

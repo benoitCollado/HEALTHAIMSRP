@@ -24,7 +24,7 @@ services:
       KEY_MISTRAL_API: ${KEY_MISTRAL_API:-}
       MISTRAL_MODEL: ${MISTRAL_MODEL:-mistral-small-latest}
       MINIO_ENDPOINT: minio:9000
-      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:9100}
+      MINIO_PUBLIC_ENDPOINT: ${MINIO_PUBLIC_ENDPOINT:-127.0.0.1:19100}
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-healthai}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-healthai-secret}
       MINIO_BUCKET: ${MINIO_BUCKET:-healthai-chat-images}
@@ -50,8 +50,8 @@ services:
     volumes:
       - minio_data:/data
     ports:
-      - "${MINIO_PORT:-127.0.0.1:9100}:9000"
-      - "${MINIO_CONSOLE_PORT:-127.0.0.1:9101}:9001"
+      - "${MINIO_PORT:-127.0.0.1:19100}:9000"
+      - "${MINIO_CONSOLE_PORT:-127.0.0.1:19101}:9001"
     networks:
       - health_net
 
