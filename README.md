@@ -15,6 +15,7 @@ API FastAPI / Python 3.11
         |
         v
 PostgreSQL Neon + migrations Alembic
+MiniIO pour le stockage objet des images Chat IA
 
 Airflow orchestre les flux de données et écrit dans les dossiers data/.
 Prometheus, Grafana, Loki et Promtail assurent le monitoring et les logs.
@@ -29,6 +30,7 @@ Prometheus, Grafana, Loki et Promtail assurent le monitoring et les logs.
 | Backend | Python 3.11, FastAPI, Uvicorn, SQLAlchemy, Pydantic, python-jose |
 | Sécurité | JWT Bearer, passlib/bcrypt, middleware d'en-têtes HTTP, CORS, variables `.env` |
 | Base de données | PostgreSQL Neon, Alembic, psycopg2 |
+| Stockage objet | MiniIO compatible S3 pour les images utilisateur du Chat IA |
 | Données / ETL | Apache Airflow 2.10.4, pandas, requests, DAGs Python, CSV |
 | Observabilité | Logs applicatifs, endpoint `/health`, endpoint admin `/metrics`, alertes email SMTP |
 | Monitoring infra | Prometheus, Grafana, Loki, Promtail, Node Exporter, Blackbox Exporter |
@@ -53,7 +55,9 @@ scripts/        Scripts de déploiement et utilitaires SQL
 ## Fonctionnalités principales
 
 - Authentification par JWT et rôles utilisateur/admin.
+- Inscription utilisateur avec adresse email obligatoire et unique.
 - API REST avec endpoints pour utilisateurs, aliments, exercices, consommations, activités, métriques santé et objectifs.
+- Chat IA Mistral avec possibilité de joindre des images stockées dans MiniIO par utilisateur.
 - Dashboard d'administration et pages de gestion des flux.
 - Nettoyage et validation des données via pipelines Airflow.
 - Migrations versionnées avec Alembic.
@@ -83,6 +87,10 @@ API_ROOT_PATH=/api
 VITE_API_URL=/api
 CORS_ALLOWED_ORIGINS=http://localhost:89,http://127.0.0.1:89,https://healthai.benoitcollado.com
 GRAFANA_ADMIN_PASSWORD=<mot-de-passe-grafana>
+MINIO_ACCESS_KEY=healthai_app
+MINIO_SECRET_KEY=<mot-de-passe-minio>
+MINIO_BUCKET=healthai-chat-images
+MINIO_PUBLIC_ENDPOINT=127.0.0.1:9100
 ```
 
 `CORS_ALLOWED_ORIGINS` contient les origines frontend autorisees, separees par des virgules. En production, utiliser l'origine du site sans `/api` ni slash final, par exemple `https://healthai.benoitcollado.com`.
@@ -106,8 +114,17 @@ Services exposés par défaut :
 | Swagger / OpenAPI | http://localhost:89/api/docs |
 | Backend direct | http://localhost:8089 |
 | Airflow | http://localhost:8080 |
+| MiniIO API | http://localhost:9100 |
+| MiniIO Console | http://localhost:9101 |
 
 Identifiants Airflow par défaut : `airflow` / `airflow`.
+Identifiants MiniIO : valeurs de `MINIO_ACCESS_KEY` et `MINIO_SECRET_KEY` dans `.env`.
+
+Les images jointes au Chat IA sont stockées dans le bucket `MINIO_BUCKET`, avec un préfixe par utilisateur :
+
+```text
+users/{id_utilisateur}/chat/{uuid}.{extension}
+```
 
 Import des données de départ :
 
@@ -144,6 +161,8 @@ pip install -r requirements-dev.txt
 alembic upgrade head
 uvicorn app.main:app --reload --port 8089
 ```
+
+En développement local hors Docker, le backend attend un service MiniIO joignable via `MINIO_ENDPOINT`.
 
 Frontend :
 

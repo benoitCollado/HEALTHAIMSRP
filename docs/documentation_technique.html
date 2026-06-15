@@ -914,6 +914,11 @@
                         <td>Stockage applicatif managé, migrations versionnées, connexion sécurisée via <code>DATABASE_URL</code>.</td>
                     </tr>
                     <tr>
+                        <td>Stockage objet</td>
+                        <td>MiniIO compatible S3</td>
+                        <td>Stockage des images jointes au Chat IA, avec un préfixe isolé par utilisateur.</td>
+                    </tr>
+                    <tr>
                         <td>Orchestration data</td>
                         <td>Apache Airflow, DAGs Python, pandas, requests</td>
                         <td>Import Open Food Facts, export base vers CSV, préparation de fichiers ML.</td>
@@ -1242,6 +1247,10 @@
                     <div class="model-field">
                         <div class="fname">username</div>
                         <div class="ftype">VARCHAR(50) UNIQUE</div>
+                    </div>
+                    <div class="model-field">
+                        <div class="fname">email</div>
+                        <div class="ftype">VARCHAR(255) UNIQUE</div>
                     </div>
                     <div class="model-field">
                         <div class="fname">password_hash</div>
@@ -1605,6 +1614,12 @@
                         <td><code>/api/chat/</code></td>
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>Chat utilisateur HealthAI MSPR via API Mistral, avec contexte limité au suivi santé et à l'utilisation de la plateforme</td>
+                    </tr>
+                    <tr>
+                        <td><span class="badge b-post">POST</span></td>
+                        <td><code>/api/chat/images</code></td>
+                        <td><span class="badge b-auth">Auth</span></td>
+                        <td>Upload d'une image utilisateur vers MiniIO pour la joindre au Chat IA</td>
                     </tr>
                 </tbody>
             </table>
@@ -2153,6 +2168,12 @@
                         <td>API FastAPI + Uvicorn</td>
                     </tr>
                     <tr>
+                        <td><code>minio_healthai</code></td>
+                        <td>minio/minio</td>
+                        <td>9100:9000, 9101:9001</td>
+                        <td>Stockage objet des images Chat IA et console d'administration MiniIO</td>
+                    </tr>
+                    <tr>
                         <td><code>Neon PostgreSQL</code></td>
                         <td>Service cloud externe</td>
                         <td>Non exposé par Docker</td>
@@ -2525,7 +2546,10 @@
                 <code>/chat</code> et appelle le backend via
                 <code>POST /api/chat/</code>. La cle Mistral reste uniquement
                 cote serveur : le navigateur envoie le message utilisateur et
-                un historique court, puis le backend relaie la requete vers
+                un historique court. Les images jointes sont d'abord envoyees a
+                <code>POST /api/chat/images</code>, stockees dans MiniIO, puis
+                referencees dans la requete de chat. Le backend relaie ensuite la
+                requete vers
                 <code>https://api.mistral.ai/v1/chat/completions</code>.
             </p>
             <table>
@@ -2538,24 +2562,35 @@
                 <tbody>
                     <tr>
                         <td><code>backend/app/routers/chat.py</code></td>
-                        <td>Routeur FastAPI protege par JWT, construction du prompt systeme HealthAI MSPR et appel HTTP Mistral via <code>httpx</code>.</td>
+                        <td>Routeur FastAPI protege par JWT, upload d'images vers MiniIO, controle du proprietaire des images, construction du prompt systeme HealthAI MSPR et appel HTTP Mistral via <code>httpx</code>.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/object_storage.py</code></td>
+                        <td>Client MiniIO, creation du bucket, controle type/taille image, stockage sous <code>users/{id_utilisateur}/chat/</code> et generation d'URL temporaire.</td>
                     </tr>
                     <tr>
                         <td><code>backend/app/schemas/chat.py</code></td>
-                        <td>Validation Pydantic du message, de l'historique limite a 10 messages et de la reponse <code>answer</code>.</td>
+                        <td>Validation Pydantic du message, de l'historique limite a 10 messages, des references images jointes et de la reponse <code>answer</code>.</td>
                     </tr>
                     <tr>
                         <td><code>Frontend/src/pages/ChatAssistant.vue</code></td>
-                        <td>Interface utilisateur avec zone de conversation, suggestions, et etats chargement/erreur.</td>
+                        <td>Interface utilisateur avec zone de conversation, suggestions, bouton d'ajout d'image, apercu des pieces jointes et etats chargement/erreur.</td>
                     </tr>
                     <tr>
                         <td><code>Frontend/src/services/chatApi.ts</code></td>
-                        <td>Service frontend qui ajoute <code>Authorization: Bearer &lt;token&gt;</code> et transmet le message au backend.</td>
+                        <td>Service frontend qui ajoute <code>Authorization: Bearer &lt;token&gt;</code>, envoie les fichiers en <code>multipart/form-data</code> et transmet le message au backend.</td>
                     </tr>
                 </tbody>
             </table>
             <div class="code-block">
                 <span class="cm"># Requete frontend vers backend</span>
+                POST /api/chat/images
+                Authorization: Bearer &lt;jwt&gt;
+                Content-Type: multipart/form-data
+
+                file=image.png
+
+                <span class="cm"># Requete de chat avec image deja stockee</span>
                 POST /api/chat/
                 Authorization: Bearer &lt;jwt&gt;
                 Content-Type: application/json
@@ -2564,6 +2599,12 @@
                   "message": "Comment suivre mes objectifs sante ?",
                   "history": [
                     { "role": "assistant", "content": "Bonjour, comment puis-je aider ?" }
+                  ],
+                  "images": [
+                    {
+                      "object_key": "users/1/chat/uuid.png",
+                      "filename": "image.png"
+                    }
                   ]
                 }
 
@@ -2580,7 +2621,9 @@
                 de diagnostic medical. Les erreurs de configuration renvoient
                 <code>503</code> si la cle Mistral est absente ou refusee, et
                 <code>502</code> si l'API Mistral est indisponible ou renvoie une
-                reponse invalide.
+                reponse invalide. Les images sont acceptees uniquement aux formats
+                JPEG, PNG, WebP ou GIF, limitees a 5 Mo, et stockees dans le bucket
+                MiniIO configure par <code>MINIO_BUCKET</code>.
             </p>
 
             <h3>Observabilité backend</h3>
@@ -3721,6 +3764,7 @@
             <h3>Création de compte utilisateur</h3>
             <ul class="feature-list">
                 <li><span class="check">✓</span>Parcours d'inscription complet avec validation des champs principaux.</li>
+                <li><span class="check">✓</span>Adresse email obligatoire, normalisee et unique en base.</li>
                 <li><span class="check">✓</span>Stockage sécurisé du mot de passe (hash, jamais en clair).</li>
                 <li><span class="check">✓</span>Parcours validé de bout en bout : création de compte puis connexion sur ce compte.</li>
             </ul>
