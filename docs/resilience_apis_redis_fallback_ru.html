@@ -1,0 +1,599 @@
+<!doctype html>
+<html lang="ru">
+    <head>
+        <meta charset="UTF-8" />
+        <title>HealthAI MSPR - устойчивость внешних API, Redis rate limiting и fallback</title>
+        <style>
+            @page {
+                size: A4;
+                margin: 18mm 16mm;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                font-family: Arial, "Segoe UI", sans-serif;
+                color: #172033;
+                background: #ffffff;
+                font-size: 11pt;
+                line-height: 1.55;
+            }
+
+            h1,
+            h2,
+            h3 {
+                color: #0f2044;
+                line-height: 1.25;
+                page-break-after: avoid;
+            }
+
+            h1 {
+                font-size: 25pt;
+                margin: 0 0 8px;
+            }
+
+            h2 {
+                font-size: 17pt;
+                margin: 24px 0 10px;
+                padding-bottom: 5px;
+                border-bottom: 2px solid #dbe7ff;
+            }
+
+            h3 {
+                font-size: 13pt;
+                margin: 18px 0 8px;
+            }
+
+            p {
+                margin: 0 0 9px;
+            }
+
+            ul,
+            ol {
+                margin: 6px 0 12px 22px;
+                padding: 0;
+            }
+
+            li {
+                margin-bottom: 5px;
+            }
+
+            code {
+                font-family: "Consolas", "Courier New", monospace;
+                font-size: 9.5pt;
+                background: #eef4ff;
+                color: #174ea6;
+                padding: 1px 4px;
+                border-radius: 3px;
+            }
+
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 10px 0 16px;
+                font-size: 9.8pt;
+                page-break-inside: avoid;
+            }
+
+            th {
+                background: #0f2044;
+                color: #ffffff;
+                padding: 7px 8px;
+                text-align: left;
+                font-weight: 700;
+            }
+
+            td {
+                border-bottom: 1px solid #e2e8f0;
+                padding: 7px 8px;
+                vertical-align: top;
+            }
+
+            tr:nth-child(even) td {
+                background: #f8fafc;
+            }
+
+            .cover {
+                min-height: 245mm;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                page-break-after: always;
+                border-left: 8px solid #2563eb;
+                padding-left: 22px;
+            }
+
+            .subtitle {
+                color: #526179;
+                font-size: 14pt;
+                margin-bottom: 22px;
+            }
+
+            .meta {
+                margin-top: 26px;
+                padding: 14px 16px;
+                background: #f8fafc;
+                border: 1px solid #dbe7ff;
+                border-radius: 8px;
+                color: #334155;
+            }
+
+            .box {
+                border: 1px solid #bfdbfe;
+                background: #eff6ff;
+                border-left: 4px solid #2563eb;
+                padding: 12px 14px;
+                border-radius: 7px;
+                margin: 12px 0 16px;
+            }
+
+            .warn {
+                border-color: #fed7aa;
+                background: #fff7ed;
+                border-left-color: #f97316;
+            }
+
+            .ok {
+                border-color: #bbf7d0;
+                background: #f0fdf4;
+                border-left-color: #16a34a;
+            }
+
+            .codeblock {
+                white-space: pre-wrap;
+                font-family: "Consolas", "Courier New", monospace;
+                font-size: 9pt;
+                color: #dbeafe;
+                background: #172033;
+                border-radius: 8px;
+                padding: 12px 14px;
+                margin: 10px 0 16px;
+                page-break-inside: avoid;
+            }
+
+            .small {
+                color: #64748b;
+                font-size: 9.5pt;
+            }
+
+            .page-break {
+                page-break-before: always;
+            }
+        </style>
+    </head>
+    <body>
+        <section class="cover">
+            <h1>HealthAI MSPR</h1>
+            <div class="subtitle">
+                Объяснение новых этапов: устойчивые внешние API, Redis rate limiting и fallback-механизмы
+            </div>
+            <div class="meta">
+                <p><strong>Документ:</strong> техническое пояснение на русском языке</p>
+                <p><strong>Контекст:</strong> backend FastAPI, Mistral API, Airflow REST API, Redis rate limiting и Redis cache</p>
+                <p><strong>Дата:</strong> июнь 2026</p>
+            </div>
+        </section>
+
+        <h2>1. Общая цель изменений</h2>
+        <p>
+            В проект HealthAI MSPR добавлены три взаимосвязанных механизма, которые повышают надежность backend-части:
+            устойчивые вызовы внешних API, ограничение нагрузки через Redis и fallback-поведение для продолжения работы
+            сервиса даже при частичных сбоях.
+        </p>
+        <div class="box">
+            Главная идея: пользователь не должен сразу видеть техническую ошибку только потому, что внешний сервис
+            временно недоступен. Backend сначала пытается восстановиться самостоятельно, затем переходит в деградированный
+            режим, а критичные маршруты защищаются от перегрузки.
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Этап</th>
+                    <th>Что добавлено</th>
+                    <th>Где реализовано</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Устойчивые внешние API</td>
+                    <td>Timeout, retries, backoff, circuit breaker, обработка ошибок авторизации и ответа</td>
+                    <td><code>backend/app/external_clients.py</code></td>
+                </tr>
+                <tr>
+                    <td>Rate limiting Redis</td>
+                    <td>Ограничение количества запросов по IP/пользователю, отдельные лимиты для login и chat</td>
+                    <td><code>backend/app/rate_limit.py</code>, <code>backend/app/main.py</code></td>
+                </tr>
+                <tr>
+                    <td>Интеллектуальный cache Redis</td>
+                    <td>Короткий TTL для Airflow, Chat IA и MinIO image URL; stale cache для Airflow на случай сбоя</td>
+                    <td><code>backend/app/cache.py</code>, <code>external_clients.py</code></td>
+                </tr>
+                <tr>
+                    <td>Fallback</td>
+                    <td>Ответ-заглушка для Mistral, деградированный режим Airflow, fail-open при падении Redis</td>
+                    <td><code>chat.py</code>, <code>admin.py</code>, <code>rate_limit.py</code></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>2. Интеграция внешних API с управлением сбоями</h2>
+        <p>
+            Раньше route <code>/chat/</code> напрямую создавал HTTP-клиент и отправлял запрос в Mistral. Такой подход
+            работал, но вся логика ошибок находилась в route, и ее было сложно переиспользовать для других сервисов.
+            Теперь внешние вызовы вынесены в отдельный модуль <code>external_clients.py</code>.
+        </p>
+
+        <h3>2.1. Какие внешние API покрыты</h3>
+        <ul>
+            <li><strong>Mistral API</strong> - используется Chat IA для генерации ответа пользователю.</li>
+            <li><strong>Airflow REST API</strong> - используется административной страницей flux для получения DAG runs.</li>
+        </ul>
+
+        <h3>2.2. Timeout</h3>
+        <p>
+            Timeout ограничивает максимальное время ожидания ответа. Если внешний сервис зависает, backend не держит
+            соединение бесконечно. Для Mistral используется переменная:
+        </p>
+        <div class="codeblock">MISTRAL_TIMEOUT_SECONDS=20</div>
+        <p>
+            Если Mistral не ответил за заданное время, это считается временной ошибкой. Backend может выполнить повторную
+            попытку, а затем перейти к fallback.
+        </p>
+
+        <h3>2.3. Retries</h3>
+        <p>
+            Retry - это повторная попытка выполнить запрос, если ошибка выглядит временной. Например, внешний сервис
+            может вернуть <code>429</code> из-за нагрузки или <code>503</code> при кратком техническом сбое.
+        </p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Код / ошибка</th>
+                    <th>Почему retry уместен</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>429 Too Many Requests</code></td>
+                    <td>Поставщик временно ограничил частоту запросов.</td>
+                </tr>
+                <tr>
+                    <td><code>500</code>, <code>502</code>, <code>503</code>, <code>504</code></td>
+                    <td>Ошибка на стороне внешнего сервиса или gateway, часто временная.</td>
+                </tr>
+                <tr>
+                    <td>Timeout / network error</td>
+                    <td>Сеть или сервис могли кратко быть недоступны.</td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="codeblock">EXTERNAL_API_MAX_RETRIES=2
+EXTERNAL_API_RETRY_DELAY_SECONDS=0.25</div>
+        <p>
+            При <code>EXTERNAL_API_MAX_RETRIES=2</code> backend делает один основной вызов и до двух дополнительных
+            попыток. Между попытками используется увеличивающаяся задержка: сначала базовая, затем больше. Это называется
+            backoff и помогает не добивать сервис, который уже испытывает нагрузку.
+        </p>
+
+        <h3>2.4. Circuit breaker</h3>
+        <p>
+            Circuit breaker защищает backend от бесконечных вызовов заведомо неисправного сервиса. Если несколько
+            попыток подряд завершаются ошибкой, circuit breaker "открывается" и временно запрещает новые запросы к
+            этому внешнему API.
+        </p>
+        <div class="codeblock">EXTERNAL_API_CIRCUIT_FAILURES=3
+EXTERNAL_API_CIRCUIT_RECOVERY_SECONDS=60</div>
+        <ol>
+            <li>Backend вызывает внешний API.</li>
+            <li>Если вызовы успешны, счетчик ошибок сбрасывается.</li>
+            <li>Если подряд накопилось 3 ошибки, circuit breaker открывается.</li>
+            <li>В течение 60 секунд backend не тратит время на новые вызовы к этому API.</li>
+            <li>После окна восстановления circuit breaker разрешает новый пробный вызов.</li>
+        </ol>
+        <div class="box warn">
+            Это особенно важно для Chat IA: если Mistral недоступен, backend быстро переходит к ответу de secours и
+            не блокирует пользователей долгим ожиданием.
+        </div>
+
+        <h2 class="page-break">3. Управление нагрузкой через Redis rate limiting</h2>
+        <p>
+            Rate limiting ограничивает количество запросов за заданный промежуток времени. В HealthAI MSPR это нужно,
+            чтобы защитить backend от brute force на login, чрезмерных вызовов Chat IA и общей перегрузки API.
+        </p>
+
+        <h3>3.1. Почему используется Redis</h3>
+        <p>
+            Redis подходит для rate limiting, потому что он быстрый, хранит счетчики с TTL и может использоваться всеми
+            экземплярами backend одновременно. Если позже backend будет масштабирован на несколько контейнеров, лимиты
+            останутся общими, а не локальными для каждого процесса.
+        </p>
+
+        <h3>3.2. Как строится ключ лимита</h3>
+        <p>
+            Middleware определяет актера запроса. Если пользователь авторизован, ключ включает ID пользователя и IP.
+            Если пользователь не авторизован, используется IP.
+        </p>
+        <div class="codeblock">Пример:
+rate_limit:POST:/chat/:user:1:ip:127.0.0.1:29743821</div>
+        <p>
+            Последняя часть ключа - номер временного окна. Благодаря этому Redis хранит счетчик только для текущего окна,
+            а затем автоматически удаляет его по TTL.
+        </p>
+
+        <h3>3.3. Разные лимиты для разных маршрутов</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Маршрут</th>
+                    <th>Переменные</th>
+                    <th>Причина</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>/login</code></td>
+                    <td><code>RATE_LIMIT_LOGIN_LIMIT</code>, <code>RATE_LIMIT_LOGIN_WINDOW_SECONDS</code></td>
+                    <td>Защита от перебора пароля и слишком частых попыток входа.</td>
+                </tr>
+                <tr>
+                    <td><code>/chat</code></td>
+                    <td><code>RATE_LIMIT_CHAT_LIMIT</code>, <code>RATE_LIMIT_CHAT_WINDOW_SECONDS</code></td>
+                    <td>Chat IA дороже обычных CRUD-запросов, потому что вызывает внешний AI provider.</td>
+                </tr>
+                <tr>
+                    <td>Остальные маршруты</td>
+                    <td><code>RATE_LIMIT_DEFAULT_LIMIT</code>, <code>RATE_LIMIT_DEFAULT_WINDOW_SECONDS</code></td>
+                    <td>Общая защита API от всплесков нагрузки.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>3.4. Что происходит при превышении лимита</h3>
+        <p>
+            Если счетчик в Redis превышает допустимый лимит, middleware не пропускает запрос в route. Backend сразу
+            возвращает <code>429 Too Many Requests</code>.
+        </p>
+        <div class="codeblock">HTTP/1.1 429 Too Many Requests
+Retry-After: 30
+X-RateLimit-Limit: 20
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 30
+
+{
+  "detail": "Trop de requetes. Reessayez dans quelques instants."
+}</div>
+        <p>
+            Заголовок <code>Retry-After</code> говорит клиенту, сколько секунд подождать перед новой попыткой.
+        </p>
+
+        <h3>3.5. Почему /health исключен</h3>
+        <p>
+            Endpoint <code>/health</code> используется мониторингом и оркестрацией. Если его ограничивать, система
+            мониторинга может ошибочно решить, что API недоступен. Поэтому health check проходит без rate limiting.
+        </p>
+
+        <h2 class="page-break">4. Интеллектуальное кеширование Redis</h2>
+        <p>
+            Redis теперь используется не только для rate limiting, но и как cache для данных Airflow, повторяющихся
+            ответов Chat IA и URL/метаданных изображений MinIO. Это снижает количество внешних HTTP-вызовов и повышает
+            устойчивость административной страницы flux.
+        </p>
+
+        <h3>4.1. Что кешируется</h3>
+        <p>
+            Данные Airflow являются административными и относительно стабильными: список DAG runs можно безопасно
+            переиспользовать в течение короткого времени. Chat IA кешируется только для одного и того же пользователя
+            и только если запрос полностью идентичен. Изображения MinIO кешируются не как бинарные файлы, а как
+            presigned URL и метаданные после upload.
+        </p>
+
+        <h3>4.2. Fresh cache и stale cache</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Тип cache</th>
+                    <th>Переменная</th>
+                    <th>Назначение</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>Fresh cache</td>
+                    <td><code>AIRFLOW_CACHE_TTL_SECONDS=60</code></td>
+                    <td>Короткое хранение свежих runs Airflow, чтобы не дергать Airflow при каждом открытии страницы.</td>
+                </tr>
+                <tr>
+                    <td>Stale cache</td>
+                    <td><code>AIRFLOW_STALE_CACHE_TTL_SECONDS=900</code></td>
+                    <td>Более длинная резервная копия. Используется только если Airflow недоступен.</td>
+                </tr>
+                <tr>
+                    <td>Chat IA cache</td>
+                    <td><code>CHAT_CACHE_TTL_SECONDS=120</code></td>
+                    <td>Короткое хранение ответа Mistral для идентичного запроса того же пользователя.</td>
+                </tr>
+                <tr>
+                    <td>MinIO image cache</td>
+                    <td><code>MINIO_IMAGE_CACHE_TTL_SECONDS=180</code></td>
+                    <td>Presigned URL и метаданные изображения хранятся максимум 3 минуты.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>4.3. Сценарий работы cache</h3>
+        <ol>
+            <li>Backend получает запрос <code>/admin/flux</code>.</li>
+            <li>Сначала проверяется свежий Redis cache <code>external:airflow:dag_runs</code>.</li>
+            <li>Если fresh cache найден, backend возвращает его со статусом <code>airflow_status=cached</code>.</li>
+            <li>Если fresh cache отсутствует, backend вызывает Airflow API.</li>
+            <li>При успешном ответе данные сохраняются в fresh cache и stale cache.</li>
+            <li>Если Airflow недоступен, backend пытается вернуть stale cache.</li>
+            <li>Если stale cache найден, возвращается <code>airflow_status=stale</code>.</li>
+            <li>Если cache вообще нет, возвращается деградированный ответ <code>airflow_status=degraded</code>.</li>
+        </ol>
+
+        <div class="box ok">
+            Такой cache называется интеллектуальным, потому что он не просто ускоряет ответы, а участвует в стратегии
+            отказоустойчивости: свежие данные используются для производительности, stale-данные - для продолжения
+            сервиса при сбое Airflow, а пользовательские данные Chat IA и MinIO ограничены коротким TTL.
+        </div>
+
+        <h2 class="page-break">5. Fallback-механизмы для непрерывности сервиса</h2>
+        <p>
+            Fallback - это запасное поведение, которое включается, когда основная зависимость не работает. В проекте
+            реализованы три разных fallback-сценария.
+        </p>
+
+        <h3>5.1. Fallback для Mistral / Chat IA</h3>
+        <p>
+            Если Mistral недоступен после retry-попыток, route <code>/chat/</code> не возвращает пользователю техническую
+            ошибку <code>502</code>. Вместо этого вызывается <code>build_chat_fallback_answer()</code>.
+        </p>
+        <div class="codeblock">try:
+    answer = call_mistral_chat(messages)
+except ExternalServiceAuthError:
+    raise HTTPException(status_code=503, detail="API Mistral non configuree ou refusee")
+except ExternalServiceResponseError:
+    raise HTTPException(status_code=502, detail="Reponse Mistral invalide")
+except Exception:
+    answer = build_chat_fallback_answer()</div>
+        <p>
+            Важно различать типы ошибок:
+        </p>
+        <ul>
+            <li>
+                Если отсутствует или отклонена API key, это проблема конфигурации. Backend возвращает <code>503</code>.
+            </li>
+            <li>
+                Если ответ Mistral пришел, но формат некорректный, backend возвращает <code>502</code>.
+            </li>
+            <li>
+                Если Mistral временно недоступен, пользователь получает понятный fallback-ответ.
+            </li>
+        </ul>
+
+        <h3>5.2. Fallback для Airflow</h3>
+        <p>
+            Административная страница flux использует Airflow REST API, чтобы показать состояние DAG runs. Если Airflow
+            недоступен, backend не ломает всю страницу. Вместо этого он возвращает локальные метаданные и признак
+            деградации.
+        </p>
+        <div class="codeblock">{
+  "airflow_disponible": false,
+  "airflow_status": "degraded",
+  "flux_metadonnees": {
+    "consommations": { "total": 120, "dernier_run": "2026-06-16" }
+  }
+}</div>
+        <p>
+            Пользователь-администратор понимает, что Airflow временно не отвечает, но при этом интерфейс остается
+            usable: можно видеть локальные данные и не получать пустую ошибку сервера.
+        </p>
+
+        <h3>5.3. Fail-open fallback для Redis</h3>
+        <p>
+            Redis нужен для защиты нагрузки, но он не должен становиться единой точкой отказа. Если Redis временно
+            недоступен, middleware пропускает запрос и пишет warning в лог.
+        </p>
+        <div class="box ok">
+            Такое поведение называется fail-open: лучше временно пропустить запросы без rate limiting, чем полностью
+            остановить API из-за сбоя Redis.
+        </div>
+
+        <h2>6. Итоговый сценарий работы Chat IA</h2>
+        <ol>
+            <li>Пользователь отправляет сообщение на <code>POST /api/chat/</code>.</li>
+            <li>Redis middleware проверяет лимит для пользователя/IP и маршрута <code>/chat</code>.</li>
+            <li>Если лимит превышен, backend возвращает <code>429</code>.</li>
+            <li>Если лимит не превышен, route проверяет JWT и права на изображения.</li>
+            <li>Route формирует system prompt и историю сообщений.</li>
+            <li><code>call_mistral_chat()</code> вызывает Mistral через устойчивый HTTP-клиент.</li>
+            <li>При временных ошибках выполняются retry-попытки.</li>
+            <li>При повторных сбоях circuit breaker открывается.</li>
+            <li>Если сервис недоступен, пользователь получает fallback-ответ.</li>
+            <li>Если ответ Mistral корректный, backend возвращает настоящий AI answer.</li>
+        </ol>
+
+        <h2>7. Конфигурация</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Переменная</th>
+                    <th>Назначение</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>REDIS_URL</code></td>
+                    <td>Адрес Redis для rate limiting, например <code>redis://redis:6379/0</code>.</td>
+                </tr>
+                <tr>
+                    <td><code>RATE_LIMIT_ENABLED</code></td>
+                    <td>Включает или отключает middleware rate limiting.</td>
+                </tr>
+                <tr>
+                    <td><code>RATE_LIMIT_LOGIN_LIMIT</code></td>
+                    <td>Количество запросов login за окно времени.</td>
+                </tr>
+                <tr>
+                    <td><code>RATE_LIMIT_CHAT_LIMIT</code></td>
+                    <td>Количество запросов chat за окно времени.</td>
+                </tr>
+                <tr>
+                    <td><code>CACHE_ENABLED</code></td>
+                    <td>Включает или отключает Redis cache.</td>
+                </tr>
+                <tr>
+                    <td><code>AIRFLOW_CACHE_TTL_SECONDS</code></td>
+                    <td>TTL свежего cache для данных Airflow.</td>
+                </tr>
+                <tr>
+                    <td><code>AIRFLOW_STALE_CACHE_TTL_SECONDS</code></td>
+                    <td>TTL резервного stale cache, используемого при сбое Airflow.</td>
+                </tr>
+                <tr>
+                    <td><code>CHAT_CACHE_TTL_SECONDS</code></td>
+                    <td>TTL cache для идентичных запросов Chat IA одного пользователя.</td>
+                </tr>
+                <tr>
+                    <td><code>MINIO_IMAGE_CACHE_TTL_SECONDS</code></td>
+                    <td>TTL cache для presigned URL и метаданных MinIO, максимум 180 секунд.</td>
+                </tr>
+                <tr>
+                    <td><code>EXTERNAL_API_MAX_RETRIES</code></td>
+                    <td>Количество повторных попыток для внешних API.</td>
+                </tr>
+                <tr>
+                    <td><code>EXTERNAL_API_CIRCUIT_FAILURES</code></td>
+                    <td>Сколько ошибок подряд нужно для открытия circuit breaker.</td>
+                </tr>
+                <tr>
+                    <td><code>EXTERNAL_API_CIRCUIT_RECOVERY_SECONDS</code></td>
+                    <td>Сколько секунд circuit breaker остается открытым.</td>
+                </tr>
+                <tr>
+                    <td><code>MISTRAL_TIMEOUT_SECONDS</code></td>
+                    <td>Максимальное время ожидания ответа Mistral.</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2>8. Краткий вывод</h2>
+        <p>
+            Добавленные механизмы делают backend более устойчивым. Retry и timeout помогают пережить краткие сетевые
+            ошибки. Circuit breaker защищает систему от зависших или падающих провайдеров. Redis rate limiting снижает
+            риск brute force и перегрузки. Redis cache уменьшает количество вызовов Airflow и дает stale-данные при
+            сбое. Fallback-сценарии позволяют пользователю продолжить работу с платформой даже при сбоях Mistral,
+            Airflow или Redis.
+        </p>
+        <div class="box">
+            В результате HealthAI MSPR переходит от простой интеграции внешних сервисов к более production-ready
+            архитектуре: контролируемая нагрузка, предсказуемые ошибки и деградированный режим вместо полного отказа.
+        </div>
+    </body>
+</html>

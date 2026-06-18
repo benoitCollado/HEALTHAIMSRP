@@ -5,6 +5,7 @@ from typing import Any
 
 import httpx
 
+from app.cache import airflow_cache_ttl_seconds, airflow_stale_cache_ttl_seconds, cache
 from app.observability.logger import get_logger
 
 _log = get_logger("external_clients")
@@ -12,6 +13,7 @@ _log = get_logger("external_clients")
 MISTRAL_CHAT_URL = "https://api.mistral.ai/v1/chat/completions"
 DEFAULT_MISTRAL_MODEL = "mistral-small-latest"
 AIRFLOW_DAG_IDS = ["fetch_openfoodfacts_france", "export_db_to_csv", "incorporation_ml"]
+AIRFLOW_CACHE_KEY = "external:airflow:dag_runs"
 
 
 class ExternalServiceError(Exception):
@@ -184,6 +186,10 @@ def call_mistral_chat(messages: list[dict[str, str]]) -> str:
 
 
 def fetch_airflow_dag_runs() -> tuple[dict[str, Any], str]:
+    cached = cache.get_json(AIRFLOW_CACHE_KEY)
+    if cached is not None:
+        return cached, "cached"
+
     base_url = os.getenv("AIRFLOW_API_URL", "http://airflow-webserver:8080").rstrip("/")
     user = os.getenv("AIRFLOW_USER", "airflow")
     password = os.getenv("AIRFLOW_PASSWORD", "airflow")
@@ -219,6 +225,15 @@ def fetch_airflow_dag_runs() -> tuple[dict[str, Any], str]:
                 result[dag_id] = {"runs": [], "last_run": None}
     except (ExternalServiceError, ValueError, KeyError) as exc:
         _log.warning("Airflow unavailable, using degraded flux fallback: %s", exc)
+        cached_fallback = cache.get_fresh_or_stale(AIRFLOW_CACHE_KEY)
+        if cached_fallback is not None:
+            return cached_fallback.data, cached_fallback.state
         return {}, "degraded"
 
+    cache.set_fresh_and_stale(
+        AIRFLOW_CACHE_KEY,
+        result,
+        airflow_cache_ttl_seconds(),
+        airflow_stale_cache_ttl_seconds(),
+    )
     return result, "ok"

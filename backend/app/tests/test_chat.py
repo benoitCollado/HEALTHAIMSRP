@@ -25,7 +25,11 @@ def test_chat_calls_mistral(client, admin_headers, monkeypatch):
     mock_client.__enter__.return_value.request.return_value = mock_response
     mock_client.__exit__.return_value = False
 
-    with patch("app.external_clients.httpx.Client", return_value=mock_client):
+    with (
+        patch("app.routers.chat.cache.get_json", return_value=None),
+        patch("app.routers.chat.cache.set_json") as set_cache,
+        patch("app.external_clients.httpx.Client", return_value=mock_client),
+    ):
         response = client.post(
             "/chat/",
             headers=admin_headers,
@@ -43,16 +47,36 @@ def test_chat_calls_mistral(client, admin_headers, monkeypatch):
     assert call_kwargs["json"]["model"] == "mistral-small-latest"
     assert call_kwargs["json"]["messages"][0]["role"] == "system"
     assert call_kwargs["json"]["messages"][-1]["content"] == "A quoi sert HealthAI MSPR ?"
+    set_cache.assert_called_once()
+
+
+def test_chat_returns_cached_answer_without_calling_mistral(client, admin_headers, monkeypatch):
+    monkeypatch.setenv("KEY_MISTRAL_API", "test-key")
+
+    with (
+        patch("app.routers.chat.cache.get_json", return_value="Reponse depuis Redis"),
+        patch("app.routers.chat.call_mistral_chat") as call_mistral,
+    ):
+        response = client.post("/chat/", headers=admin_headers, json={"message": "Bonjour"})
+
+    assert response.status_code == 200
+    assert response.json() == {"answer": "Reponse depuis Redis"}
+    call_mistral.assert_not_called()
 
 
 def test_chat_returns_fallback_when_mistral_is_down(client, admin_headers, monkeypatch):
     monkeypatch.setenv("KEY_MISTRAL_API", "test-key")
 
-    with patch("app.routers.chat.call_mistral_chat", side_effect=RuntimeError("down")):
+    with (
+        patch("app.routers.chat.cache.get_json", return_value=None),
+        patch("app.routers.chat.cache.set_json") as set_cache,
+        patch("app.routers.chat.call_mistral_chat", side_effect=RuntimeError("down")),
+    ):
         response = client.post("/chat/", headers=admin_headers, json={"message": "Bonjour"})
 
     assert response.status_code == 200
     assert "service IA est temporairement indisponible" in response.json()["answer"]
+    set_cache.assert_not_called()
 
 
 def test_chat_upload_image_uses_user_storage(client, admin_headers):

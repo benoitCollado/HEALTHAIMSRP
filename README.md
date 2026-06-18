@@ -16,7 +16,7 @@ API FastAPI / Python 3.11
         v
 PostgreSQL Neon + migrations Alembic
 MiniIO pour le stockage objet des images Chat IA
-Redis pour la limitation de charge
+Redis pour la limitation de charge et le cache intelligent
 
 Airflow orchestre les flux de données et écrit dans les dossiers data/.
 Prometheus, Grafana, Loki et Promtail assurent le monitoring et les logs.
@@ -31,7 +31,7 @@ Prometheus, Grafana, Loki et Promtail assurent le monitoring et les logs.
 | Backend | Python 3.11, FastAPI, Uvicorn, SQLAlchemy, Pydantic, python-jose |
 | Sécurité | JWT Bearer, passlib/bcrypt, middleware d'en-têtes HTTP, CORS, variables `.env` |
 | Base de données | PostgreSQL Neon, Alembic, psycopg2 |
-| Résilience / charge | Redis, rate limiting FastAPI, retries, timeouts, circuit breaker, fallbacks applicatifs |
+| Résilience / charge | Redis, cache intelligent, rate limiting FastAPI, retries, timeouts, circuit breaker, fallbacks applicatifs |
 | Stockage objet | MiniIO compatible S3 pour les images utilisateur du Chat IA |
 | Données / ETL | Apache Airflow 2.10.4, pandas, requests, DAGs Python, CSV |
 | Observabilité | Logs applicatifs, endpoint `/health`, endpoint admin `/metrics`, alertes email SMTP |
@@ -63,6 +63,8 @@ scripts/        Scripts de déploiement et utilitaires SQL
 - Dashboard d'administration et pages de gestion des flux.
 - Gestion robuste des APIs externes Mistral et Airflow : timeouts, retries, circuit breaker et mode dégradé.
 - Rate limiting Redis par IP/utilisateur, avec seuils spécifiques pour `/login` et `/chat`.
+- Cache Redis intelligent pour les données Airflow : TTL court, cache de secours plus long et restitution de données `stale` si Airflow tombe.
+- Cache Redis court pour le Chat IA et les URLs/métadonnées images MiniIO, plafonné à 3 minutes pour limiter les appels répétitifs sans conserver longtemps de données utilisateur.
 - Nettoyage et validation des données via pipelines Airflow.
 - Migrations versionnées avec Alembic.
 - Journalisation backend, alertes email sur erreurs 500 et métriques internes.
@@ -97,6 +99,11 @@ MINIO_BUCKET=healthai-chat-images
 MINIO_PUBLIC_ENDPOINT=127.0.0.1:19100
 REDIS_URL=redis://redis:6379/0
 RATE_LIMIT_ENABLED=true
+CACHE_ENABLED=true
+AIRFLOW_CACHE_TTL_SECONDS=60
+AIRFLOW_STALE_CACHE_TTL_SECONDS=900
+CHAT_CACHE_TTL_SECONDS=120
+MINIO_IMAGE_CACHE_TTL_SECONDS=180
 ```
 
 `CORS_ALLOWED_ORIGINS` contient les origines frontend autorisees, separees par des virgules. En production, utiliser l'origine du site sans `/api` ni slash final, par exemple `https://healthai.benoitcollado.com`.
@@ -106,6 +113,8 @@ Les variables SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ADMIN_E
 Les variables de résilience externe (`EXTERNAL_API_MAX_RETRIES`, `EXTERNAL_API_RETRY_DELAY_SECONDS`, `EXTERNAL_API_CIRCUIT_FAILURES`, `EXTERNAL_API_CIRCUIT_RECOVERY_SECONDS`, `MISTRAL_TIMEOUT_SECONDS`) pilotent les appels Mistral et Airflow. En cas de panne Mistral, le chat renvoie une réponse de continuité de service; en cas de panne Airflow, `/admin/flux` retourne un état `airflow_status=degraded`.
 
 Le rate limiting Redis est activé par défaut avec `RATE_LIMIT_ENABLED=true`. Les seuils principaux sont `RATE_LIMIT_DEFAULT_LIMIT`, `RATE_LIMIT_LOGIN_LIMIT` et `RATE_LIMIT_CHAT_LIMIT`, chacun associé à une fenêtre en secondes. Si Redis est temporairement indisponible, le middleware laisse passer la requête et journalise l'incident afin de ne pas couper le service.
+
+Le cache intelligent Redis est activé par `CACHE_ENABLED=true`. Les runs Airflow sont mis en cache avec `AIRFLOW_CACHE_TTL_SECONDS`; une copie de secours est conservée plus longtemps via `AIRFLOW_STALE_CACHE_TTL_SECONDS` pour continuer à afficher les flux admin en cas de panne Airflow. Le Chat IA utilise `CHAT_CACHE_TTL_SECONDS` pour réutiliser brièvement une réponse identique du même utilisateur. Les URLs et métadonnées images MiniIO utilisent `MINIO_IMAGE_CACHE_TTL_SECONDS`, plafonné à 180 secondes maximum.
 
 ## Démarrage avec Docker
 
@@ -138,6 +147,7 @@ users/{id_utilisateur}/chat/{uuid}.{extension}
 ```
 
 Avant stockage, le backend redimensionne les images à 640 x 640 pixels maximum et les convertit en JPEG optimisé.
+Les URLs présignées et métadonnées d'image sont mises en cache Redis pendant 3 minutes maximum afin d'éviter des appels MiniIO répétés tout en gardant une durée courte pour les données utilisateur.
 
 Import des données de départ :
 

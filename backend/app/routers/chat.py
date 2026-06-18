@@ -5,6 +5,7 @@ from app.external_clients import (
     build_chat_fallback_answer,
     call_mistral_chat,
 )
+from app.cache import cache, chat_cache_ttl_seconds, stable_cache_key
 from app.object_storage import upload_user_image
 from app.schemas.chat import ChatImageResponse, ChatRequest, ChatResponse
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
@@ -50,8 +51,14 @@ def chat_with_mistral(payload: ChatRequest, user: dict = Depends(get_current_use
         user_message = f"{user_message}\n\nImages jointes par l'utilisateur:\n" + "\n".join(image_lines)
     messages.append({"role": "user", "content": user_message})
 
+    cache_key = stable_cache_key("chat:mistral", {"user_id": user_id, "messages": messages})
+    cached_answer = cache.get_json(cache_key)
+    if cached_answer:
+        return ChatResponse(answer=str(cached_answer))
+
     try:
         answer = call_mistral_chat(messages)
+        cache.set_json(cache_key, answer, chat_cache_ttl_seconds())
     except ExternalServiceAuthError as exc:
         raise HTTPException(status_code=503, detail="API Mistral non configuree ou refusee") from exc
     except ExternalServiceResponseError as exc:

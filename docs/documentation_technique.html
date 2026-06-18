@@ -817,9 +817,12 @@
                 reverse proxy vers l'API FastAPI. Le backend applique les règles
                 métier, sécurise les accès par JWT et persiste les données dans
                 PostgreSQL Neon. Redis protège les routes sensibles par rate
-                limiting, tandis que les appels externes vers Mistral et Airflow
-                sont encapsulés avec timeouts, retries, circuit breaker et
-                fallbacks. En parallèle, Airflow orchestre les traitements de
+                limiting et sert aussi de cache intelligent pour les données
+                Airflow, les réponses Chat IA répétées et les URLs/métadonnées
+                images MiniIO avec une durée courte plafonnée à 3 minutes pour
+                les données utilisateur. Les appels externes vers Mistral et
+                Airflow sont encapsulés avec timeouts, retries, circuit breaker
+                et fallbacks. En parallèle, Airflow orchestre les traitements de
                 données, tandis que Prometheus, Grafana, Loki et Promtail assurent
                 le monitoring et la centralisation des logs.
             </p>
@@ -913,8 +916,8 @@
                     </tr>
                     <tr>
                         <td>Résilience / charge</td>
-                        <td>Redis, middleware FastAPI, clients HTTP résilients</td>
-                        <td>Rate limiting par IP/utilisateur, retries, timeouts, circuit breaker et continuité de service en cas de panne externe.</td>
+                        <td>Redis, cache JSON, middleware FastAPI, clients HTTP résilients</td>
+                        <td>Rate limiting par IP/utilisateur, cache Airflow avec TTL, cache court Chat IA et MinIO, retries, timeouts, circuit breaker et continuité de service en cas de panne externe.</td>
                     </tr>
                     <tr>
                         <td>Persistance</td>
@@ -1122,7 +1125,7 @@
                             DAGs
                         </li>
                         <li>
-                            <strong>Redis 7</strong> — Rate limiting distribué
+                            <strong>Redis 7</strong> — Rate limiting distribué et cache intelligent
                         </li>
                         <li>
                             <strong>psycopg2</strong> — Driver Python/PostgreSQL
@@ -2668,9 +2671,14 @@
                 JPEG, PNG, WebP ou GIF, limitees a 5 Mo, redimensionnees a
                 640 x 640 pixels maximum, converties en JPEG optimise, puis
                 stockees dans le bucket MiniIO configure par <code>MINIO_BUCKET</code>.
+                Les reponses Chat IA identiques pour un meme utilisateur peuvent
+                etre reutilisees via Redis pendant <code>CHAT_CACHE_TTL_SECONDS</code>.
+                Les URLs presignees et metadonnees image MiniIO sont conservees
+                pendant <code>MINIO_IMAGE_CACHE_TTL_SECONDS</code>, avec un plafond
+                technique de 180 secondes.
             </p>
 
-            <h3>Résilience APIs externes et rate limiting Redis</h3>
+            <h3>Résilience APIs externes, cache intelligent et rate limiting Redis</h3>
             <table>
                 <thead>
                     <tr>
@@ -2699,6 +2707,21 @@
                         <td>Fallback Airflow</td>
                         <td><code>fetch_airflow_dag_runs()</code> retourne <code>airflow_status=degraded</code></td>
                         <td>La page de flux admin reste consultable avec les métadonnées locales même si Airflow ne répond pas.</td>
+                    </tr>
+                    <tr>
+                        <td>Cache intelligent Airflow</td>
+                        <td><code>backend/app/cache.py</code>, <code>AIRFLOW_CACHE_TTL_SECONDS</code> et <code>AIRFLOW_STALE_CACHE_TTL_SECONDS</code></td>
+                        <td>Les runs Airflow sont servis depuis Redis pendant le TTL court; si Airflow tombe, une copie stale plus longue peut être renvoyée avec <code>airflow_status=stale</code>.</td>
+                    </tr>
+                    <tr>
+                        <td>Cache court Chat IA</td>
+                        <td><code>CHAT_CACHE_TTL_SECONDS</code>, clé Redis calculée avec l'utilisateur et le contenu exact des messages</td>
+                        <td>Une requête identique du même utilisateur peut réutiliser une réponse récente sans rappeler Mistral. Les réponses fallback ne sont pas mises en cache.</td>
+                    </tr>
+                    <tr>
+                        <td>Cache images MiniIO</td>
+                        <td><code>MINIO_IMAGE_CACHE_TTL_SECONDS</code>, plafonné à 180 secondes</td>
+                        <td>Les URLs présignées et métadonnées image sont gardées brièvement pour éviter des appels MinIO répétés sans conserver durablement des données utilisateur.</td>
                     </tr>
                     <tr>
                         <td>Rate limiting Redis</td>
@@ -2825,12 +2848,12 @@
                 <div class="stat-card">
                     <div class="icon">✓</div>
                     <div class="label">Backend</div>
-                    <div class="value">108 tests</div>
+                    <div class="value">114 tests</div>
                 </div>
                 <div class="stat-card">
                     <div class="icon">%</div>
                     <div class="label">Couverture backend</div>
-                    <div class="value">87,90 %</div>
+                    <div class="value">87,95 %</div>
                 </div>
                 <div class="stat-card">
                     <div class="icon">JS</div>
@@ -2857,7 +2880,7 @@
                     <tr>
                         <td>Backend</td>
                         <td><code>cd backend &amp;&amp; python -m pytest</code></td>
-                        <td>108 tests, couverture terminal, <code>coverage_html/</code> et <code>coverage.xml</code></td>
+                        <td>114 tests, couverture terminal, <code>coverage_html/</code> et <code>coverage.xml</code></td>
                     </tr>
                     <tr>
                         <td>Qualité Python</td>
@@ -2887,7 +2910,7 @@
                 La configuration <code>backend/pytest.ini</code> active
                 <code>pytest-cov</code> sur le package <code>app</code> avec un
                 seuil minimal de <strong>70 %</strong>. La couverture mesurée le
-                16 juin 2026 atteint <strong>87,90 %</strong>, avec génération des
+                18 juin 2026 atteint <strong>87,95 %</strong>, avec génération des
                 rapports terminal, HTML et XML.
             </p>
             <table>
@@ -3118,7 +3141,7 @@
                     </tr>
                     <tr>
                         <td>Tests</td>
-                        <td><code>python -m pytest</code> — 108 tests, couverture min. 70 %, rapports terminal, HTML et XML</td>
+                        <td><code>python -m pytest</code> — 114 tests, couverture min. 70 %, rapports terminal, HTML et XML</td>
                     </tr>
                     <tr>
                         <td>Config Ruff</td>
@@ -3169,7 +3192,7 @@
                     </tr>
                     <tr>
                         <td>Résultat audité</td>
-                        <td><strong>108 tests réussis</strong> et <strong>87,90 %</strong> de couverture avec <code>.coveragerc</code></td>
+                        <td><strong>114 tests réussis</strong> et <strong>87,95 %</strong> de couverture avec <code>.coveragerc</code></td>
                     </tr>
                 </tbody>
             </table>
@@ -3177,7 +3200,7 @@
                 <strong>Attention à l'interprétation :</strong>
                 <code>app/routers/admin.py</code> est exclu du calcul alors qu'il
                 contient une part importante de la logique métier. Le pourcentage
-                de 87,90 % est conforme à la configuration, mais il ne signifie pas
+                de 87,95 % est conforme à la configuration, mais il ne signifie pas
                 que les routes d'administration sont couvertes.
             </div>
 
@@ -3933,8 +3956,8 @@
                         "
                     >
                         Architecture découplée · TypeScript strict · ORM typé ·
-                        Validation Pydantic v2 · 108 tests pytest · 2 tests Vitest ·
-                        Couverture backend 87,90 % · Ruff + ESLint · Pipeline CI/CD
+                        Validation Pydantic v2 · 114 tests pytest · 2 tests Vitest ·
+                        Couverture backend 87,95 % · Ruff + ESLint · Pipeline CI/CD
                         automatisée · Documentation auto Swagger
                     </div>
                 </div>

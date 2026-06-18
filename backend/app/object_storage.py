@@ -1,9 +1,10 @@
 import os
+from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
-from datetime import timedelta
 from uuid import uuid4
 
+from app.cache import cache, minio_image_cache_ttl_seconds, stable_cache_key
 from fastapi import HTTPException, UploadFile
 
 ALLOWED_IMAGE_TYPES = {
@@ -56,9 +57,16 @@ def ensure_bucket() -> None:
 
 
 def presigned_image_url(object_key: str) -> str:
+    cache_key = stable_cache_key("minio:image:url", {"bucket": _bucket_name(), "object_key": object_key})
+    cached_url = cache.get_json(cache_key)
+    if cached_url:
+        return str(cached_url)
+
     public_endpoint = os.getenv("MINIO_PUBLIC_ENDPOINT")
     client = _minio_client(public_endpoint) if public_endpoint else _minio_client()
-    return client.presigned_get_object(_bucket_name(), object_key, expires=timedelta(hours=1))
+    url = client.presigned_get_object(_bucket_name(), object_key, expires=timedelta(hours=1))
+    cache.set_json(cache_key, url, minio_image_cache_ttl_seconds())
+    return url
 
 
 def _optimized_image(file: UploadFile) -> tuple[BytesIO, int, str, str]:
@@ -120,9 +128,15 @@ def upload_user_image(user_id: str, file: UploadFile) -> dict[str, str]:
     )
 
     original_name = Path(file.filename or f"image{extension}").stem
-    return {
+    image_response = {
         "object_key": object_key,
         "url": presigned_image_url(object_key),
         "content_type": content_type,
         "filename": f"{original_name}{extension}",
     }
+    metadata_cache_key = stable_cache_key(
+        "minio:image:metadata",
+        {"bucket": _bucket_name(), "object_key": object_key, "user_id": user_id},
+    )
+    cache.set_json(metadata_cache_key, image_response, minio_image_cache_ttl_seconds())
+    return image_response
