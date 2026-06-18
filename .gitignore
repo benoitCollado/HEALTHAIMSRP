@@ -52,3 +52,4 @@ data/ml/
 database/db/
 
 .cursor
+docs/resilience_apis_redis_fallback_ru.html
