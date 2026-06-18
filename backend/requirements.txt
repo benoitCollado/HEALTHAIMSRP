@@ -11,6 +11,7 @@ pytest
 pytest-cov
 httpx
 httpx2
+redis
 python-multipart
 minio
 pillow

@@ -6,6 +6,7 @@ from app.models.utilisateur import Utilisateur
 from app.observability.email_alert import send_error_alert
 from app.observability.logger import get_logger
 from app.observability.monitoring import metrics
+from app.rate_limit import RedisRateLimitMiddleware
 from app.routers import (
     activites,
     admin,
@@ -97,6 +98,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 
 app.add_middleware(RequestLoggingMiddleware)
+app.add_middleware(RedisRateLimitMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
     CORSMiddleware,

@@ -600,7 +600,7 @@
                 <div><strong>Date :</strong> Juin 2026</div>
                 <div>
                     <strong>Stack :</strong> Vue 3 · TypeScript · Capacitor ·
-                    FastAPI · PostgreSQL Neon · Docker · Apache Airflow ·
+                    FastAPI · PostgreSQL Neon · Redis · Docker · Apache Airflow ·
                     Grafana · Prometheus · Loki · SonarQube
                 </div>
             </div>
@@ -816,9 +816,12 @@
                 frontend Vue 3 est servi par Nginx, qui joue aussi le rôle de
                 reverse proxy vers l'API FastAPI. Le backend applique les règles
                 métier, sécurise les accès par JWT et persiste les données dans
-                PostgreSQL Neon. En parallèle, Airflow orchestre les traitements
-                de données, tandis que Prometheus, Grafana, Loki et Promtail
-                assurent le monitoring et la centralisation des logs.
+                PostgreSQL Neon. Redis protège les routes sensibles par rate
+                limiting, tandis que les appels externes vers Mistral et Airflow
+                sont encapsulés avec timeouts, retries, circuit breaker et
+                fallbacks. En parallèle, Airflow orchestre les traitements de
+                données, tandis que Prometheus, Grafana, Loki et Promtail assurent
+                le monitoring et la centralisation des logs.
             </p>
 
             <div class="arch-box">
@@ -909,6 +912,11 @@
                         <td>Authentification, endpoints REST, validation, accès aux données et règles métier.</td>
                     </tr>
                     <tr>
+                        <td>Résilience / charge</td>
+                        <td>Redis, middleware FastAPI, clients HTTP résilients</td>
+                        <td>Rate limiting par IP/utilisateur, retries, timeouts, circuit breaker et continuité de service en cas de panne externe.</td>
+                    </tr>
+                    <tr>
                         <td>Persistance</td>
                         <td>PostgreSQL Neon, Alembic</td>
                         <td>Stockage applicatif managé, migrations versionnées, connexion sécurisée via <code>DATABASE_URL</code>.</td>
@@ -959,6 +967,24 @@
                         <td>PostgreSQL Neon</td>
                         <td>TCP/TLS (SQLAlchemy + psycopg2)</td>
                         <td>5432 distant</td>
+                    </tr>
+                    <tr>
+                        <td>FastAPI</td>
+                        <td>Redis</td>
+                        <td>TCP interne</td>
+                        <td>6379</td>
+                    </tr>
+                    <tr>
+                        <td>FastAPI</td>
+                        <td>API Mistral</td>
+                        <td>HTTPS sortant</td>
+                        <td>443</td>
+                    </tr>
+                    <tr>
+                        <td>FastAPI</td>
+                        <td>Airflow REST API</td>
+                        <td>HTTP interne / host Docker</td>
+                        <td>8080</td>
                     </tr>
                     <tr>
                         <td>Navigateur (admin)</td>
@@ -1069,6 +1095,9 @@
                             <strong>passlib/bcrypt</strong> — Hash des mots de
                             passe
                         </li>
+                        <li>
+                            <strong>httpx</strong> — Clients HTTP vers Mistral et Airflow
+                        </li>
                     </ul>
                 </div>
                 <div class="stat-card" style="text-align: left; padding: 18px">
@@ -1091,6 +1120,9 @@
                         <li>
                             <strong>Apache Airflow 2.10</strong> — Orchestration
                             DAGs
+                        </li>
+                        <li>
+                            <strong>Redis 7</strong> — Rate limiting distribué
                         </li>
                         <li>
                             <strong>psycopg2</strong> — Driver Python/PostgreSQL
@@ -1154,6 +1186,9 @@
                         </li>
                         <li>
                             <strong>RBAC</strong> — Contrôle d'accès par rôle
+                        </li>
+                        <li>
+                            <strong>Rate limiting Redis</strong> — Protection charge et brute force
                         </li>
                         <li>
                             <strong>CORS</strong> — Politique d'origine croisée
@@ -2551,6 +2586,8 @@
                 referencees dans la requete de chat. Le backend relaie ensuite la
                 requete vers
                 <code>https://api.mistral.ai/v1/chat/completions</code>.
+                L'appel est centralisé dans un client résilient avec timeout,
+                retries, circuit breaker et fallback fonctionnel.
             </p>
             <table>
                 <thead>
@@ -2562,7 +2599,11 @@
                 <tbody>
                     <tr>
                         <td><code>backend/app/routers/chat.py</code></td>
-                        <td>Routeur FastAPI protege par JWT, upload d'images vers MiniIO, controle du proprietaire des images, construction du prompt systeme HealthAI MSPR et appel HTTP Mistral via <code>httpx</code>.</td>
+                        <td>Routeur FastAPI protege par JWT, upload d'images vers MiniIO, controle du proprietaire des images, construction du prompt systeme HealthAI MSPR et delegation de l'appel Mistral au client resilient.</td>
+                    </tr>
+                    <tr>
+                        <td><code>backend/app/external_clients.py</code></td>
+                        <td>Clients Mistral et Airflow avec timeouts configurables, retries exponentiels, circuit breaker, gestion des erreurs d'authentification et fallbacks applicatifs.</td>
                     </tr>
                     <tr>
                         <td><code>backend/app/object_storage.py</code></td>
@@ -2620,12 +2661,52 @@
                 ne remplace pas un professionnel de sante et ne doit pas fournir
                 de diagnostic medical. Les erreurs de configuration renvoient
                 <code>503</code> si la cle Mistral est absente ou refusee, et
-                <code>502</code> si l'API Mistral est indisponible ou renvoie une
-                reponse invalide. Les images sont acceptees uniquement aux formats
+                <code>502</code> si la reponse Mistral est invalide. Si l'API
+                Mistral est temporairement indisponible, le backend renvoie une
+                reponse de secours afin que l'utilisateur garde une continuite de
+                service. Les images sont acceptees uniquement aux formats
                 JPEG, PNG, WebP ou GIF, limitees a 5 Mo, redimensionnees a
                 640 x 640 pixels maximum, converties en JPEG optimise, puis
                 stockees dans le bucket MiniIO configure par <code>MINIO_BUCKET</code>.
             </p>
+
+            <h3>Résilience APIs externes et rate limiting Redis</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mécanisme</th>
+                        <th>Implémentation</th>
+                        <th>Effet en panne</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Retries + timeout</td>
+                        <td><code>backend/app/external_clients.py</code>, variables <code>EXTERNAL_API_MAX_RETRIES</code>, <code>EXTERNAL_API_RETRY_DELAY_SECONDS</code>, <code>MISTRAL_TIMEOUT_SECONDS</code></td>
+                        <td>Les erreurs transitoires HTTP 429/5xx et les timeouts sont retentés avant de dégrader le service.</td>
+                    </tr>
+                    <tr>
+                        <td>Circuit breaker</td>
+                        <td><code>EXTERNAL_API_CIRCUIT_FAILURES</code> et <code>EXTERNAL_API_CIRCUIT_RECOVERY_SECONDS</code></td>
+                        <td>Après plusieurs échecs, les appels vers le fournisseur sont coupés temporairement pour protéger le backend.</td>
+                    </tr>
+                    <tr>
+                        <td>Fallback Mistral</td>
+                        <td><code>build_chat_fallback_answer()</code></td>
+                        <td>Le chat retourne une réponse de continuité au lieu d'une erreur 502 lorsque le fournisseur IA est indisponible.</td>
+                    </tr>
+                    <tr>
+                        <td>Fallback Airflow</td>
+                        <td><code>fetch_airflow_dag_runs()</code> retourne <code>airflow_status=degraded</code></td>
+                        <td>La page de flux admin reste consultable avec les métadonnées locales même si Airflow ne répond pas.</td>
+                    </tr>
+                    <tr>
+                        <td>Rate limiting Redis</td>
+                        <td><code>backend/app/rate_limit.py</code>, limites par défaut, login et chat</td>
+                        <td>Retour <code>429</code> avec <code>Retry-After</code>; si Redis tombe, le middleware échoue ouvert et journalise l'incident.</td>
+                    </tr>
+                </tbody>
+            </table>
 
             <h3>Observabilité backend</h3>
             <table>
@@ -2651,6 +2732,10 @@
                     <tr>
                         <td>Alertes email</td>
                         <td>Email HTML sur toute réponse 5xx : exceptions 500 non gérées via le handler global FastAPI, et erreurs gérées comme <code>503 Service Unavailable</code> via le middleware de requêtes. Un <code>403 Forbidden</code> isolé n'envoie pas d'email; une rafale de 403 pour le même client/utilisateur déclenche une alerte sécurité selon <code>ERROR_ALERT_403_THRESHOLD</code>, <code>ERROR_ALERT_403_WINDOW_SECONDS</code> et <code>ERROR_ALERT_403_COOLDOWN_SECONDS</code>. SMTP configurable, cooldown anti-spam de 60 secondes par erreur.</td>
+                    </tr>
+                    <tr>
+                        <td>Rate limiting</td>
+                        <td>Middleware Redis avec en-têtes <code>X-RateLimit-Limit</code>, <code>X-RateLimit-Remaining</code>, <code>X-RateLimit-Reset</code> et réponse <code>429</code> avec <code>Retry-After</code>.</td>
                     </tr>
                 </tbody>
             </table>
@@ -2714,8 +2799,8 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Pas de rate limiting sur <code>/api/login</code></td>
-                        <td>Ajouter une limite de tentatives (brute force)</td>
+                        <td>Seuils de rate limiting génériques</td>
+                        <td>Ajuster <code>RATE_LIMIT_LOGIN_LIMIT</code>, <code>RATE_LIMIT_CHAT_LIMIT</code> et les fenêtres selon les métriques de production</td>
                     </tr>
                 </tbody>
             </table>
@@ -2740,12 +2825,12 @@
                 <div class="stat-card">
                     <div class="icon">✓</div>
                     <div class="label">Backend</div>
-                    <div class="value">93 tests</div>
+                    <div class="value">108 tests</div>
                 </div>
                 <div class="stat-card">
                     <div class="icon">%</div>
                     <div class="label">Couverture backend</div>
-                    <div class="value">92,91 %</div>
+                    <div class="value">87,90 %</div>
                 </div>
                 <div class="stat-card">
                     <div class="icon">JS</div>
@@ -2772,7 +2857,7 @@
                     <tr>
                         <td>Backend</td>
                         <td><code>cd backend &amp;&amp; python -m pytest</code></td>
-                        <td>93 tests, couverture terminal, <code>coverage_html/</code> et <code>coverage.xml</code></td>
+                        <td>108 tests, couverture terminal, <code>coverage_html/</code> et <code>coverage.xml</code></td>
                     </tr>
                     <tr>
                         <td>Qualité Python</td>
@@ -2802,7 +2887,7 @@
                 La configuration <code>backend/pytest.ini</code> active
                 <code>pytest-cov</code> sur le package <code>app</code> avec un
                 seuil minimal de <strong>70 %</strong>. La couverture mesurée le
-                7 juin 2026 atteint <strong>92,91 %</strong>, avec génération des
+                16 juin 2026 atteint <strong>87,90 %</strong>, avec génération des
                 rapports terminal, HTML et XML.
             </p>
             <table>
@@ -3033,7 +3118,7 @@
                     </tr>
                     <tr>
                         <td>Tests</td>
-                        <td><code>python -m pytest</code> — 93 tests, couverture min. 70 %, rapports terminal, HTML et XML</td>
+                        <td><code>python -m pytest</code> — 108 tests, couverture min. 70 %, rapports terminal, HTML et XML</td>
                     </tr>
                     <tr>
                         <td>Config Ruff</td>
@@ -3084,7 +3169,7 @@
                     </tr>
                     <tr>
                         <td>Résultat audité</td>
-                        <td><strong>93 tests réussis</strong> et <strong>92,91 %</strong> de couverture avec <code>.coveragerc</code></td>
+                        <td><strong>108 tests réussis</strong> et <strong>87,90 %</strong> de couverture avec <code>.coveragerc</code></td>
                     </tr>
                 </tbody>
             </table>
@@ -3092,7 +3177,7 @@
                 <strong>Attention à l'interprétation :</strong>
                 <code>app/routers/admin.py</code> est exclu du calcul alors qu'il
                 contient une part importante de la logique métier. Le pourcentage
-                de 92,91 % est conforme à la configuration, mais il ne signifie pas
+                de 87,90 % est conforme à la configuration, mais il ne signifie pas
                 que les routes d'administration sont couvertes.
             </div>
 
@@ -3848,8 +3933,8 @@
                         "
                     >
                         Architecture découplée · TypeScript strict · ORM typé ·
-                        Validation Pydantic v2 · 93 tests pytest · 2 tests Vitest ·
-                        Couverture backend 92,91 % · Ruff + ESLint · Pipeline CI/CD
+                        Validation Pydantic v2 · 108 tests pytest · 2 tests Vitest ·
+                        Couverture backend 87,90 % · Ruff + ESLint · Pipeline CI/CD
                         automatisée · Documentation auto Swagger
                     </div>
                 </div>

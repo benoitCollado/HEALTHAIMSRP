@@ -16,6 +16,7 @@ API FastAPI / Python 3.11
         v
 PostgreSQL Neon + migrations Alembic
 MiniIO pour le stockage objet des images Chat IA
+Redis pour la limitation de charge
 
 Airflow orchestre les flux de données et écrit dans les dossiers data/.
 Prometheus, Grafana, Loki et Promtail assurent le monitoring et les logs.
@@ -30,6 +31,7 @@ Prometheus, Grafana, Loki et Promtail assurent le monitoring et les logs.
 | Backend | Python 3.11, FastAPI, Uvicorn, SQLAlchemy, Pydantic, python-jose |
 | Sécurité | JWT Bearer, passlib/bcrypt, middleware d'en-têtes HTTP, CORS, variables `.env` |
 | Base de données | PostgreSQL Neon, Alembic, psycopg2 |
+| Résilience / charge | Redis, rate limiting FastAPI, retries, timeouts, circuit breaker, fallbacks applicatifs |
 | Stockage objet | MiniIO compatible S3 pour les images utilisateur du Chat IA |
 | Données / ETL | Apache Airflow 2.10.4, pandas, requests, DAGs Python, CSV |
 | Observabilité | Logs applicatifs, endpoint `/health`, endpoint admin `/metrics`, alertes email SMTP |
@@ -57,8 +59,10 @@ scripts/        Scripts de déploiement et utilitaires SQL
 - Authentification par JWT et rôles utilisateur/admin.
 - Inscription utilisateur avec adresse email obligatoire et unique.
 - API REST avec endpoints pour utilisateurs, aliments, exercices, consommations, activités, métriques santé et objectifs.
-- Chat IA Mistral avec possibilité de joindre des images stockées dans MiniIO par utilisateur.
+- Chat IA Mistral avec possibilité de joindre des images stockées dans MiniIO par utilisateur, retries et réponse de secours si l'API externe est indisponible.
 - Dashboard d'administration et pages de gestion des flux.
+- Gestion robuste des APIs externes Mistral et Airflow : timeouts, retries, circuit breaker et mode dégradé.
+- Rate limiting Redis par IP/utilisateur, avec seuils spécifiques pour `/login` et `/chat`.
 - Nettoyage et validation des données via pipelines Airflow.
 - Migrations versionnées avec Alembic.
 - Journalisation backend, alertes email sur erreurs 500 et métriques internes.
@@ -91,11 +95,17 @@ MINIO_ACCESS_KEY=healthai_app
 MINIO_SECRET_KEY=<mot-de-passe-minio>
 MINIO_BUCKET=healthai-chat-images
 MINIO_PUBLIC_ENDPOINT=127.0.0.1:19100
+REDIS_URL=redis://redis:6379/0
+RATE_LIMIT_ENABLED=true
 ```
 
 `CORS_ALLOWED_ORIGINS` contient les origines frontend autorisees, separees par des virgules. En production, utiliser l'origine du site sans `/api` ni slash final, par exemple `https://healthai.benoitcollado.com`.
 
 Les variables SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ADMIN_EMAIL`) activent les alertes email sur erreurs 5xx. Un 403 isole n'envoie pas d'email; une rafale de 403 pour le meme client/utilisateur declenche une alerte securite selon `ERROR_ALERT_403_THRESHOLD`, `ERROR_ALERT_403_WINDOW_SECONDS` et `ERROR_ALERT_403_COOLDOWN_SECONDS`.
+
+Les variables de résilience externe (`EXTERNAL_API_MAX_RETRIES`, `EXTERNAL_API_RETRY_DELAY_SECONDS`, `EXTERNAL_API_CIRCUIT_FAILURES`, `EXTERNAL_API_CIRCUIT_RECOVERY_SECONDS`, `MISTRAL_TIMEOUT_SECONDS`) pilotent les appels Mistral et Airflow. En cas de panne Mistral, le chat renvoie une réponse de continuité de service; en cas de panne Airflow, `/admin/flux` retourne un état `airflow_status=degraded`.
+
+Le rate limiting Redis est activé par défaut avec `RATE_LIMIT_ENABLED=true`. Les seuils principaux sont `RATE_LIMIT_DEFAULT_LIMIT`, `RATE_LIMIT_LOGIN_LIMIT` et `RATE_LIMIT_CHAT_LIMIT`, chacun associé à une fenêtre en secondes. Si Redis est temporairement indisponible, le middleware laisse passer la requête et journalise l'incident afin de ne pas couper le service.
 
 ## Démarrage avec Docker
 
@@ -116,6 +126,7 @@ Services exposés par défaut :
 | Airflow | http://localhost:8080 |
 | MiniIO API | http://localhost:19100 |
 | MiniIO Console | http://localhost:19101 |
+| Redis | interne Docker, `redis:6379` |
 
 Identifiants Airflow par défaut : `airflow` / `airflow`.
 Identifiants MiniIO : valeurs de `MINIO_ACCESS_KEY` et `MINIO_SECRET_KEY` dans `.env`.
@@ -216,3 +227,4 @@ La CI GitHub Actions lance les tests backend, les tests frontend, le build Vite,
 - Les tokens JWT sont signés avec `SECRET_KEY`.
 - Les erreurs 500 non gérées sont journalisées et peuvent déclencher une alerte email.
 - Les en-têtes HTTP de sécurité sont ajoutés par middleware backend.
+- Les routes sont protégées par un rate limiting Redis configurable; `/health` reste exclu pour les sondes de disponibilité.

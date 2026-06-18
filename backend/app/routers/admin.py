@@ -12,6 +12,7 @@ from typing import Any
 
 import httpx
 from app.dependencies import get_db, require_admin
+from app.external_clients import fetch_airflow_dag_runs
 from app.models.activite import Activite
 from app.models.consommation import Consommation
 from app.models.metrique_sante import MetriqueSante
@@ -226,7 +227,7 @@ def _fetch_airflow_dag_runs() -> dict:
     return result
 
 
-def _build_flux_from_airflow(airflow_data: dict, db: Session) -> dict:
+def _build_flux_from_airflow(airflow_data: dict, db: Session, airflow_status: str = "ok") -> dict:
     """Construit la structure flux (valides, encours, refuses) à partir des runs Airflow."""
     valides = []
     encours = []
@@ -279,6 +280,7 @@ def _build_flux_from_airflow(airflow_data: dict, db: Session) -> dict:
             "metriques": {"total": nb_met, "dernier_run": str(derniere_met) if derniere_met else None},
         },
         "airflow_disponible": bool(airflow_data),
+        "airflow_status": airflow_status,
     }
 
 
@@ -291,8 +293,8 @@ def get_flux(
     Liste des flux de données ETL (DAGs Airflow) : fetch_openfoodfacts_france, export_db_to_csv.
     Retourne les runs par statut : en cours, réussis, en échec.
     """
-    airflow_data = _fetch_airflow_dag_runs()
-    return _build_flux_from_airflow(airflow_data, db)
+    airflow_data, airflow_status = fetch_airflow_dag_runs()
+    return _build_flux_from_airflow(airflow_data, db, airflow_status)
 
 
 # ============ CSV intermédiaires (visualisation, modification, validation) ============
