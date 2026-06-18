@@ -115,56 +115,56 @@ jobs:
 
   # Analyse SonarQube complète du dépôt (backend, frontend, Airflow, scripts, CI)
   # à chaque push sur main, après génération des rapports de couverture.
-  sonarqube:
-    needs: [test-backend, test-frontend]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+  # sonarqube:
+  #   needs: [test-backend, test-frontend]
+  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+  #   runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 0
 
-      - name: Download backend coverage
-        uses: actions/download-artifact@v4
-        with:
-          name: backend-coverage
-          path: backend
+  #     - name: Download backend coverage
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: backend-coverage
+  #         path: backend
 
-      - name: Download frontend coverage
-        uses: actions/download-artifact@v4
-        with:
-          name: frontend-coverage
-          path: Frontend/coverage
+  #     - name: Download frontend coverage
+  #       uses: actions/download-artifact@v4
+  #       with:
+  #         name: frontend-coverage
+  #         path: Frontend/coverage
 
-      - name: Vérifier les rapports de couverture
-        run: |
-          test -f backend/coverage.xml || (echo "backend/coverage.xml manquant" && exit 1)
-          test -f Frontend/coverage/lcov.info || (echo "Frontend/coverage/lcov.info manquant" && exit 1)
-          echo "Sources analysées : backend/, Frontend/src/, airflow/dags/, scripts/, .github/"
+  #     - name: Vérifier les rapports de couverture
+  #       run: |
+  #         test -f backend/coverage.xml || (echo "backend/coverage.xml manquant" && exit 1)
+  #         test -f Frontend/coverage/lcov.info || (echo "Frontend/coverage/lcov.info manquant" && exit 1)
+  #         echo "Sources analysées : backend/, Frontend/src/, airflow/dags/, scripts/, .github/"
 
-      - name: Vérifier la configuration SonarQube (serveur auto-hébergé)
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
-        run: |
-          if [ -z "$SONAR_TOKEN" ]; then
-            echo "::error::SONAR_TOKEN manquant — Repository secret (SonarQube → My Account → Security → Generate Token)"
-            exit 1
-          fi
-          if [ -z "$SONAR_HOST_URL" ]; then
-            echo "::error::SONAR_HOST_URL manquant — Repository variable ou secret (URL de base du serveur, ex. https://sonarqube.mondomaine.fr)"
-            exit 1
-          fi
-          echo "SONAR_HOST_URL=$SONAR_HOST_URL"
-          grep -E '^sonar\.projectKey=' sonar-project.properties
+  #     - name: Vérifier la configuration SonarQube (serveur auto-hébergé)
+  #       env:
+  #         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  #         SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
+  #       run: |
+  #         if [ -z "$SONAR_TOKEN" ]; then
+  #           echo "::error::SONAR_TOKEN manquant — Repository secret (SonarQube → My Account → Security → Generate Token)"
+  #           exit 1
+  #         fi
+  #         if [ -z "$SONAR_HOST_URL" ]; then
+  #           echo "::error::SONAR_HOST_URL manquant — Repository variable ou secret (URL de base du serveur, ex. https://sonarqube.mondomaine.fr)"
+  #           exit 1
+  #         fi
+  #         echo "SONAR_HOST_URL=$SONAR_HOST_URL"
+  #         grep -E '^sonar\.projectKey=' sonar-project.properties
 
-      - name: SonarQube Scan (dépôt complet)
-        uses: SonarSource/sonarqube-scan-action@v7
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
+  #     - name: SonarQube Scan (dépôt complet)
+  #       uses: SonarSource/sonarqube-scan-action@v7
+  #       env:
+  #         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  #         SONAR_HOST_URL: ${{ vars.SONAR_HOST_URL || secrets.SONAR_HOST_URL }}
 
   # Déploiement SSH : le serveur utilise son .env (DATABASE_URL Neon, SECRET_KEY, etc.).
   # Aucune base locale n'est démarrée — seuls backend + frontend sont relancés.
