@@ -10,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 # Make imports work when tests are executed from the backend container root.
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 os.environ.setdefault("APP_ENV", "test")
+os.environ["RATE_LIMIT_ENABLED"] = "false"
 
 from app.database import Base
 from app.main import app, get_db

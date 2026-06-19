@@ -70,7 +70,7 @@
         </div>
         <div class="profile-item">
           <label>Niveau activité</label>
-          <span>{{ currentUser.niveau_activite ?? '-' }}</span>
+          <span>{{ formatActivityLevel(currentUser.niveau_activite) }}</span>
         </div>
         <div class="profile-item">
           <label>Abonnement</label>
@@ -416,6 +416,17 @@ const formatDate = (dateStr: string) => {
     month: 'long',
     day: 'numeric'
   });
+};
+
+const formatActivityLevel = (level?: number) => {
+  const labels: Record<number, string> = {
+    1: 'Tres faible',
+    2: 'Faible',
+    3: 'Moderee',
+    4: 'Elevee',
+    5: 'Tres elevee'
+  };
+  return level ? labels[level] ?? '-' : '-';
 };
 
 const loadUserMetrics = async (userId: number, token: string) => {

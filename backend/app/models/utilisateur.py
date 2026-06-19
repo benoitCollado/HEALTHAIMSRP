@@ -43,6 +43,14 @@ class Utilisateur(Base):
     # Indique si l’utilisateur a les droits administrateur
     is_admin = Column(Boolean, nullable=False, default=False)
 
+    # Objectifs / preferences selectionnes par l'utilisateur
+    destresse = Column(Boolean, nullable=False, default=False)
+    sante = Column(Boolean, nullable=False, default=False)
+    perte_de_poids = Column(Boolean, nullable=False, default=False)
+    performance = Column(Boolean, nullable=False, default=False)
+    endurance = Column(Boolean, nullable=False, default=False)
+    force = Column(Boolean, nullable=False, default=False)
+
     # Secret TOTP utilise par les applications 2FA (Google Authenticator, Authy).
     totp_secret = Column(String(64), nullable=True)
 

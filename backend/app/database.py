@@ -10,14 +10,23 @@ Base = declarative_base()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 # Création du moteur de connexion à la base de données
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    pool_recycle=300,
-    pool_size=2,
-    max_overflow=5,
-    connect_args={"connect_timeout": 5},
-)
+engine_options = {
+    "pool_pre_ping": True,
+    "pool_recycle": 300,
+}
+
+if DATABASE_URL and DATABASE_URL.startswith("sqlite"):
+    engine_options["connect_args"] = {"check_same_thread": False}
+else:
+    engine_options.update(
+        {
+            "pool_size": 2,
+            "max_overflow": 5,
+            "connect_args": {"connect_timeout": 5},
+        }
+    )
+
+engine = create_engine(DATABASE_URL, **engine_options)
 
 # Fabrique de sessions pour interagir avec la base de données
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

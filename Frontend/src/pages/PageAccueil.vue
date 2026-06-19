@@ -71,6 +71,13 @@
                 {{ isEditingProfile ? 'Annuler' : 'Modifier mon profil' }}
               </button>
             </div>
+            <div v-if="estimatedDailyCalories" class="calorie-highlight">
+              <div>
+                <span class="calorie-label">Recommandation calories du jour</span>
+                <strong>{{ estimatedDailyCalories.calories }} kcal</strong>
+              </div>
+              <p>{{ estimatedDailyCalories.detail }}</p>
+            </div>
             <form v-if="isEditingProfile" class="entry-form" @submit.prevent="saveProfile">
               <div class="user-grid">
                 <label class="field-block">
@@ -95,7 +102,13 @@
                 </label>
                 <label class="field-block">
                   <span class="user-label">Niveau activité</span>
-                  <input v-model.number="profileForm.niveau_activite" type="number" min="1" max="5" required />
+                  <select v-model.number="profileForm.niveau_activite" required>
+                    <option :value="1">Tres faible</option>
+                    <option :value="2">Faible</option>
+                    <option :value="3">Moderee</option>
+                    <option :value="4">Elevee</option>
+                    <option :value="5">Tres elevee</option>
+                  </select>
                 </label>
                 <label class="field-block">
                   <span class="user-label">Type abonnement</span>
@@ -104,6 +117,10 @@
                 <label class="field-block">
                   <span class="user-label">Date d'inscription</span>
                   <input v-model="profileForm.date_inscription" type="date" required />
+                </label>
+                <label v-for="option in goalOptions" :key="option.key" class="field-block checkbox-block">
+                  <input v-model="profileForm[option.key]" type="checkbox" />
+                  <span class="user-label">{{ option.label }}</span>
                 </label>
               </div>
               <div class="form-actions">
@@ -139,7 +156,7 @@
               </div>
               <div class="user-card">
                 <div class="user-label">Niveau activité</div>
-                <div class="user-value">{{ userProfile?.niveau_activite ?? '-' }}</div>
+                <div class="user-value">{{ formatActivityLevel(userProfile?.niveau_activite) }}</div>
               </div>
               <div class="user-card">
                 <div class="user-label">Type abonnement</div>
@@ -148,6 +165,10 @@
               <div class="user-card">
                 <div class="user-label">Date d'inscription</div>
                 <div class="user-value">{{ formatDate(userProfile?.date_inscription) }}</div>
+              </div>
+              <div v-for="option in goalOptions" :key="option.key" class="user-card">
+                <div class="user-label">{{ option.label }}</div>
+                <div class="user-value">{{ userProfile?.[option.key] ? 'Oui' : 'Non' }}</div>
               </div>
             </div>
           </div>
@@ -474,6 +495,7 @@ import Navbar from '../components/Navbar.vue'
 import { auth } from '../services/auth'
 import { API_BASE_URL } from '../config'
 import QRCode from 'qrcode'
+import { estimateDailyCalories, type CalorieProfile } from '../services/calorieCalculator'
 
 interface UserProfile {
   id_utilisateur: number
@@ -485,6 +507,12 @@ interface UserProfile {
   niveau_activite: number
   type_abonnement: number
   date_inscription: string
+  destresse: boolean
+  sante: boolean
+  perte_de_poids: boolean
+  performance: boolean
+  endurance: boolean
+  force: boolean
 }
 
 interface TwoFactorStatus {
@@ -557,7 +585,24 @@ interface ProfileForm {
   niveau_activite: number
   type_abonnement: number
   date_inscription: string
+  destresse: boolean
+  sante: boolean
+  perte_de_poids: boolean
+  performance: boolean
+  endurance: boolean
+  force: boolean
 }
+
+type GoalFlagKey = 'destresse' | 'sante' | 'perte_de_poids' | 'performance' | 'endurance' | 'force'
+
+const goalOptions: Array<{ key: GoalFlagKey; label: string }> = [
+  { key: 'destresse', label: 'Reduire mon stress' },
+  { key: 'sante', label: 'Ameliorer ma sante generale' },
+  { key: 'perte_de_poids', label: 'Perdre du poids' },
+  { key: 'performance', label: 'Ameliorer mes performances sportives' },
+  { key: 'endurance', label: 'Gagner en endurance' },
+  { key: 'force', label: 'Developper ma force musculaire' }
+]
 
 interface MetricForm {
   id_metrique: number | null
@@ -607,7 +652,13 @@ function createProfileForm(profile: UserProfile | null): ProfileForm {
     poids_kg: profile?.poids_kg ?? 70,
     niveau_activite: profile?.niveau_activite ?? 1,
     type_abonnement: profile?.type_abonnement ?? 1,
-    date_inscription: profile?.date_inscription ?? today()
+    date_inscription: profile?.date_inscription ?? today(),
+    destresse: profile?.destresse ?? false,
+    sante: profile?.sante ?? false,
+    perte_de_poids: profile?.perte_de_poids ?? false,
+    performance: profile?.performance ?? false,
+    endurance: profile?.endurance ?? false,
+    force: profile?.force ?? false
   }
 }
 
@@ -704,6 +755,17 @@ export default defineComponent({
       return date.toLocaleDateString('fr-FR')
     }
 
+    const formatActivityLevel = (level?: number) => {
+      const labels: Record<number, string> = {
+        1: 'Tres faible',
+        2: 'Faible',
+        3: 'Moderee',
+        4: 'Elevee',
+        5: 'Tres elevee'
+      }
+      return level ? labels[level] ?? '-' : '-'
+    }
+
     const totalCaloriesConsumed = computed(() => {
       return Math.round(userConsumptions.value.reduce((sum, c) => sum + (c.calories_calculees || 0), 0))
     })
@@ -721,6 +783,15 @@ export default defineComponent({
       if (!selectedAliment.value) return 0
       return Math.round((selectedAliment.value.calories * consumptionForm.value.quantite_g) / 100)
     })
+
+    const calorieProfile = computed<CalorieProfile | null>(() => {
+      if (isEditingProfile.value) {
+        return profileForm.value
+      }
+      return userProfile.value
+    })
+
+    const estimatedDailyCalories = computed(() => estimateDailyCalories(calorieProfile.value))
 
     async function apiRequest<T>(endpoint: string, token: string, init?: RequestInit): Promise<T> {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -1102,6 +1173,7 @@ export default defineComponent({
       userSuccess,
       activeTab,
       userHeaderActions,
+      goalOptions,
       savingKey,
       isEditingProfile,
       showMetricForm,
@@ -1122,7 +1194,9 @@ export default defineComponent({
       lastConsumptionDate,
       selectedAliment,
       suggestedConsumptionCalories,
+      estimatedDailyCalories,
       formatDate,
+      formatActivityLevel,
       getExerciseName,
       getAlimentName,
       toggleProfileEdit,
@@ -1193,6 +1267,45 @@ export default defineComponent({
   grid-template-columns: 1fr 1fr;
 }
 
+.calorie-highlight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 12px 0 16px;
+  padding: 16px;
+  border: 1px solid rgba(22, 163, 74, 0.28);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ecfdf5, #eff6ff);
+}
+
+.calorie-highlight > div {
+  display: grid;
+  gap: 4px;
+}
+
+.calorie-label {
+  color: #166534;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.calorie-highlight strong {
+  color: #0f172a;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.calorie-highlight p {
+  max-width: 360px;
+  margin: 0;
+  color: #475569;
+  font-size: 0.9rem;
+  text-align: right;
+}
+
 .user-card,
 .user-subpanel {
   padding: 12px;
@@ -1205,6 +1318,19 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.checkbox-block {
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.checkbox-block input {
+  width: auto;
 }
 
 .field-span-2 {
@@ -1526,6 +1652,16 @@ export default defineComponent({
   .section-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .calorie-highlight {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .calorie-highlight p {
+    max-width: none;
+    text-align: left;
   }
 
   .form-actions,

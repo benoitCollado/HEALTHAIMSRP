@@ -100,6 +100,23 @@ Authorization: Bearer <token>
 
 ---
 
+## Champs utilisateur
+
+La table `utilisateurs` contient les informations de profil classiques (`username`, `email`, `age`, `sexe`, `taille_cm`, `poids_kg`, `niveau_activite`, `type_abonnement`, `date_inscription`) et les champs techniques de securite (`password_hash`, `is_admin`, `totp_secret`, `totp_enabled`).
+
+Elle stocke aussi les objectifs personnels sous forme de booleens :
+
+| Champ API / BDD | Libelle affiche |
+| --- | --- |
+| `destresse` | Reduire mon stress |
+| `sante` | Ameliorer ma sante generale |
+| `perte_de_poids` | Perdre du poids |
+| `performance` | Ameliorer mes performances sportives |
+| `endurance` | Gagner en endurance |
+| `force` | Developper ma force musculaire |
+
+---
+
 ## Migrations Alembic
 
 La base de données est versionnée avec **Alembic**.
@@ -121,6 +138,48 @@ docker exec backend_api alembic current
 docker exec backend_api alembic revision --autogenerate -m "ajout_colonne_x"
 docker exec backend_api alembic upgrade head
 ```
+
+Pour tester la migration avec PostgreSQL local Docker :
+
+```bash
+docker compose up -d --build postgres backend
+docker exec backend_api alembic upgrade head
+docker exec backend_api alembic current
+docker exec postgres_health psql -U healthuser -d healthdb -c "\d utilisateurs"
+```
+
+La revision `0004` ajoute les objectifs personnels booleens sur `utilisateurs`.
+
+## Calcul calories recommandees
+
+La recommandation affichee dans `Informations personnelles` est calculee cote frontend depuis les champs de `utilisateurs`.
+Elle utilise une estimation Mifflin-St Jeor :
+
+```text
+BMR = 10 * poids_kg + 6.25 * taille_cm - 5 * age + ajustement_sexe
+H = +5, F = -161, autre = -78
+```
+
+Le BMR est multiplie par le facteur du `niveau_activite` :
+
+| Niveau | Facteur |
+| --- | --- |
+| 1 | 1.2 |
+| 2 | 1.375 |
+| 3 | 1.55 |
+| 4 | 1.725 |
+| 5 | 1.9 |
+
+Puis un ajustement objectif est applique :
+
+| Objectif | Ajustement |
+| --- | --- |
+| `perte_de_poids` | -400 kcal |
+| `performance` ou `force` | +250 kcal |
+| `endurance` | +150 kcal |
+| autre | 0 kcal |
+
+Le resultat est arrondi au multiple de 50 kcal le plus proche, avec un minimum de `1200 kcal` pour `F` et `1500 kcal` sinon.
 
 ### Logique de démarrage (`start.sh`)
 

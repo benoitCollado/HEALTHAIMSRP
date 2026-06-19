@@ -63,10 +63,20 @@ Champs principaux :
 * `niveau_activite`
 * `type_abonnement`
 * `date_inscription`
+* `destresse`
+* `sante`
+* `perte_de_poids`
+* `performance`
+* `endurance`
+* `force`
+
+Les champs `destresse`, `sante`, `perte_de_poids`, `performance`, `endurance` et `force` sont des booleens utilises pour enregistrer les objectifs personnels choisis par l'utilisateur.
+Cote interface, ils sont affiches avec des libelles plus lisibles : "Reduire mon stress", "Ameliorer ma sante generale", "Perdre du poids", "Ameliorer mes performances sportives", "Gagner en endurance" et "Developper ma force musculaire".
 
 Par défaut :
 
 * `is_admin = FALSE`
+* les objectifs personnels booleens sont initialises a `FALSE`
 * les mots de passe sont stockés **hachés**
 
 ---

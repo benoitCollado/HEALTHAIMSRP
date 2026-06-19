@@ -239,6 +239,12 @@ export interface UtilisateurAdmin {
   type_abonnement: number
   date_inscription: string
   is_admin: boolean
+  destresse: boolean
+  sante: boolean
+  perte_de_poids: boolean
+  performance: boolean
+  endurance: boolean
+  force: boolean
   stats: {
     nb_consommations: number
     nb_activites: number
@@ -263,6 +269,12 @@ export interface UtilisateurCreatePayload {
   niveau_activite: number
   type_abonnement: number
   date_inscription: string
+  destresse?: boolean
+  sante?: boolean
+  perte_de_poids?: boolean
+  performance?: boolean
+  endurance?: boolean
+  force?: boolean
 }
 
 export interface UtilisateurUpdatePayload {
@@ -273,6 +285,12 @@ export interface UtilisateurUpdatePayload {
   niveau_activite?: number
   type_abonnement?: number
   date_inscription?: string
+  destresse?: boolean
+  sante?: boolean
+  perte_de_poids?: boolean
+  performance?: boolean
+  endurance?: boolean
+  force?: boolean
 }
 
 export async function searchUtilisateurs(q?: string): Promise<UtilisateursResponse> {
