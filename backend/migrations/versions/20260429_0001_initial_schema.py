@@ -32,6 +32,12 @@ def upgrade() -> None:
         sa.Column("type_abonnement", sa.Integer(), nullable=False),
         sa.Column("date_inscription", sa.Date(), nullable=False, server_default=sa.text("CURRENT_DATE")),
         sa.Column("is_admin", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column("destresse", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column("sante", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column("perte_de_poids", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column("performance", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column("endurance", sa.Boolean(), nullable=False, server_default=sa.text("false")),
+        sa.Column("force", sa.Boolean(), nullable=False, server_default=sa.text("false")),
         sa.Column("totp_secret", sa.String(64), nullable=True),
         sa.Column("totp_enabled", sa.Boolean(), nullable=False, server_default=sa.text("false")),
     )

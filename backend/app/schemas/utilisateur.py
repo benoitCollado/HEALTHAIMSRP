@@ -19,6 +19,12 @@ class UtilisateurBase(BaseModel):
     type_abonnement: int
     # Date d’inscription
     date_inscription: date
+    destresse: bool = False
+    sante: bool = False
+    perte_de_poids: bool = False
+    performance: bool = False
+    endurance: bool = False
+    force: bool = False
 
 
 # Schéma utilisé lors de la création d’un utilisateur
@@ -54,6 +60,12 @@ class UtilisateurUpdate(BaseModel):
     type_abonnement: int | None = None
     # Nouvelle date d’inscription
     date_inscription: date | None = None
+    destresse: bool | None = None
+    sante: bool | None = None
+    perte_de_poids: bool | None = None
+    performance: bool | None = None
+    endurance: bool | None = None
+    force: bool | None = None
 
 
 # Schéma de réponse renvoyé par l’API

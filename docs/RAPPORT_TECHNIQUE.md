@@ -100,6 +100,7 @@ L’accessibilité RGAA (niveau AA) est prise en compte : lien d’évitement, f
 ### 3.4 Base de données
 
 - Tables : `utilisateurs`, `objectif`, `aliment`, `consommation`, `exercice`, `activite`, `metrique_sante`.
+- La table `utilisateurs` stocke aussi les objectifs personnels booleens (`destresse`, `sante`, `perte_de_poids`, `performance`, `endurance`, `force`), affiches cote Vue avec des libelles utilisateur : reduction du stress, sante generale, perte de poids, performance sportive, endurance et force musculaire.
 - Scripts SQL : `database/init/01_create_tables.sql` (création), `02_insert_test_data.sql` (données de test).
 - Contraintes : clés étrangères, ON DELETE CASCADE, vérifications (ex. sexe).
 

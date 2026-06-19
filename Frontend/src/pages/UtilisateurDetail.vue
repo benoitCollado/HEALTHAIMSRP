@@ -53,7 +53,13 @@
               </label>
               <label class="profil-item">
                 <span class="label">Niveau d'activité</span>
-                <input v-model.number="editForm.niveau_activite" type="number" min="1" max="5" required />
+                <select v-model.number="editForm.niveau_activite" required>
+                  <option :value="1">Tres faible</option>
+                  <option :value="2">Faible</option>
+                  <option :value="3">Moderee</option>
+                  <option :value="4">Elevee</option>
+                  <option :value="5">Tres elevee</option>
+                </select>
               </label>
               <label class="profil-item">
                 <span class="label">Type d'abonnement</span>
@@ -77,6 +83,7 @@
             <div class="profil-item"><span class="label">Sexe</span><span class="value">{{ data.utilisateur.sexe }}</span></div>
             <div class="profil-item"><span class="label">Taille</span><span class="value">{{ data.utilisateur.taille_cm }} cm</span></div>
             <div class="profil-item"><span class="label">Poids</span><span class="value">{{ data.utilisateur.poids_kg }} kg</span></div>
+            <div class="profil-item"><span class="label">Niveau activite</span><span class="value">{{ formatActivityLevel(data.utilisateur.niveau_activite) }}</span></div>
             <div class="profil-item"><span class="label">Inscription</span><span class="value">{{ data.utilisateur.date_inscription }}</span></div>
           </div>
         </section>
@@ -213,6 +220,17 @@ function toEditForm(data: UtilisateurDonnees): UtilisateurUpdatePayload {
   }
 }
 
+function formatActivityLevel(level?: number): string {
+  const labels: Record<number, string> = {
+    1: 'Tres faible',
+    2: 'Faible',
+    3: 'Moderee',
+    4: 'Elevee',
+    5: 'Tres elevee'
+  }
+  return level ? labels[level] ?? '-' : '-'
+}
+
 async function loadUser(id: number, data: { value: UtilisateurDonnees | null }, loading: { value: boolean }, error: { value: string }) {
   if (!Number.isFinite(id)) {
     error.value = 'ID utilisateur invalide'
@@ -309,6 +327,7 @@ export default defineComponent({
       saving,
       deleting,
       editForm,
+      formatActivityLevel,
       toggleEdit,
       saveUser,
       removeUser

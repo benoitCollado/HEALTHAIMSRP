@@ -58,6 +58,7 @@ scripts/        Scripts de déploiement et utilitaires SQL
 
 - Authentification par JWT et rôles utilisateur/admin.
 - Inscription utilisateur avec adresse email obligatoire et unique.
+- Profil utilisateur enrichi avec objectifs personnels : reduction du stress, sante generale, perte de poids, performance sportive, endurance et force musculaire.
 - API REST avec endpoints pour utilisateurs, aliments, exercices, consommations, activités, métriques santé et objectifs.
 - Chat IA Mistral avec possibilité de joindre des images stockées dans MiniIO par utilisateur, retries et réponse de secours si l'API externe est indisponible.
 - Dashboard d'administration et pages de gestion des flux.
@@ -154,6 +155,17 @@ Import des données de départ :
 ```bash
 docker compose --profile seed run --rm seed
 ```
+
+Appliquer les migrations sur la base Docker locale :
+
+```bash
+docker compose up -d --build postgres backend
+docker exec backend_api alembic upgrade head
+docker exec backend_api alembic current
+```
+
+La migration `0004` ajoute les preferences/objectifs booleens de la table `utilisateurs` :
+`destresse`, `sante`, `perte_de_poids`, `performance`, `endurance`, `force`.
 
 ## Monitoring
 

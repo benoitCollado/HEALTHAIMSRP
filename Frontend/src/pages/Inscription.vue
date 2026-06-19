@@ -97,6 +97,16 @@
           </div>
         </div>
 
+        <div class="form-section">
+          <h2>Objectifs</h2>
+          <div class="checkbox-grid">
+            <label v-for="option in goalOptions" :key="option.key" class="checkbox-field">
+              <input v-model="form[option.key]" type="checkbox" />
+              <span>{{ option.label }}</span>
+            </label>
+          </div>
+        </div>
+
         <p v-if="error" class="alert error">{{ error }}</p>
         <p v-if="success" class="alert success">{{ success }}</p>
 
@@ -131,7 +141,24 @@ interface RegisterPayload {
   niveau_activite: number
   type_abonnement: number
   date_inscription: string
+  destresse: boolean
+  sante: boolean
+  perte_de_poids: boolean
+  performance: boolean
+  endurance: boolean
+  force: boolean
 }
+
+type GoalFlagKey = 'destresse' | 'sante' | 'perte_de_poids' | 'performance' | 'endurance' | 'force'
+
+const goalOptions: Array<{ key: GoalFlagKey; label: string }> = [
+  { key: 'destresse', label: 'Reduire mon stress' },
+  { key: 'sante', label: 'Ameliorer ma sante generale' },
+  { key: 'perte_de_poids', label: 'Perdre du poids' },
+  { key: 'performance', label: 'Ameliorer mes performances sportives' },
+  { key: 'endurance', label: 'Gagner en endurance' },
+  { key: 'force', label: 'Developper ma force musculaire' }
+]
 
 function todayIsoDate(): string {
   return new Date().toISOString().slice(0, 10)
@@ -148,7 +175,13 @@ function initialForm(): RegisterPayload {
     poids_kg: 70,
     niveau_activite: 3,
     type_abonnement: 1,
-    date_inscription: todayIsoDate()
+    date_inscription: todayIsoDate(),
+    destresse: false,
+    sante: false,
+    perte_de_poids: false,
+    performance: false,
+    endurance: false,
+    force: false
   }
 }
 
@@ -222,6 +255,7 @@ export default defineComponent({
       goToSecurityAfterRegister,
       error,
       success,
+      goalOptions,
       submit
     }
   }
@@ -359,6 +393,28 @@ p {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.checkbox-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #334155;
+  font-weight: 600;
+}
+
+.checkbox-field input {
+  width: auto;
+}
+
 label {
   display: grid;
   gap: 7px;
@@ -439,7 +495,8 @@ label {
   }
 
   .grid.two,
-  .grid.three {
+  .grid.three,
+  .checkbox-grid {
     grid-template-columns: 1fr;
   }
 

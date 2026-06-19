@@ -74,7 +74,13 @@
             </label>
             <label>
               <span>Niveau d'activité</span>
-              <input v-model.number="createForm.niveau_activite" type="number" min="1" max="5" required />
+              <select v-model.number="createForm.niveau_activite" required>
+                <option :value="1">Tres faible</option>
+                <option :value="2">Faible</option>
+                <option :value="3">Moderee</option>
+                <option :value="4">Elevee</option>
+                <option :value="5">Tres elevee</option>
+              </select>
             </label>
             <label>
               <span>Type d'abonnement</span>

@@ -95,7 +95,13 @@
                 </label>
                 <label class="field-block">
                   <span class="user-label">Niveau activité</span>
-                  <input v-model.number="profileForm.niveau_activite" type="number" min="1" max="5" required />
+                  <select v-model.number="profileForm.niveau_activite" required>
+                    <option :value="1">Tres faible</option>
+                    <option :value="2">Faible</option>
+                    <option :value="3">Moderee</option>
+                    <option :value="4">Elevee</option>
+                    <option :value="5">Tres elevee</option>
+                  </select>
                 </label>
                 <label class="field-block">
                   <span class="user-label">Type abonnement</span>
@@ -104,6 +110,10 @@
                 <label class="field-block">
                   <span class="user-label">Date d'inscription</span>
                   <input v-model="profileForm.date_inscription" type="date" required />
+                </label>
+                <label v-for="option in goalOptions" :key="option.key" class="field-block checkbox-block">
+                  <input v-model="profileForm[option.key]" type="checkbox" />
+                  <span class="user-label">{{ option.label }}</span>
                 </label>
               </div>
               <div class="form-actions">
@@ -139,7 +149,7 @@
               </div>
               <div class="user-card">
                 <div class="user-label">Niveau activité</div>
-                <div class="user-value">{{ userProfile?.niveau_activite ?? '-' }}</div>
+                <div class="user-value">{{ formatActivityLevel(userProfile?.niveau_activite) }}</div>
               </div>
               <div class="user-card">
                 <div class="user-label">Type abonnement</div>
@@ -148,6 +158,10 @@
               <div class="user-card">
                 <div class="user-label">Date d'inscription</div>
                 <div class="user-value">{{ formatDate(userProfile?.date_inscription) }}</div>
+              </div>
+              <div v-for="option in goalOptions" :key="option.key" class="user-card">
+                <div class="user-label">{{ option.label }}</div>
+                <div class="user-value">{{ userProfile?.[option.key] ? 'Oui' : 'Non' }}</div>
               </div>
             </div>
           </div>
@@ -485,6 +499,12 @@ interface UserProfile {
   niveau_activite: number
   type_abonnement: number
   date_inscription: string
+  destresse: boolean
+  sante: boolean
+  perte_de_poids: boolean
+  performance: boolean
+  endurance: boolean
+  force: boolean
 }
 
 interface TwoFactorStatus {
@@ -557,7 +577,24 @@ interface ProfileForm {
   niveau_activite: number
   type_abonnement: number
   date_inscription: string
+  destresse: boolean
+  sante: boolean
+  perte_de_poids: boolean
+  performance: boolean
+  endurance: boolean
+  force: boolean
 }
+
+type GoalFlagKey = 'destresse' | 'sante' | 'perte_de_poids' | 'performance' | 'endurance' | 'force'
+
+const goalOptions: Array<{ key: GoalFlagKey; label: string }> = [
+  { key: 'destresse', label: 'Reduire mon stress' },
+  { key: 'sante', label: 'Ameliorer ma sante generale' },
+  { key: 'perte_de_poids', label: 'Perdre du poids' },
+  { key: 'performance', label: 'Ameliorer mes performances sportives' },
+  { key: 'endurance', label: 'Gagner en endurance' },
+  { key: 'force', label: 'Developper ma force musculaire' }
+]
 
 interface MetricForm {
   id_metrique: number | null
@@ -607,7 +644,13 @@ function createProfileForm(profile: UserProfile | null): ProfileForm {
     poids_kg: profile?.poids_kg ?? 70,
     niveau_activite: profile?.niveau_activite ?? 1,
     type_abonnement: profile?.type_abonnement ?? 1,
-    date_inscription: profile?.date_inscription ?? today()
+    date_inscription: profile?.date_inscription ?? today(),
+    destresse: profile?.destresse ?? false,
+    sante: profile?.sante ?? false,
+    perte_de_poids: profile?.perte_de_poids ?? false,
+    performance: profile?.performance ?? false,
+    endurance: profile?.endurance ?? false,
+    force: profile?.force ?? false
   }
 }
 
@@ -702,6 +745,17 @@ export default defineComponent({
       const date = new Date(dateValue)
       if (Number.isNaN(date.getTime())) return '-'
       return date.toLocaleDateString('fr-FR')
+    }
+
+    const formatActivityLevel = (level?: number) => {
+      const labels: Record<number, string> = {
+        1: 'Tres faible',
+        2: 'Faible',
+        3: 'Moderee',
+        4: 'Elevee',
+        5: 'Tres elevee'
+      }
+      return level ? labels[level] ?? '-' : '-'
     }
 
     const totalCaloriesConsumed = computed(() => {
@@ -1102,6 +1156,7 @@ export default defineComponent({
       userSuccess,
       activeTab,
       userHeaderActions,
+      goalOptions,
       savingKey,
       isEditingProfile,
       showMetricForm,
@@ -1123,6 +1178,7 @@ export default defineComponent({
       selectedAliment,
       suggestedConsumptionCalories,
       formatDate,
+      formatActivityLevel,
       getExerciseName,
       getAlimentName,
       toggleProfileEdit,
@@ -1205,6 +1261,19 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.checkbox-block {
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.checkbox-block input {
+  width: auto;
 }
 
 .field-span-2 {

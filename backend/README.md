@@ -100,6 +100,23 @@ Authorization: Bearer <token>
 
 ---
 
+## Champs utilisateur
+
+La table `utilisateurs` contient les informations de profil classiques (`username`, `email`, `age`, `sexe`, `taille_cm`, `poids_kg`, `niveau_activite`, `type_abonnement`, `date_inscription`) et les champs techniques de securite (`password_hash`, `is_admin`, `totp_secret`, `totp_enabled`).
+
+Elle stocke aussi les objectifs personnels sous forme de booleens :
+
+| Champ API / BDD | Libelle affiche |
+| --- | --- |
+| `destresse` | Reduire mon stress |
+| `sante` | Ameliorer ma sante generale |
+| `perte_de_poids` | Perdre du poids |
+| `performance` | Ameliorer mes performances sportives |
+| `endurance` | Gagner en endurance |
+| `force` | Developper ma force musculaire |
+
+---
+
 ## Migrations Alembic
 
 La base de données est versionnée avec **Alembic**.
@@ -121,6 +138,17 @@ docker exec backend_api alembic current
 docker exec backend_api alembic revision --autogenerate -m "ajout_colonne_x"
 docker exec backend_api alembic upgrade head
 ```
+
+Pour tester la migration avec PostgreSQL local Docker :
+
+```bash
+docker compose up -d --build postgres backend
+docker exec backend_api alembic upgrade head
+docker exec backend_api alembic current
+docker exec postgres_health psql -U healthuser -d healthdb -c "\d utilisateurs"
+```
+
+La revision `0004` ajoute les objectifs personnels booleens sur `utilisateurs`.
 
 ### Logique de démarrage (`start.sh`)
 
