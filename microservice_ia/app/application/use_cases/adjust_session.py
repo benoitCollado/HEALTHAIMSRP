@@ -1,0 +1,36 @@
+from app.domain.entities.program import WorkoutProgram
+from app.domain.services.session_progression import resolve_current_session_id
+from app.domain.ports.program_generator import AdjustSessionInput, ProgramGeneratorPort
+from app.domain.ports.program_repository import ProgramRepositoryPort
+
+
+class AdjustSessionUseCase:
+    def __init__(self, generator: ProgramGeneratorPort, programs: ProgramRepositoryPort) -> None:
+        self._generator = generator
+        self._programs = programs
+
+    def execute(self, data: AdjustSessionInput):
+        program = self._programs.get_active_program(data.user_id)
+        if program is None:
+            return None
+
+        next_session_id = resolve_current_session_id(program)
+        if next_session_id is None:
+            return None
+
+        if next_session_id != program.session_courante_id:
+            program = WorkoutProgram(
+                id=program.id,
+                user_id=program.user_id,
+                objectifs=program.objectifs,
+                longueur_programme_semaines=program.longueur_programme_semaines,
+                seances_par_semaine=program.seances_par_semaine,
+                calories_recommandees=program.calories_recommandees,
+                detail_calorique=program.detail_calorique,
+                sessions=program.sessions,
+                session_courante_id=next_session_id,
+                created_at=program.created_at,
+            )
+
+        adjusted = self._generator.adjust(program, data)
+        return self._programs.update_program(adjusted)

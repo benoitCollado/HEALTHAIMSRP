@@ -1,0 +1,1 @@
+# Modèles entraînés (.pkl) — générer via : python -m ml.train_random_forest
