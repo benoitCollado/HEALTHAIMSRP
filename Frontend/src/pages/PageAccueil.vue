@@ -845,7 +845,7 @@ export default defineComponent({
 
     const dailyCaloriesRemaining = computed(() => {
       if (!estimatedDailyCalories.value) return 0
-      return estimatedDailyCalories.value.calories - dailyNetCalories.value
+      return estimatedDailyCalories.value.calories + dailyNetCalories.value
     })
 
     const calorieBalanceStatus = computed(() => {
