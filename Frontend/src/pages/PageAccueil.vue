@@ -78,6 +78,36 @@
               </div>
               <p>{{ estimatedDailyCalories.detail }}</p>
             </div>
+            <div v-if="estimatedDailyCalories" class="calorie-balance-panel">
+              <div class="calorie-balance-header">
+                <div>
+                  <span class="calorie-label">Bilan consommation / depense</span>
+                  <strong>{{ dailyNetCalories }} kcal net</strong>
+                </div>
+                <span class="balance-status" :class="calorieBalanceStatus.className">
+                  {{ calorieBalanceStatus.label }}
+                </span>
+              </div>
+              <div class="calorie-balance-grid">
+                <div>
+                  <span>Jour analyse</span>
+                  <strong>{{ latestCalorieDate ? formatDate(latestCalorieDate) : 'Aucune donnee' }}</strong>
+                </div>
+                <div>
+                  <span>Consommees</span>
+                  <strong>{{ dailyCaloriesConsumed }} kcal</strong>
+                </div>
+                <div>
+                  <span>Depensees sport</span>
+                  <strong>{{ dailyCaloriesSpent }} kcal</strong>
+                </div>
+                <div>
+                  <span>Reste recommande</span>
+                  <strong>{{ dailyCaloriesRemaining }} kcal</strong>
+                </div>
+              </div>
+              <p>{{ calorieBalanceStatus.detail }}</p>
+            </div>
             <form v-if="isEditingProfile" class="entry-form" @submit.prevent="saveProfile">
               <div class="user-grid">
                 <label class="field-block">
@@ -770,6 +800,95 @@ export default defineComponent({
       return Math.round(userConsumptions.value.reduce((sum, c) => sum + (c.calories_calculees || 0), 0))
     })
 
+    const totalCaloriesSpent = computed(() => {
+      return Math.round(userActivities.value.reduce((sum, activity) => sum + (activity.calories_depensees || 0), 0))
+    })
+
+    const calorieProfile = computed<CalorieProfile | null>(() => {
+      if (isEditingProfile.value) {
+        return profileForm.value
+      }
+      return userProfile.value
+    })
+
+    const estimatedDailyCalories = computed(() => estimateDailyCalories(calorieProfile.value))
+
+    const latestCalorieDate = computed(() => {
+      const dates = [
+        ...userConsumptions.value.map(item => item.date_consommation),
+        ...userActivities.value.map(item => item.date_activite)
+      ].filter(Boolean)
+
+      if (!dates.length) return ''
+      return dates.sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0]
+    })
+
+    const dailyCaloriesConsumed = computed(() => {
+      if (!latestCalorieDate.value) return 0
+      return Math.round(
+        userConsumptions.value
+          .filter(item => item.date_consommation === latestCalorieDate.value)
+          .reduce((sum, item) => sum + (item.calories_calculees || 0), 0)
+      )
+    })
+
+    const dailyCaloriesSpent = computed(() => {
+      if (!latestCalorieDate.value) return 0
+      return Math.round(
+        userActivities.value
+          .filter(item => item.date_activite === latestCalorieDate.value)
+          .reduce((sum, item) => sum + (item.calories_depensees || 0), 0)
+      )
+    })
+
+    const dailyNetCalories = computed(() => dailyCaloriesConsumed.value - dailyCaloriesSpent.value)
+
+    const dailyCaloriesRemaining = computed(() => {
+      if (!estimatedDailyCalories.value) return 0
+      return estimatedDailyCalories.value.calories - dailyNetCalories.value
+    })
+
+    const calorieBalanceStatus = computed(() => {
+      if (!latestCalorieDate.value) {
+        return {
+          label: 'Aucune donnee',
+          className: 'neutral',
+          detail: 'Ajoutez une consommation ou une activite pour comparer le bilan au besoin journalier.'
+        }
+      }
+
+      if (!estimatedDailyCalories.value) {
+        return {
+          label: 'Profil incomplet',
+          className: 'neutral',
+          detail: 'Completez le profil pour obtenir une recommandation calories par jour.'
+        }
+      }
+
+      const remaining = dailyCaloriesRemaining.value
+      if (remaining > 150) {
+        return {
+          label: 'Sous la recommandation',
+          className: 'low',
+          detail: `Il reste environ ${remaining} kcal avant la recommandation du jour.`
+        }
+      }
+
+      if (remaining < -150) {
+        return {
+          label: 'Au-dessus',
+          className: 'high',
+          detail: `Le bilan depasse la recommandation d'environ ${Math.abs(remaining)} kcal.`
+        }
+      }
+
+      return {
+        label: 'Equilibre',
+        className: 'balanced',
+        detail: 'Le bilan est proche de la recommandation du jour.'
+      }
+    })
+
     const lastConsumptionDate = computed(() => {
       if (!userConsumptions.value.length) return '-'
       return formatDate(userConsumptions.value[0].date_consommation)
@@ -783,15 +902,6 @@ export default defineComponent({
       if (!selectedAliment.value) return 0
       return Math.round((selectedAliment.value.calories * consumptionForm.value.quantite_g) / 100)
     })
-
-    const calorieProfile = computed<CalorieProfile | null>(() => {
-      if (isEditingProfile.value) {
-        return profileForm.value
-      }
-      return userProfile.value
-    })
-
-    const estimatedDailyCalories = computed(() => estimateDailyCalories(calorieProfile.value))
 
     async function apiRequest<T>(endpoint: string, token: string, init?: RequestInit): Promise<T> {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -1191,6 +1301,13 @@ export default defineComponent({
       consumptionForm,
       goalForm,
       totalCaloriesConsumed,
+      totalCaloriesSpent,
+      latestCalorieDate,
+      dailyCaloriesConsumed,
+      dailyCaloriesSpent,
+      dailyNetCalories,
+      dailyCaloriesRemaining,
+      calorieBalanceStatus,
       lastConsumptionDate,
       selectedAliment,
       suggestedConsumptionCalories,
@@ -1304,6 +1421,97 @@ export default defineComponent({
   color: #475569;
   font-size: 0.9rem;
   text-align: right;
+}
+
+.calorie-balance-panel {
+  display: grid;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 16px;
+  border: 1px solid rgba(37, 99, 235, 0.22);
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.calorie-balance-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.calorie-balance-header > div {
+  display: grid;
+  gap: 4px;
+}
+
+.calorie-balance-header strong {
+  color: #0f172a;
+  font-size: 1.45rem;
+  line-height: 1.1;
+}
+
+.calorie-balance-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.calorie-balance-grid > div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.calorie-balance-grid span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.calorie-balance-grid strong {
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.calorie-balance-panel p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.balance-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.balance-status.low {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.balance-status.high {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.balance-status.balanced {
+  background: #ecfdf5;
+  color: #15803d;
+}
+
+.balance-status.neutral {
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .user-card,
@@ -1664,6 +1872,15 @@ export default defineComponent({
     text-align: left;
   }
 
+  .calorie-balance-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .calorie-balance-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .form-actions,
   .twofa-actions,
   .twofa-code-row {
@@ -1681,6 +1898,10 @@ export default defineComponent({
 @media (max-width: 500px) {
   .user-view {
     max-width: none;
+  }
+
+  .calorie-balance-grid {
+    grid-template-columns: 1fr;
   }
 
   .user-panel,

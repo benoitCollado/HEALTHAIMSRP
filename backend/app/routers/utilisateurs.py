@@ -1,4 +1,7 @@
+from datetime import date, timedelta
+
 from app.dependencies import get_current_user, get_db, require_admin
+from app.models.objectif import Objectif
 from app.models.utilisateur import Utilisateur
 from app.schemas.utilisateur import (
     UtilisateurCreate,
@@ -10,6 +13,64 @@ from fastapi import APIRouter, Depends, HTTPException, Path
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/utilisateurs", tags=["Utilisateurs"])
+
+GOAL_DEFINITIONS = {
+    "destresse": {
+        "type_objectif": "Destresse",
+        "description": "Reduire mon stress",
+    },
+    "sante": {
+        "type_objectif": "Sante",
+        "description": "Ameliorer ma sante generale",
+    },
+    "perte_de_poids": {
+        "type_objectif": "Perte de poids",
+        "description": "Perdre du poids",
+    },
+    "performance": {
+        "type_objectif": "Performance",
+        "description": "Ameliorer mes performances sportives",
+    },
+    "endurance": {
+        "type_objectif": "Endurance",
+        "description": "Gagner en endurance",
+    },
+    "force": {
+        "type_objectif": "Force",
+        "description": "Developper ma force musculaire",
+    },
+}
+
+
+def _sync_user_goal_rows(utilisateur: Utilisateur, db: Session) -> None:
+    date_debut = utilisateur.date_inscription or date.today()
+    date_fin = date_debut + timedelta(days=90)
+
+    for flag_name, goal in GOAL_DEFINITIONS.items():
+        existing_goal = (
+            db.query(Objectif)
+            .filter(
+                Objectif.id_utilisateur == utilisateur.id_utilisateur,
+                Objectif.type_objectif == goal["type_objectif"],
+                Objectif.description == goal["description"],
+            )
+            .first()
+        )
+
+        if getattr(utilisateur, flag_name, False):
+            if existing_goal is None:
+                db.add(
+                    Objectif(
+                        type_objectif=goal["type_objectif"],
+                        description=goal["description"],
+                        date_debut=date_debut,
+                        date_fin=date_fin,
+                        statut="en_cours",
+                        id_utilisateur=utilisateur.id_utilisateur,
+                    )
+                )
+        elif existing_goal is not None:
+            db.delete(existing_goal)
 
 
 def _create_user(utilisateur: UtilisateurCreate, db: Session, *, is_admin: bool = False) -> Utilisateur:
@@ -27,6 +88,8 @@ def _create_user(utilisateur: UtilisateurCreate, db: Session, *, is_admin: bool 
 
     new_user = Utilisateur(**data)
     db.add(new_user)
+    db.flush()
+    _sync_user_goal_rows(new_user, db)
     db.commit()
     db.refresh(new_user)
     return new_user
@@ -71,8 +134,11 @@ def update_utilisateur(
     utilisateur_id: int,
     utilisateur_update: UtilisateurUpdate,
     db: Session = Depends(get_db),
-    user: dict = Depends(require_admin),
+    user: dict = Depends(get_current_user),
 ):
+    if not user.get("is_admin", False) and str(utilisateur_id) != str(user.get("sub")):
+        raise HTTPException(status_code=403, detail="Admin only")
+
     utilisateur = db.query(Utilisateur).filter(Utilisateur.id_utilisateur == utilisateur_id).first()
     if utilisateur is None:
         raise HTTPException(status_code=404, detail="Utilisateur non trouve")
@@ -80,6 +146,7 @@ def update_utilisateur(
     for key, value in utilisateur_update.model_dump(exclude_none=True).items():
         setattr(utilisateur, key, value)
 
+    _sync_user_goal_rows(utilisateur, db)
     db.commit()
     db.refresh(utilisateur)
     return utilisateur
