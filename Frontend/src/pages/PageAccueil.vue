@@ -71,6 +71,13 @@
                 {{ isEditingProfile ? 'Annuler' : 'Modifier mon profil' }}
               </button>
             </div>
+            <div v-if="estimatedDailyCalories" class="calorie-highlight">
+              <div>
+                <span class="calorie-label">Recommandation calories du jour</span>
+                <strong>{{ estimatedDailyCalories.calories }} kcal</strong>
+              </div>
+              <p>{{ estimatedDailyCalories.detail }}</p>
+            </div>
             <form v-if="isEditingProfile" class="entry-form" @submit.prevent="saveProfile">
               <div class="user-grid">
                 <label class="field-block">
@@ -488,6 +495,7 @@ import Navbar from '../components/Navbar.vue'
 import { auth } from '../services/auth'
 import { API_BASE_URL } from '../config'
 import QRCode from 'qrcode'
+import { estimateDailyCalories, type CalorieProfile } from '../services/calorieCalculator'
 
 interface UserProfile {
   id_utilisateur: number
@@ -775,6 +783,15 @@ export default defineComponent({
       if (!selectedAliment.value) return 0
       return Math.round((selectedAliment.value.calories * consumptionForm.value.quantite_g) / 100)
     })
+
+    const calorieProfile = computed<CalorieProfile | null>(() => {
+      if (isEditingProfile.value) {
+        return profileForm.value
+      }
+      return userProfile.value
+    })
+
+    const estimatedDailyCalories = computed(() => estimateDailyCalories(calorieProfile.value))
 
     async function apiRequest<T>(endpoint: string, token: string, init?: RequestInit): Promise<T> {
       const response = await fetch(`${API_BASE_URL}${endpoint}`, {
@@ -1177,6 +1194,7 @@ export default defineComponent({
       lastConsumptionDate,
       selectedAliment,
       suggestedConsumptionCalories,
+      estimatedDailyCalories,
       formatDate,
       formatActivityLevel,
       getExerciseName,
@@ -1247,6 +1265,45 @@ export default defineComponent({
 
 .user-grid-2 {
   grid-template-columns: 1fr 1fr;
+}
+
+.calorie-highlight {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 12px 0 16px;
+  padding: 16px;
+  border: 1px solid rgba(22, 163, 74, 0.28);
+  border-radius: 8px;
+  background: linear-gradient(135deg, #ecfdf5, #eff6ff);
+}
+
+.calorie-highlight > div {
+  display: grid;
+  gap: 4px;
+}
+
+.calorie-label {
+  color: #166534;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.calorie-highlight strong {
+  color: #0f172a;
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.calorie-highlight p {
+  max-width: 360px;
+  margin: 0;
+  color: #475569;
+  font-size: 0.9rem;
+  text-align: right;
 }
 
 .user-card,
@@ -1595,6 +1652,16 @@ export default defineComponent({
   .section-header {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .calorie-highlight {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .calorie-highlight p {
+    max-width: none;
+    text-align: left;
   }
 
   .form-actions,

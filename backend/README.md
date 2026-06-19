@@ -150,6 +150,37 @@ docker exec postgres_health psql -U healthuser -d healthdb -c "\d utilisateurs"
 
 La revision `0004` ajoute les objectifs personnels booleens sur `utilisateurs`.
 
+## Calcul calories recommandees
+
+La recommandation affichee dans `Informations personnelles` est calculee cote frontend depuis les champs de `utilisateurs`.
+Elle utilise une estimation Mifflin-St Jeor :
+
+```text
+BMR = 10 * poids_kg + 6.25 * taille_cm - 5 * age + ajustement_sexe
+H = +5, F = -161, autre = -78
+```
+
+Le BMR est multiplie par le facteur du `niveau_activite` :
+
+| Niveau | Facteur |
+| --- | --- |
+| 1 | 1.2 |
+| 2 | 1.375 |
+| 3 | 1.55 |
+| 4 | 1.725 |
+| 5 | 1.9 |
+
+Puis un ajustement objectif est applique :
+
+| Objectif | Ajustement |
+| --- | --- |
+| `perte_de_poids` | -400 kcal |
+| `performance` ou `force` | +250 kcal |
+| `endurance` | +150 kcal |
+| autre | 0 kcal |
+
+Le resultat est arrondi au multiple de 50 kcal le plus proche, avec un minimum de `1200 kcal` pour `F` et `1500 kcal` sinon.
+
 ### Logique de démarrage (`start.sh`)
 
 | Situation | Action |

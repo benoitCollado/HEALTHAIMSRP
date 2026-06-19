@@ -59,6 +59,7 @@ scripts/        Scripts de déploiement et utilitaires SQL
 - Authentification par JWT et rôles utilisateur/admin.
 - Inscription utilisateur avec adresse email obligatoire et unique.
 - Profil utilisateur enrichi avec objectifs personnels : reduction du stress, sante generale, perte de poids, performance sportive, endurance et force musculaire.
+- Estimation des calories recommandees du jour dans les informations personnelles, calculee depuis le profil utilisateur, le niveau d'activite et les objectifs.
 - API REST avec endpoints pour utilisateurs, aliments, exercices, consommations, activités, métriques santé et objectifs.
 - Chat IA Mistral avec possibilité de joindre des images stockées dans MiniIO par utilisateur, retries et réponse de secours si l'API externe est indisponible.
 - Dashboard d'administration et pages de gestion des flux.
@@ -166,6 +167,22 @@ docker exec backend_api alembic current
 
 La migration `0004` ajoute les preferences/objectifs booleens de la table `utilisateurs` :
 `destresse`, `sante`, `perte_de_poids`, `performance`, `endurance`, `force`.
+
+## Calcul calories recommandees
+
+La page utilisateur `Informations personnelles` affiche une estimation des calories recommandees pour la journee.
+Le calcul est realise cote frontend dans `Frontend/src/pages/PageAccueil.vue`.
+
+1. Metabolisme de base, formule Mifflin-St Jeor :
+   `10 * poids_kg + 6.25 * taille_cm - 5 * age + ajustement_sexe`
+   avec `+5` pour `H`, `-161` pour `F` et `-78` pour autre/non renseigne.
+2. Multiplication par le niveau d'activite :
+   `1 = 1.2`, `2 = 1.375`, `3 = 1.55`, `4 = 1.725`, `5 = 1.9`.
+3. Ajustement objectif :
+   `perte_de_poids = -400 kcal`, `performance` ou `force = +250 kcal`, `endurance = +150 kcal`, sinon `0`.
+
+Le resultat est arrondi au multiple de 50 kcal le plus proche, avec un minimum de `1200 kcal` pour `F` et `1500 kcal` sinon.
+Cette valeur reste une estimation indicative, pas une recommandation medicale.
 
 ## Monitoring
 

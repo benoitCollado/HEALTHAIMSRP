@@ -51,6 +51,8 @@ class RedisRateLimiter:
 
     @property
     def enabled(self) -> bool:
+        if os.getenv("APP_ENV") == "test" and os.getenv("RATE_LIMIT_ENABLED") is None:
+            return False
         return _flag_enabled("RATE_LIMIT_ENABLED", True) and bool(os.getenv("REDIS_URL", self.redis_url).strip())
 
     def _redis(self) -> Redis:

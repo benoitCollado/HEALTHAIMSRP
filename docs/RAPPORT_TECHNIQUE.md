@@ -104,6 +104,15 @@ L’accessibilité RGAA (niveau AA) est prise en compte : lien d’évitement, f
 - Scripts SQL : `database/init/01_create_tables.sql` (création), `02_insert_test_data.sql` (données de test).
 - Contraintes : clés étrangères, ON DELETE CASCADE, vérifications (ex. sexe).
 
+### 3.5 Estimation des calories recommandees
+
+La page utilisateur `Informations personnelles` affiche une estimation des calories recommandees pour la journee. Le calcul est effectue cote Vue a partir du profil utilisateur :
+
+- Metabolisme de base Mifflin-St Jeor : `10 * poids_kg + 6.25 * taille_cm - 5 * age + ajustement_sexe` (`H = +5`, `F = -161`, autre = `-78`).
+- Facteur d'activite : `1 = 1.2`, `2 = 1.375`, `3 = 1.55`, `4 = 1.725`, `5 = 1.9`.
+- Ajustement objectif : `perte_de_poids = -400 kcal`, `performance` ou `force = +250 kcal`, `endurance = +150 kcal`, sinon `0`.
+- Arrondi au multiple de 50 kcal, avec minimum `1200 kcal` pour `F` et `1500 kcal` sinon.
+
 ---
 
 ## 4. Difficultés rencontrées

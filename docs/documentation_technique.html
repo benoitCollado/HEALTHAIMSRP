@@ -1904,7 +1904,7 @@
                         <td><span class="badge b-auth">Auth</span></td>
                         <td>
                             Admin : 4 tuiles de nav. Utilisateur : profil avec 5
-                            onglets
+                            onglets et recommandation calories du jour
                         </td>
                     </tr>
                     <tr>
@@ -1982,6 +1982,35 @@
                     </div>
                 </div>
             </div>
+
+            <h3>Recommandation calories du jour</h3>
+            <p>
+                Dans <code>Informations personnelles</code>, l'interface affiche une
+                estimation des calories recommandees pour la journee. Le calcul
+                utilise la formule Mifflin-St Jeor :
+                <code>10 * poids_kg + 6.25 * taille_cm - 5 * age + ajustement_sexe</code>
+                avec <code>+5</code> pour <code>H</code>, <code>-161</code> pour
+                <code>F</code> et <code>-78</code> sinon.
+            </p>
+            <ul class="simple">
+                <li>
+                    <strong>Facteur activite :</strong>
+                    <code>1=1.2</code>, <code>2=1.375</code>,
+                    <code>3=1.55</code>, <code>4=1.725</code>,
+                    <code>5=1.9</code>.
+                </li>
+                <li>
+                    <strong>Ajustement objectif :</strong>
+                    <code>perte_de_poids=-400 kcal</code>,
+                    <code>performance</code> ou <code>force=+250 kcal</code>,
+                    <code>endurance=+150 kcal</code>, sinon <code>0</code>.
+                </li>
+                <li>
+                    <strong>Arrondi :</strong> multiple de 50 kcal le plus proche,
+                    avec minimum <code>1200 kcal</code> pour <code>F</code> et
+                    <code>1500 kcal</code> sinon.
+                </li>
+            </ul>
 
             <h3>Design System</h3>
             <ul class="simple">
