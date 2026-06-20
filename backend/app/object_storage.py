@@ -2,6 +2,7 @@ import os
 from datetime import timedelta
 from io import BytesIO
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 from uuid import uuid4
 
 from app.cache import cache, minio_image_cache_ttl_seconds, stable_cache_key
@@ -56,17 +57,32 @@ def ensure_bucket() -> None:
         client.make_bucket(bucket)
 
 
-def presigned_image_url(object_key: str) -> str:
+def _public_presigned_url(url: str) -> str:
+    public_endpoint = os.getenv("MINIO_PUBLIC_ENDPOINT")
+    if not public_endpoint:
+        return url
+
+    public_endpoint = public_endpoint.removeprefix("http://").removeprefix("https://").rstrip("/")
+    public_scheme = "https" if _env_bool("MINIO_PUBLIC_SECURE", _env_bool("MINIO_SECURE", False)) else "http"
+
+    parts = urlsplit(url)
+    return urlunsplit((public_scheme, public_endpoint, parts.path, parts.query, parts.fragment))
+
+
+def presigned_image_url(object_key: str, *, public: bool = True) -> str:
     cache_key = stable_cache_key("minio:image:url", {"bucket": _bucket_name(), "object_key": object_key})
     cached_url = cache.get_json(cache_key)
-    if cached_url:
+    if cached_url and public:
         return str(cached_url)
 
-    public_endpoint = os.getenv("MINIO_PUBLIC_ENDPOINT")
-    client = _minio_client(public_endpoint) if public_endpoint else _minio_client()
+    client = _minio_client()
     url = client.presigned_get_object(_bucket_name(), object_key, expires=timedelta(hours=1))
-    cache.set_json(cache_key, url, minio_image_cache_ttl_seconds())
-    return url
+    if not public:
+        return url
+
+    public_url = _public_presigned_url(url)
+    cache.set_json(cache_key, public_url, minio_image_cache_ttl_seconds())
+    return public_url
 
 
 def _optimized_image(file: UploadFile) -> tuple[BytesIO, int, str, str]:

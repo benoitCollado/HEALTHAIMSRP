@@ -185,6 +185,51 @@ def call_mistral_chat(messages: list[dict[str, str]]) -> str:
     return answer
 
 
+def call_microservice_ia_recommendations(profile_payload: dict[str, Any]) -> dict[str, Any]:
+    base_url = os.getenv("MICROSERVICE_IA_URL", "http://microservice_ia:8090").rstrip("/")
+    timeout = max(1.0, _float_env("MICROSERVICE_IA_TIMEOUT_SECONDS", 10.0))
+
+    calories_response = _request_with_resilience(
+        "microservice_ia_recommendations",
+        "POST",
+        f"{base_url}/recommandation_calorique",
+        timeout=timeout,
+        json=profile_payload,
+    )
+    exercises_response = _request_with_resilience(
+        "microservice_ia_recommendations",
+        "POST",
+        f"{base_url}/recommandation_exercice",
+        timeout=timeout,
+        json={**profile_payload, "limit": 5},
+    )
+
+    try:
+        return {
+            "calories": calories_response.json(),
+            "exercices": exercises_response.json(),
+        }
+    except ValueError as exc:
+        raise ExternalServiceResponseError("Reponse microservice_ia invalide") from exc
+
+
+def call_photo_processing(image_payload: dict[str, Any]) -> dict[str, Any]:
+    url = os.getenv("PHOTO_PROCESSING_API_URL", "http://microservice_photo:8000/analyze")
+
+    response = _request_with_resilience(
+        "photo_processing",
+        "POST",
+        url,
+        timeout=max(1.0, _float_env("PHOTO_PROCESSING_TIMEOUT_SECONDS", 20.0)),
+        json=image_payload,
+    )
+
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise ExternalServiceResponseError("Reponse traitement photo invalide") from exc
+
+
 def fetch_airflow_dag_runs() -> tuple[dict[str, Any], str]:
     cached = cache.get_json(AIRFLOW_CACHE_KEY)
     if cached is not None:

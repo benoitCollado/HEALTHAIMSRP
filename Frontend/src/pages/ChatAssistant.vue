@@ -54,8 +54,11 @@
                 rel="noreferrer"
                 class="image-chip"
               >
-                <img :src="image.url" :alt="image.filename" />
-                <span>{{ image.filename }}</span>
+                <span class="image-thumb">
+                  <img :src="image.url" :alt="image.filename" @error="markImageError(image.object_key)" />
+                  <span v-if="imageLoadErrors[image.object_key]">IMG</span>
+                </span>
+                <span class="attachment-name">{{ image.filename }}</span>
               </a>
             </div>
           </div>
@@ -80,8 +83,14 @@
             ></textarea>
             <div v-if="attachedImages.length" class="attachment-preview" aria-label="Images selectionnees">
               <div v-for="image in attachedImages" :key="image.object_key" class="attachment-item">
-                <img :src="image.url" :alt="image.filename" />
-                <span>{{ image.filename }}</span>
+                <span class="image-thumb">
+                  <img :src="image.url" :alt="image.filename" @error="markImageError(image.object_key)" />
+                  <span v-if="imageLoadErrors[image.object_key]">IMG</span>
+                </span>
+                <span class="attachment-text">
+                  <strong>{{ image.filename }}</strong>
+                  <small>Image jointe</small>
+                </span>
                 <button type="button" aria-label="Retirer l'image" :disabled="loading" @click="removeImage(image.object_key)">
                   x
                 </button>
@@ -109,7 +118,14 @@
 <script lang="ts">
 import { defineComponent, ref } from 'vue'
 import Navbar from '../components/Navbar.vue'
-import { sendChatMessage, uploadChatImage, type ChatImage, type ChatMessage } from '../services/chatApi'
+import {
+  analyzeChatImage,
+  getChatRecommendations,
+  sendChatMessage,
+  uploadChatImage,
+  type ChatImage,
+  type ChatMessage
+} from '../services/chatApi'
 
 export default defineComponent({
   components: { Navbar },
@@ -120,6 +136,7 @@ export default defineComponent({
     const uploadingImage = ref(false)
     const messages = ref<ChatMessage[]>([])
     const attachedImages = ref<ChatImage[]>([])
+    const imageLoadErrors = ref<Record<string, boolean>>({})
 
     function resetChat() {
       messages.value = []
@@ -134,6 +151,30 @@ export default defineComponent({
 
     function removeImage(objectKey: string) {
       attachedImages.value = attachedImages.value.filter((image) => image.object_key !== objectKey)
+      delete imageLoadErrors.value[objectKey]
+    }
+
+    function markImageError(objectKey: string) {
+      imageLoadErrors.value = { ...imageLoadErrors.value, [objectKey]: true }
+    }
+
+    function buildImageAnalysisAnswer(analysisAnswers: string[], recommendationAnswer: string): string {
+      const parts = []
+      if (analysisAnswers.length) {
+        parts.push(`Analyse photo\n${analysisAnswers.join('\n\n')}`)
+      }
+      if (recommendationAnswer) {
+        parts.push(`Recommandation personnalisee\n${recommendationAnswer}`)
+      }
+      return parts.join('\n\n')
+    }
+
+    async function analyzeImages(images: ChatImage[], question: string): Promise<string[]> {
+      const results = await Promise.allSettled(images.map((image) => analyzeChatImage(image, question)))
+      return results.map((result) => {
+        if (result.status === 'fulfilled') return result.value.answer
+        return "L'analyse photo est temporairement indisponible."
+      })
     }
 
     async function handleImageChange(event: Event) {
@@ -151,6 +192,7 @@ export default defineComponent({
       uploadingImage.value = true
       try {
         const uploaded = await uploadChatImage(file)
+        imageLoadErrors.value = { ...imageLoadErrors.value, [uploaded.object_key]: false }
         attachedImages.value.push(uploaded)
       } catch (err) {
         error.value = err instanceof Error ? err.message : "Impossible d'envoyer l'image."
@@ -172,7 +214,15 @@ export default defineComponent({
       loading.value = true
 
       try {
-        const answer = await sendChatMessage(content || 'Analyse cette image.', history, images)
+        let answer = ''
+        if (images.length > 0) {
+          const question = content || 'Analyse cette image et donne une recommandation adaptee.'
+          const analysisAnswers = await analyzeImages(images, question)
+          const recommendation = await getChatRecommendations()
+          answer = buildImageAnalysisAnswer(analysisAnswers, recommendation.answer)
+        } else {
+          answer = await sendChatMessage(content, history)
+        }
         messages.value.push({ role: 'assistant', content: answer })
       } catch (err) {
         error.value = err instanceof Error ? err.message : 'Assistant indisponible.'
@@ -186,7 +236,9 @@ export default defineComponent({
       draft,
       error,
       handleImageChange,
+      imageLoadErrors,
       loading,
+      markImageError,
       messages,
       removeImage,
       resetChat,
@@ -432,11 +484,12 @@ export default defineComponent({
 .attachment-item,
 .image-chip {
   display: inline-grid;
-  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-columns: 46px minmax(0, 1fr) auto;
   align-items: center;
-  gap: 8px;
-  max-width: min(100%, 280px);
-  padding: 6px;
+  gap: 10px;
+  min-height: 58px;
+  max-width: min(100%, 360px);
+  padding: 7px 8px;
   border: 1px solid rgba(148, 163, 184, 0.26);
   border-radius: 8px;
   background: #f8fbff;
@@ -449,16 +502,46 @@ export default defineComponent({
   text-decoration: none;
 }
 
-.attachment-item img,
-.image-chip img {
-  width: 42px;
-  height: 42px;
-  object-fit: cover;
-  border-radius: 6px;
+.image-thumb {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 7px;
+  background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+  color: var(--primary-dark);
+  font-size: 0.72rem;
+  font-weight: 900;
 }
 
-.attachment-item span,
-.image-chip span {
+.image-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.image-thumb span {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+}
+
+.attachment-text,
+.attachment-name {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.attachment-text strong,
+.attachment-name {
   overflow: hidden;
   font-size: 0.82rem;
   font-weight: 700;
@@ -466,13 +549,31 @@ export default defineComponent({
   white-space: nowrap;
 }
 
+.attachment-text small {
+  color: var(--gray-500);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+
 .attachment-item button {
-  min-width: 30px;
-  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  min-height: 32px;
   padding: 0;
-  background: #e2e8f0;
+  border-radius: 8px;
+  background: #e8eef7;
   color: #334155;
+  font-size: 1.05rem;
+  line-height: 1;
   box-shadow: none;
+}
+
+.attachment-item button:hover {
+  background: #dbe5f1;
 }
 
 .sr-only {

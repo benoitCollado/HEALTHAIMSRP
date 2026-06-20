@@ -62,6 +62,7 @@ scripts/        Scripts de déploiement et utilitaires SQL
 - Estimation des calories recommandees du jour dans les informations personnelles, calculee depuis le profil utilisateur, le niveau d'activite et les objectifs.
 - API REST avec endpoints pour utilisateurs, aliments, exercices, consommations, activités, métriques santé et objectifs.
 - Chat IA Mistral avec possibilité de joindre des images stockées dans MiniIO par utilisateur, retries et réponse de secours si l'API externe est indisponible.
+- Routes Chat IA dédiées aux microservices : recommandations personnalisées via `microservice_ia` et analyse photo via le microservice de traitement d'image.
 - Dashboard d'administration et pages de gestion des flux.
 - Gestion robuste des APIs externes Mistral et Airflow : timeouts, retries, circuit breaker et mode dégradé.
 - Rate limiting Redis par IP/utilisateur, avec seuils spécifiques pour `/login` et `/chat`.
@@ -99,6 +100,10 @@ MINIO_ACCESS_KEY=healthai_app
 MINIO_SECRET_KEY=<mot-de-passe-minio>
 MINIO_BUCKET=healthai-chat-images
 MINIO_PUBLIC_ENDPOINT=127.0.0.1:19100
+MICROSERVICE_IA_URL=http://microservice_ia:8090
+MICROSERVICE_IA_TIMEOUT_SECONDS=10
+PHOTO_PROCESSING_API_URL=http://microservice_photo:8000/analyze
+PHOTO_PROCESSING_TIMEOUT_SECONDS=20
 REDIS_URL=redis://redis:6379/0
 RATE_LIMIT_ENABLED=true
 CACHE_ENABLED=true
@@ -112,7 +117,9 @@ MINIO_IMAGE_CACHE_TTL_SECONDS=180
 
 Les variables SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `ADMIN_EMAIL`) activent les alertes email sur erreurs 5xx. Un 403 isole n'envoie pas d'email; une rafale de 403 pour le meme client/utilisateur declenche une alerte securite selon `ERROR_ALERT_403_THRESHOLD`, `ERROR_ALERT_403_WINDOW_SECONDS` et `ERROR_ALERT_403_COOLDOWN_SECONDS`.
 
-Les variables de résilience externe (`EXTERNAL_API_MAX_RETRIES`, `EXTERNAL_API_RETRY_DELAY_SECONDS`, `EXTERNAL_API_CIRCUIT_FAILURES`, `EXTERNAL_API_CIRCUIT_RECOVERY_SECONDS`, `MISTRAL_TIMEOUT_SECONDS`) pilotent les appels Mistral et Airflow. En cas de panne Mistral, le chat renvoie une réponse de continuité de service; en cas de panne Airflow, `/admin/flux` retourne un état `airflow_status=degraded`.
+Les variables de résilience externe (`EXTERNAL_API_MAX_RETRIES`, `EXTERNAL_API_RETRY_DELAY_SECONDS`, `EXTERNAL_API_CIRCUIT_FAILURES`, `EXTERNAL_API_CIRCUIT_RECOVERY_SECONDS`, `MISTRAL_TIMEOUT_SECONDS`) pilotent les appels Mistral, Airflow et microservices IA. En cas de panne Mistral, le chat renvoie une réponse de continuité de service; en cas de panne Airflow, `/admin/flux` retourne un état `airflow_status=degraded`.
+
+`MICROSERVICE_IA_URL` pointe vers le service de recommandations calories/exercices. `PHOTO_PROCESSING_API_URL` pointe vers l'URL complète du endpoint d'analyse photo.
 
 Le rate limiting Redis est activé par défaut avec `RATE_LIMIT_ENABLED=true`. Les seuils principaux sont `RATE_LIMIT_DEFAULT_LIMIT`, `RATE_LIMIT_LOGIN_LIMIT` et `RATE_LIMIT_CHAT_LIMIT`, chacun associé à une fenêtre en secondes. Si Redis est temporairement indisponible, le middleware laisse passer la requête et journalise l'incident afin de ne pas couper le service.
 
@@ -134,6 +141,8 @@ Services exposés par défaut :
 | API via Nginx | http://localhost:89/api |
 | Swagger / OpenAPI | http://localhost:89/api/docs |
 | Backend direct | http://localhost:8089 |
+| Microservice IA | http://localhost:8090 |
+| Microservice photo | http://localhost:8001 |
 | Airflow | http://localhost:8080 |
 | MiniIO API | http://localhost:19100 |
 | MiniIO Console | http://localhost:19101 |
@@ -150,6 +159,35 @@ users/{id_utilisateur}/chat/{uuid}.{extension}
 
 Avant stockage, le backend redimensionne les images à 640 x 640 pixels maximum et les convertit en JPEG optimisé.
 Les URLs présignées et métadonnées d'image sont mises en cache Redis pendant 3 minutes maximum afin d'éviter des appels MiniIO répétés tout en gardant une durée courte pour les données utilisateur.
+
+## Chat IA et microservices
+
+Le module Chat IA expose plusieurs routes protégées par JWT :
+
+| Route | Usage |
+| --- | --- |
+| `POST /chat/` | Conversation HealthAI via Mistral avec historique court et images déjà uploadées. |
+| `POST /chat/images` | Upload d'une image utilisateur vers MiniIO sous `users/{id_utilisateur}/chat/`. |
+| `POST /chat/recommendations` | Récupère le profil de l'utilisateur connecté et appelle `microservice_ia` pour la recommandation calorique et les exercices. |
+| `POST /chat/images/analyze` | Vérifie que l'image appartient à l'utilisateur, génère une URL présignée MiniIO et transmet la photo au microservice de traitement d'image. |
+
+`/chat/recommendations` appelle les endpoints legacy du microservice IA :
+`/recommandation_calorique` et `/recommandation_exercice`.
+La réponse contient un texte prêt à afficher dans Chat IA (`answer`) et les données brutes du microservice (`recommendation`).
+
+`/chat/images/analyze` attend une image déjà envoyée par `/chat/images` :
+
+```json
+{
+  "image": {
+    "object_key": "users/1/chat/uuid.jpg",
+    "filename": "repas.jpg"
+  },
+  "question": "Analyse mon repas"
+}
+```
+
+La réponse contient `answer` pour le chat et `analysis` avec la réponse complète du microservice photo.
 
 Import des données de départ :
 

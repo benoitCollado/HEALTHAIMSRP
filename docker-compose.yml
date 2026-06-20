@@ -11,6 +11,8 @@ services:
     depends_on:
       - minio
       - redis
+      - microservice_ia
+      - microservice_photo
     volumes:
       - ./data:/data
       - ./data/logs/backend:/app/logs
@@ -29,6 +31,10 @@ services:
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-healthai}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-healthai-secret}
       MINIO_BUCKET: ${MINIO_BUCKET:-healthai-chat-images}
+      MICROSERVICE_IA_URL: ${MICROSERVICE_IA_URL:-http://microservice_ia:8090}
+      MICROSERVICE_IA_TIMEOUT_SECONDS: ${MICROSERVICE_IA_TIMEOUT_SECONDS:-10}
+      PHOTO_PROCESSING_API_URL: ${PHOTO_PROCESSING_API_URL:-http://microservice_photo:8000/analyze}
+      PHOTO_PROCESSING_TIMEOUT_SECONDS: ${PHOTO_PROCESSING_TIMEOUT_SECONDS:-20}
       AIRFLOW_API_URL: ${AIRFLOW_API_URL:-http://host.docker.internal:8080}
       AIRFLOW_USER: ${AIRFLOW_USER:-airflow}
       AIRFLOW_PASSWORD: ${AIRFLOW_PASSWORD:-airflow}
@@ -50,6 +56,31 @@ services:
         if [ -f /data/seed_db.py ]; then python /data/seed_db.py || true; fi &&
         exec ./start.sh
       "
+    networks:
+      - health_net
+
+  microservice_ia:
+    image: healthaimsrp-microservice-ia
+    build: ./microservice_ia
+    container_name: microservice_ia
+    restart: always
+    environment:
+      MONGODB_URI: ${MONGODB_URI:-}
+      MONGODB_DB: ${MONGODB_DB:-healthai_ia}
+      ML_ENABLED: ${ML_ENABLED:-auto}
+      ML_MODEL_PATH: ${ML_MODEL_PATH:-models/workout_rf_bundle.pkl}
+    ports:
+      - "${MICROSERVICE_IA_PORT:-127.0.0.1:8090}:8090"
+    networks:
+      - health_net
+
+  microservice_photo:
+    image: healthaimsrp-microservice-photo
+    build: ./microservice_photo
+    container_name: microservice_photo
+    restart: always
+    ports:
+      - "${MICROSERVICE_PHOTO_PORT:-127.0.0.1:8001}:8000"
     networks:
       - health_net
 
