@@ -841,11 +841,13 @@ export default defineComponent({
       )
     })
 
-    const dailyNetCalories = computed(() => dailyCaloriesConsumed.value - dailyCaloriesSpent.value)
+    const dailyNetCalories = computed(() => {
+      return dailyCaloriesConsumed.value - dailyCaloriesSpent.value
+    })
 
     const dailyCaloriesRemaining = computed(() => {
       if (!estimatedDailyCalories.value) return 0
-      return estimatedDailyCalories.value.calories + dailyNetCalories.value
+      return estimatedDailyCalories.value.calories - dailyNetCalories.value
     })
 
     const calorieBalanceStatus = computed(() => {
