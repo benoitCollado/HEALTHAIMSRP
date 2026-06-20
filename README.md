@@ -166,16 +166,16 @@ Le module Chat IA expose plusieurs routes protégées par JWT :
 
 | Route | Usage |
 | --- | --- |
-| `POST /chat/` | Conversation HealthAI via Mistral avec historique court et images déjà uploadées. |
-| `POST /chat/images` | Upload d'une image utilisateur vers MiniIO sous `users/{id_utilisateur}/chat/`. |
-| `POST /chat/recommendations` | Récupère le profil de l'utilisateur connecté et appelle `microservice_ia` pour la recommandation calorique et les exercices. |
-| `POST /chat/images/analyze` | Vérifie que l'image appartient à l'utilisateur, génère une URL présignée MiniIO et transmet la photo au microservice de traitement d'image. |
+| `POST /api/chat/` | Conversation HealthAI via Mistral avec historique court et images déjà uploadées. |
+| `POST /api/chat/images` | Upload d'une image utilisateur vers MiniIO sous `users/{id_utilisateur}/chat/`. |
+| `POST /api/chat/recommendations` | Récupère le profil de l'utilisateur connecté et appelle `microservice_ia` pour la recommandation calorique et les exercices. |
+| `POST /api/chat/images/analyze` | Vérifie que l'image appartient à l'utilisateur, génère une URL présignée MiniIO et transmet la photo au microservice de traitement d'image. |
 
-`/chat/recommendations` appelle les endpoints legacy du microservice IA :
-`/recommandation_calorique` et `/recommandation_exercice`.
+`/api/chat/recommendations` appelle les endpoints du microservice IA :
+`/api/recommandation_calorique` et `/api/recommandation_exercice`.
 La réponse contient un texte prêt à afficher dans Chat IA (`answer`) et les données brutes du microservice (`recommendation`).
 
-`/chat/images/analyze` attend une image déjà envoyée par `/chat/images` :
+`/api/chat/images/analyze` attend une image déjà envoyée par `/api/chat/images` :
 
 ```json
 {

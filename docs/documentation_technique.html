@@ -547,8 +547,8 @@
         <pre><code>Frontend
   -> POST /api/chat/recommendations
     -> Backend lit utilisateurs dans PostgreSQL
-    -> Backend appelle MICROSERVICE_IA_URL/recommandation_calorique
-    -> Backend appelle MICROSERVICE_IA_URL/recommandation_exercice
+    -> Backend appelle MICROSERVICE_IA_URL/api/recommandation_calorique
+    -> Backend appelle MICROSERVICE_IA_URL/api/recommandation_exercice
     -> Backend retourne answer + recommendation</code></pre>
 
         <h3>Flux analyse photo</h3>
@@ -653,11 +653,11 @@ RATE_LIMIT_CHAT_LIMIT=20</code></pre>
             </tr>
             <tr>
               <td>microservice_ia</td>
-              <td><code>/chat/recommendations</code> retourne <code>503</code> ou <code>502</code>.</td>
+              <td><code>/api/chat/recommendations</code> retourne <code>503</code> ou <code>502</code>.</td>
             </tr>
             <tr>
               <td>microservice photo</td>
-              <td><code>/chat/images/analyze</code> retourne <code>503</code> ou <code>502</code>.</td>
+              <td><code>/api/chat/images/analyze</code> retourne <code>503</code> ou <code>502</code>.</td>
             </tr>
           </tbody>
         </table>

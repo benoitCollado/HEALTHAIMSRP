@@ -13,6 +13,7 @@ app = FastAPI(
 )
 
 app.include_router(recommendation_router)
+app.include_router(recommendation_router, prefix="/api")
 app.include_router(v1_router)
 
 

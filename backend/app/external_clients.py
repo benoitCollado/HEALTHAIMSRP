@@ -192,14 +192,14 @@ def call_microservice_ia_recommendations(profile_payload: dict[str, Any]) -> dic
     calories_response = _request_with_resilience(
         "microservice_ia_recommendations",
         "POST",
-        f"{base_url}/recommandation_calorique",
+        f"{base_url}/api/recommandation_calorique",
         timeout=timeout,
         json=profile_payload,
     )
     exercises_response = _request_with_resilience(
         "microservice_ia_recommendations",
         "POST",
-        f"{base_url}/recommandation_exercice",
+        f"{base_url}/api/recommandation_exercice",
         timeout=timeout,
         json={**profile_payload, "limit": 5},
     )
