@@ -116,10 +116,38 @@ Historique d'exécution chronologique de chaque séance avec retours en temps r�
 
 | Variable | Défaut | Description |
 |----------|--------|-------------|
-| `MONGODB_URI` | *(non défini → mémoire)* | URI de connexion MongoDB |
-| `MONGODB_DB` | `healthai_ia` | Nom de la base |
+| `MONGODB_URI` | *(vide → mémoire)* | URI MongoDB ; `mongodb://mongodb:27017` en Docker Compose |
+| `MONGODB_DB` | `healthai_ia` | Nom de la base MongoDB |
+| `MONGODB_PORT` | `127.0.0.1:27017` | Port hôte du conteneur MongoDB (Compose) |
 
-Sans `MONGODB_URI`, le microservice utilise des dépôts **in-memory** (tests et développement local sans Mongo).
+Sans `MONGODB_URI`, le microservice utilise des dépôts **in-memory** (tests pytest).
+
+### Docker Compose
+
+Le projet HealthAI inclut un service MongoDB dans `docker-compose.yml` :
+
+```yaml
+mongodb:
+  image: mongo:7
+  volumes:
+    - mongodb_data:/data/db
+
+microservice_ia:
+  depends_on:
+    mongodb:
+      condition: service_healthy
+  environment:
+    MONGODB_URI: mongodb://mongodb:27017
+    MONGODB_DB: healthai_ia
+```
+
+```bash
+docker compose up -d mongodb microservice_ia
+docker compose exec microservice_ia python scripts/init_mongodb.py
+docker compose exec mongodb mongosh healthai_ia --eval "db.getCollectionNames()"
+```
+
+Les index (`user_ref` unique, etc.) sont créés par `scripts/init_mongodb.py` (deploy CI/CD) ou au démarrage du microservice via `init_db.ensure_indexes()`.
 
 ## Fichiers implémentation
 

@@ -10,6 +10,7 @@ from app.domain.ports.profile_repository import ProfileRepositoryPort
 from app.domain.ports.program_repository import ProgramRepositoryPort
 from app.domain.services.session_progression import apply_session_completion
 from app.infrastructure.persistence.mongodb.client import COLLECTION_SESSION_LOGS, COLLECTION_USERS, COLLECTION_WORKOUT_PLANS
+from app.infrastructure.persistence.mongodb.init_db import ensure_indexes
 from app.infrastructure.persistence.mongodb.mappers import (
     constraints_to_document,
     document_to_program,
@@ -23,8 +24,8 @@ from app.infrastructure.persistence.mongodb.mappers import (
 
 class MongoProfileRepository(ProfileRepositoryPort):
     def __init__(self, db: Database) -> None:
+        ensure_indexes(db)
         self._users = db[COLLECTION_USERS]
-        self._users.create_index("user_ref", unique=True)
 
     def get(self, user_id: int) -> UserProfileRecord | None:
         doc = self._users.find_one({"user_ref": user_id})
@@ -84,8 +85,6 @@ class MongoProgramRepository(ProgramRepositoryPort):
         self._plans = db[COLLECTION_WORKOUT_PLANS]
         self._logs = db[COLLECTION_SESSION_LOGS]
         self._profiles = profiles
-        self._plans.create_index([("user_ref", 1), ("status", 1)])
-        self._logs.create_index([("user_ref", 1), ("session_date", -1)])
 
     def save_program(self, program: WorkoutProgram) -> WorkoutProgram:
         user_oid = self._profiles.ensure_user_oid(program.user_id)

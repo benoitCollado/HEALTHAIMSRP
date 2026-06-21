@@ -41,11 +41,66 @@ export MINIO_PORT="127.0.0.1:19100"
 export MINIO_CONSOLE_PORT="127.0.0.1:19101"
 export MINIO_PUBLIC_ENDPOINT="127.0.0.1:19100"
 
-echo "==> Arret des services app (minio, backend, frontend) - Airflow non inclus..."
-docker compose stop backend frontend minio
-docker compose rm -f backend frontend minio
+# MongoDB microservice IA — valeur par defaut Compose si absente du .env serveur
+if ! grep -qE '^MONGODB_URI=.+' .env; then
+  echo "==> MONGODB_URI absent du .env — utilisation de mongodb://mongodb:27017 (Compose)"
+  export MONGODB_URI="mongodb://mongodb:27017"
+fi
 
-echo "==> Build et redemarrage (minio, backend, frontend uniquement)..."
+wait_mongodb() {
+  echo "==> Attente MongoDB (healthcheck)..."
+  for i in $(seq 1 30); do
+    if docker compose exec -T mongodb mongosh --quiet --eval "db.adminCommand('ping').ok" 2>/dev/null | grep -q '^1$'; then
+      echo "    MongoDB operationnel."
+      return 0
+    fi
+    if [[ "$i" -eq 30 ]]; then
+      echo "Erreur : MongoDB ne repond pas apres 30 tentatives."
+      docker compose logs --tail=50 mongodb
+      return 1
+    fi
+    sleep 2
+  done
+}
+
+wait_microservice_ia() {
+  echo "==> Attente microservice_ia (/health)..."
+  for i in $(seq 1 30); do
+    if docker compose exec -T microservice_ia python -c \
+      "import json, urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=3); \
+       b=json.loads(r.read()); assert b.get('persistence') in ('mongodb', 'memory')" \
+      > /dev/null 2>&1; then
+      echo "    microservice_ia operationnel."
+      return 0
+    fi
+    if [[ "$i" -eq 30 ]]; then
+      echo "Erreur : microservice_ia ne repond pas sur /health apres 30 tentatives."
+      docker compose logs --tail=50 microservice_ia
+      return 1
+    fi
+    sleep 2
+  done
+}
+
+echo "==> Arret des services app (sans MongoDB — donnees conservees)..."
+docker compose stop backend frontend minio microservice_ia || true
+docker compose rm -f backend frontend minio microservice_ia || true
+
+echo "==> Demarrage MongoDB..."
+docker compose up -d mongodb
+wait_mongodb
+
+echo "==> Build image microservice_ia..."
+docker compose build microservice_ia
+
+echo "==> Migration / initialisation MongoDB (index idempotents)..."
+docker compose run --rm --no-deps microservice_ia python scripts/init_mongodb.py
+
+echo "==> Demarrage microservice_ia..."
+docker compose up -d microservice_ia
+wait_microservice_ia
+
+echo "==> Build et redemarrage minio, backend, frontend..."
 docker compose up -d --build minio backend frontend
 
 echo "==> Attente du backend (connexion Neon via DATABASE_URL)..."
@@ -66,6 +121,6 @@ for i in $(seq 1 30); do
 done
 
 echo "==> Etat des conteneurs app :"
-docker compose ps minio backend frontend
+docker compose ps mongodb microservice_ia minio backend frontend
 
 echo "==> Deploiement termine avec succes."

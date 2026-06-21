@@ -63,7 +63,7 @@ flowchart LR
     ADP --> ML
 ```
 
-**Hors périmètre actuel** : authentification JWT (aucun middleware auth), intégration Docker Compose globale, ré-entraînement automatique depuis MongoDB.
+**Hors périmètre actuel** : authentification JWT (aucun middleware auth), ré-entraînement automatique depuis MongoDB.
 
 ---
 
@@ -787,21 +787,43 @@ Scores par fold (test) — accuracy : `[0,8375, 0,6917, 0,8375, 0,8125, 0,7167]`
 
 Activée si `MONGODB_URI` est défini. Sinon : **dépôts in-memory** (perdus au redémarrage).
 
+Avec **Docker Compose** du projet, MongoDB est démarré automatiquement (`mongodb_healthai`) et le microservice reçoit `MONGODB_URI=mongodb://mongodb:27017`.
+
 Documentation collections : [`mongodb_schema.md`](mongodb_schema.md).
 
 ```mermaid
 flowchart TB
+    subgraph docker [docker-compose]
+        MS[microservice_ia]
+        MONGO[(mongodb:27017)]
+        VOL[(volume mongodb_data)]
+    end
+
+    MS -->|MONGODB_URI| MONGO
+    MONGO --> VOL
+
     subgraph collections [Base healthai_ia]
         U[(users)]
         WP[(workout_plans)]
         SL[(session_logs)]
     end
 
-    PUT_C[PUT /constraints] --> U
-    GEN[POST /generate] --> WP
-    FB[POST /feedback] --> SL
-    FB --> WP
-    HIST[GET /history] --> SL
+    MONGO --> collections
+```
+
+| Service Compose | Conteneur | Port hôte (défaut) |
+|-----------------|-----------|-------------------|
+| `mongodb` | `mongodb_healthai` | `127.0.0.1:27017` |
+| `microservice_ia` | `microservice_ia` | `127.0.0.1:8090` |
+
+`GET /health` retourne `"persistence": "mongodb"` lorsque la connexion est active, `"memory"` sans URI, ou `"mongodb_unavailable"` en cas d'échec de ping.
+
+```bash
+# Stack complète avec persistance MongoDB
+docker compose up -d --build mongodb microservice_ia
+
+curl http://localhost:8090/health
+# {"status":"ok","service":"microservice_ia","ml_engine":"loaded","persistence":"mongodb"}
 ```
 
 | Collection | Opérations |
@@ -809,6 +831,15 @@ flowchart TB
 | `users` | upsert profil, update constraints ; index unique `user_ref` |
 | `workout_plans` | save_program ; 1 seul `status=active` par user |
 | `session_logs` | insert à chaque feedback ; metrics completion_rate, RPE |
+
+```mermaid
+flowchart LR
+    PUT_C[PUT /constraints] --> U[(users)]
+    GEN[POST /generate] --> WP[(workout_plans)]
+    FB[POST /feedback] --> SL[(session_logs)]
+    FB --> WP
+    HIST[GET /history] --> SL
+```
 
 **Mapping** : `app/infrastructure/persistence/mongodb/mappers.py`  
 **Repositories** : `mongo_repositories.py`
@@ -1027,8 +1058,9 @@ curl -X POST http://localhost:8090/api/v1/recommendations/adjust \
 | Variable | Défaut | Description |
 |----------|--------|-------------|
 | `API_ROOT_PATH` | *(vide)* | Préfixe reverse proxy |
-| `MONGODB_URI` | *(vide)* | Active MongoDB si défini |
+| `MONGODB_URI` | *(vide)* | URI MongoDB ; `mongodb://mongodb:27017` via Docker Compose |
 | `MONGODB_DB` | `healthai_ia` | Nom de la base |
+| `MONGODB_PORT` | `127.0.0.1:27017` | Port hôte MongoDB (Compose uniquement) |
 | `ML_MODEL_PATH` | `models/workout_rf_bundle.pkl` | Chemin modèle |
 | `ML_ENABLED` | `auto` | `auto` / `true` / `false` |
 | `MICROSERVICE_URL` | — | Script test manuel uniquement |
@@ -1052,20 +1084,24 @@ curl -X POST http://localhost:8090/api/v1/recommendations/adjust \
 | POST `/recommandation_calorique` | RecommendCaloriesUseCase | — | Mifflin |
 | POST `/recommandation_exercice` | RecommendExercisesUseCase | — | ML/RB |
 
-### B. Diagramme de déploiement cible
+### B. Diagramme de déploiement (Docker Compose)
 
 ```mermaid
 flowchart TB
-    subgraph prod [Production cible]
-        NGINX[Nginx /api → backend]
+    subgraph compose [docker-compose.yml]
+        NGINX[frontend nginx :89]
+        BE[backend :8089]
         MS[microservice_ia :8090]
-        MONGO[(MongoDB)]
-        PKL[Volume models/]
+        MONGO[(mongodb :27017)]
+        REDIS[(redis)]
+        MINIO[(minio)]
     end
 
-    NGINX -. proxy futur .-> MS
+    NGINX --> BE
+    BE --> MS
     MS --> MONGO
-    MS --> PKL
+    BE --> REDIS
+    BE --> MINIO
 ```
 
 ### C. Checklist développeur

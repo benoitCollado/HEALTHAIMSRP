@@ -64,13 +64,35 @@ services:
     build: ./microservice_ia
     container_name: microservice_ia
     restart: always
+    depends_on:
+      mongodb:
+        condition: service_healthy
     environment:
-      MONGODB_URI: ${MONGODB_URI:-}
+      MONGODB_URI: ${MONGODB_URI:-mongodb://mongodb:27017}
       MONGODB_DB: ${MONGODB_DB:-healthai_ia}
       ML_ENABLED: ${ML_ENABLED:-auto}
       ML_MODEL_PATH: ${ML_MODEL_PATH:-models/workout_rf_bundle.pkl}
     ports:
       - "${MICROSERVICE_IA_PORT:-127.0.0.1:8090}:8090"
+    networks:
+      - health_net
+
+  mongodb:
+    image: mongo:7
+    container_name: mongodb_healthai
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGODB_DB:-healthai_ia}
+    volumes:
+      - mongodb_data:/data/db
+    ports:
+      - "${MONGODB_PORT:-127.0.0.1:27017}:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
     networks:
       - health_net
 
@@ -272,6 +294,7 @@ volumes:
   airflow_db_data:
   minio_data:
   redis_data:
+  mongodb_data:
 
 networks:
   health_net:

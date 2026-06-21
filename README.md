@@ -142,11 +142,13 @@ Services exposés par défaut :
 | Swagger / OpenAPI | http://localhost:89/api/docs |
 | Backend direct | http://localhost:8089 |
 | Microservice IA | http://localhost:8090 |
+| MongoDB (microservice IA) | mongodb://localhost:27017 — base `healthai_ia` |
 | Microservice photo | http://localhost:8001 |
 | Airflow | http://localhost:8080 |
 | MiniIO API | http://localhost:19100 |
 | MiniIO Console | http://localhost:19101 |
 | Redis | interne Docker, `redis:6379` |
+| MongoDB | interne Docker `mongodb:27017`, port hôte `127.0.0.1:27017` |
 
 Identifiants Airflow par défaut : `airflow` / `airflow`.
 Identifiants MiniIO : valeurs de `MINIO_ACCESS_KEY` et `MINIO_SECRET_KEY` dans `.env`.

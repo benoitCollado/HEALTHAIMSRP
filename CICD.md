@@ -24,7 +24,7 @@ Ce document récapitule l’intégration et le déploiement continus du projet *
 
 | Événement | Branche | Jobs exécutés |
 |-----------|---------|---------------|
-| **Pull Request** | `main` | `test-backend`, `test-frontend` |
+| **Pull Request** | `main` | `test-backend`, `test-frontend`, `test-microservice-ia` |
 | **Push** | `main` | Tous les jobs (tests + SonarQube + deploy) |
 
 ### 1.3 Schéma du pipeline
@@ -41,9 +41,15 @@ Ce document récapitule l’intégration et le déploiement continus du projet *
      │  ruff + pytest  │          │ eslint + vitest │
      └────────┬────────┘          └────────┬────────┘
               │                             │
-              └──────────────┬──────────────┘
-                             │
-              ┌──────────────┴──────────────┐  (push main uniquement)
+              │          ┌──────────────────┘
+              │          ▼
+              │ ┌─────────────────────┐
+              │ │ test-microservice-ia│
+              │ │ MongoDB + init + pytest │
+              │ └──────────┬──────────┘
+              └────────────┼──────────────
+                           │
+              ┌────────────┴──────────────┐  (push main uniquement)
               ▼                             ▼
      ┌─────────────────┐          ┌─────────────────┐
      │    sonarqube    │          │     deploy      │
@@ -114,9 +120,32 @@ ruff format backend/app backend/migrations airflow/dags
 
 ---
 
-## 3. Job `test-frontend`
+## 3. Job `test-microservice-ia`
 
 ### 3.1 Environnement
+
+- **Runner** : `ubuntu-latest`
+- **Python** : 3.11
+- **MongoDB éphémère** : conteneur `mongo:7` (port `27017`)
+- Variables CI :
+  - `MONGODB_URI=mongodb://localhost:27017`
+  - `MONGODB_DB=healthai_ia_ci`
+  - `ML_FAST_TRAIN=1`, `ML_CV_FOLDS=3` (entraînement ML accéléré en CI)
+
+### 3.2 Étapes
+
+1. Checkout du code
+2. Installation : `pip install -r microservice_ia/requirements.txt`
+3. **Initialisation MongoDB** : `python scripts/init_mongodb.py` (index idempotents)
+4. **Tests** : `python -m pytest -v` (depuis `microservice_ia/`)
+
+Les tests pytest utilisent les dépôts **in-memory** par défaut ; l’étape `init_mongodb` valide la connexion et les index comme en production.
+
+---
+
+## 4. Job `test-frontend`
+
+### 4.1 Environnement
 
 - **Runner** : `ubuntu-latest`
 - **Node.js** : 22
@@ -209,7 +238,7 @@ sonar.organization=benoitCollado
 ### 5.1 Conditions
 
 - Uniquement sur **push vers `main`**
-- Nécessite que `test-backend` et `test-frontend` aient réussi
+- Nécessite que `test-backend`, `test-frontend` et `test-microservice-ia` aient réussi
 - Indépendant du résultat de SonarQube (les deux jobs sont parallèles)
 
 ### 5.2 Mécanisme
@@ -224,10 +253,14 @@ sonar.organization=benoitCollado
 |-------|--------|
 | 1 | `git fetch` + `git reset --hard origin/main` |
 | 2 | Vérification du `.env` (`DATABASE_URL`, `SECRET_KEY`) |
-| 3 | `docker compose build backend frontend` |
-| 4 | `docker compose up -d backend frontend` |
-| 5 | Vérification `/health` (API + connexion Neon) |
+| 3 | `docker compose up -d mongodb` + attente healthcheck |
+| 4 | `docker compose build microservice_ia` |
+| 5 | `docker compose run microservice_ia python scripts/init_mongodb.py` (index / migration idempotente) |
+| 6 | `docker compose up -d microservice_ia` + attente `/health` |
+| 7 | `docker compose up -d --build minio backend frontend` |
+| 8 | Vérification `/health` backend (API + connexion Neon) |
 
+> **MongoDB** : volume `mongodb_data` conservé entre déploiements (pas de `docker compose down -v`).  
 > **Aucun secret applicatif** (Neon, JWT, SMTP) n’est stocké dans GitHub. Tout est dans le `.env` **sur le serveur**.
 
 ### 5.4 Architecture production
@@ -235,10 +268,13 @@ sonar.organization=benoitCollado
 ```
 GitHub Actions ──SSH──► Serveur
                           │
-                          ├── .env (DATABASE_URL → Neon)
+                          ├── .env (DATABASE_URL → Neon, MONGODB_URI)
                           ├── docker compose
-                          │     ├── backend_api  → port 8089
-                          │     └── frontend_nginx → port 89
+                          │     ├── mongodb_healthai   → volume mongodb_data
+                          │     ├── microservice_ia    → port 8090
+                          │     ├── minio_healthai
+                          │     ├── backend_api        → port 8089
+                          │     └── frontend_nginx     → port 89
                           └── PostgreSQL Neon (externe, managé)
 ```
 
@@ -325,6 +361,13 @@ npm ci
 npm run lint
 npm run test:coverage
 npm run build
+
+# ── Microservice IA ──
+cd ../microservice_ia
+pip install -r requirements.txt
+# MongoDB local requis pour init_mongodb (ou: docker run -d -p 27017:27017 mongo:7)
+MONGODB_URI=mongodb://localhost:27017 MONGODB_DB=healthai_ia_ci python scripts/init_mongodb.py
+ML_FAST_TRAIN=1 ML_CV_FOLDS=3 python -m pytest -v
 ```
 
 ---
@@ -340,6 +383,8 @@ npm run build
 | SonarQube : token invalide | `SONAR_TOKEN` manquant ou expiré | Régénérer le token dans SonarQube |
 | Deploy : `DATABASE_URL manquant` | `.env` absent sur le serveur | Créer `.env` depuis `.env.example` |
 | Deploy : `/health` timeout | Neon injoignable ou backend crash | `docker compose logs backend` sur le serveur |
+| Deploy : MongoDB timeout | Conteneur mongo non démarré | `docker compose logs mongodb` ; vérifier volume `mongodb_data` |
+| Deploy : microservice_ia `/health` KO | Init MongoDB échouée ou ML manquant | `docker compose logs microservice_ia` ; relancer `init_mongodb.py` |
 | Deploy : permission denied (SSH) | Clé mal configurée | Vérifier `SSH_PRIVATE_KEY` et `authorized_keys` |
 
 ---

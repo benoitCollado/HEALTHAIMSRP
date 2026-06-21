@@ -156,7 +156,7 @@ curl -X PUT http://localhost:8090/api/v1/profiles/1/constraints \
 
 ## Persistance MongoDB
 
-Sans base externe, les données sont stockées **en mémoire** (tests et dev local). Avec MongoDB, le microservice utilise **3 collections** :
+Sans `MONGODB_URI`, les données sont stockées **en mémoire** (tests pytest). Avec MongoDB, le microservice utilise **3 collections** :
 
 | Collection | Rôle |
 |------------|------|
@@ -164,11 +164,27 @@ Sans base externe, les données sont stockées **en mémoire** (tests et dev loc
 | `workout_plans` | Programmes générés avec séances et exercices imbriqués |
 | `session_logs` | Historique d'exécution (RPE, complétion, ressentis) pour ré-entraînement |
 
-Schéma détaillé avec exemples JSON : [`docs/mongodb_schema.md`](docs/mongodb_schema.md)
+Schéma détaillé : [`docs/mongodb_schema.md`](docs/mongodb_schema.md)
 
-Documentation technique complète (architecture, flux, ML, tests) : [`docs/DOCUMENTATION_TECHNIQUE.md`](docs/DOCUMENTATION_TECHNIQUE.md)
+### Docker Compose (recommandé)
 
-Rapport ML pour documentation projet (synthèse JSON + démarches) : [`doc/RAPPORT_ML_SYNTHESE.md`](doc/RAPPORT_ML_SYNTHESE.md)
+Le `docker-compose.yml` racine inclut le service **`mongodb`** et configure automatiquement le microservice :
+
+```bash
+# Depuis la racine du projet
+docker compose up -d --build mongodb microservice_ia
+curl http://localhost:8090/health
+# persistence: "mongodb"
+```
+
+| Variable | Valeur Compose |
+|----------|----------------|
+| `MONGODB_URI` | `mongodb://mongodb:27017` |
+| `MONGODB_DB` | `healthai_ia` |
+
+Volume persistant : `mongodb_data` (survit aux redémarrages).
+
+### Développement local (sans Docker)
 
 ```bash
 export MONGODB_URI="mongodb://localhost:27017"
@@ -177,6 +193,8 @@ uvicorn app.main:app --reload --port 8090
 ```
 
 Un seul plan `active` est conservé par utilisateur ; les anciens passent en `archived`.
+
+Documentation technique : [`docs/DOCUMENTATION_TECHNIQUE.md`](docs/DOCUMENTATION_TECHNIQUE.md) — Rapport ML : [`doc/RAPPORT_ML_SYNTHESE.md`](doc/RAPPORT_ML_SYNTHESE.md)
 
 ## Variables d'environnement
 
@@ -308,5 +326,4 @@ Les tests utilisent les dépôts in-memory (pas de MongoDB requis). Les tests ML
 ## Évolutions prévues
 
 - Branchement du backend principal vers ce microservice (proxy ou appels HTTP internes)
-- Intégration Docker Compose avec service MongoDB dédié
 - Ré-entraînement périodique depuis `session_logs` MongoDB

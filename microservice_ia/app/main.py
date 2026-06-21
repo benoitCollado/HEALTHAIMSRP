@@ -23,4 +23,21 @@ def health() -> dict[str, str]:
 
     model_path = Path(os.getenv("ML_MODEL_PATH", "models/workout_rf_bundle.pkl"))
     ml_status = "loaded" if model_path.exists() and os.getenv("ML_ENABLED", "auto") != "false" else "rule_based"
-    return {"status": "ok", "service": "microservice_ia", "ml_engine": ml_status}
+
+    persistence = "memory"
+    mongodb_uri = os.getenv("MONGODB_URI", "").strip()
+    if mongodb_uri:
+        try:
+            from app.infrastructure.persistence.mongodb.client import get_mongo_client
+
+            get_mongo_client().admin.command("ping")
+            persistence = "mongodb"
+        except Exception:
+            persistence = "mongodb_unavailable"
+
+    return {
+        "status": "ok",
+        "service": "microservice_ia",
+        "ml_engine": ml_status,
+        "persistence": persistence,
+    }
