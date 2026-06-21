@@ -81,8 +81,9 @@
             <div v-if="estimatedDailyCalories" class="calorie-balance-panel">
               <div class="calorie-balance-header">
                 <div>
-                  <span class="calorie-label">Bilan consommation / depense</span>
-                  <strong>{{ dailyNetCalories }} kcal net</strong>
+                  <span class="calorie-label">Apport net du jour</span>
+                  <strong>{{ dailyNetCalories }} kcal</strong>
+                  <small>Calcul: calories mangees - calories brulees au sport</small>
                 </div>
                 <span class="balance-status" :class="calorieBalanceStatus.className">
                   {{ calorieBalanceStatus.label }}
@@ -90,19 +91,19 @@
               </div>
               <div class="calorie-balance-grid">
                 <div>
-                  <span>Jour analyse</span>
+                  <span>Jour affiche</span>
                   <strong>{{ latestCalorieDate ? formatDate(latestCalorieDate) : 'Aucune donnee' }}</strong>
                 </div>
                 <div>
-                  <span>Consommees</span>
+                  <span>Calories mangees</span>
                   <strong>{{ dailyCaloriesConsumed }} kcal</strong>
                 </div>
                 <div>
-                  <span>Depensees sport</span>
+                  <span>Calories brulees</span>
                   <strong>{{ dailyCaloriesSpent }} kcal</strong>
                 </div>
                 <div>
-                  <span>Reste recommande</span>
+                  <span>Marge restante</span>
                   <strong>{{ dailyCaloriesRemaining }} kcal</strong>
                 </div>
               </div>
@@ -841,7 +842,9 @@ export default defineComponent({
       )
     })
 
-    const dailyNetCalories = computed(() => dailyCaloriesConsumed.value - dailyCaloriesSpent.value)
+    const dailyNetCalories = computed(() => {
+      return dailyCaloriesConsumed.value - dailyCaloriesSpent.value
+    })
 
     const dailyCaloriesRemaining = computed(() => {
       if (!estimatedDailyCalories.value) return 0
@@ -853,7 +856,7 @@ export default defineComponent({
         return {
           label: 'Aucune donnee',
           className: 'neutral',
-          detail: 'Ajoutez une consommation ou une activite pour comparer le bilan au besoin journalier.'
+          detail: 'Ajoutez un repas ou une activite sportive pour voir votre marge par rapport au repere du jour.'
         }
       }
 
@@ -861,31 +864,31 @@ export default defineComponent({
         return {
           label: 'Profil incomplet',
           className: 'neutral',
-          detail: 'Completez le profil pour obtenir une recommandation calories par jour.'
+          detail: 'Completez le profil pour calculer votre repere calories du jour.'
         }
       }
 
       const remaining = dailyCaloriesRemaining.value
       if (remaining > 150) {
         return {
-          label: 'Sous la recommandation',
+          label: 'Il reste de la marge',
           className: 'low',
-          detail: `Il reste environ ${remaining} kcal avant la recommandation du jour.`
+          detail: `Vous pouvez encore manger environ ${remaining} kcal aujourd'hui pour atteindre votre repere.`
         }
       }
 
       if (remaining < -150) {
         return {
-          label: 'Au-dessus',
+          label: 'Repere depasse',
           className: 'high',
-          detail: `Le bilan depasse la recommandation d'environ ${Math.abs(remaining)} kcal.`
+          detail: `Vous avez depasse votre repere d'environ ${Math.abs(remaining)} kcal aujourd'hui.`
         }
       }
 
       return {
-        label: 'Equilibre',
+        label: 'Dans la zone',
         className: 'balanced',
-        detail: 'Le bilan est proche de la recommandation du jour.'
+        detail: 'Vous etes proche de votre repere calories du jour.'
       }
     })
 
@@ -1449,6 +1452,11 @@ export default defineComponent({
   color: #0f172a;
   font-size: 1.45rem;
   line-height: 1.1;
+}
+
+.calorie-balance-header small {
+  color: #64748b;
+  font-size: 0.82rem;
 }
 
 .calorie-balance-grid {

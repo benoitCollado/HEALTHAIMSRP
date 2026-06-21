@@ -1,4 +1,9 @@
 from unittest.mock import MagicMock, patch
+from decimal import Decimal
+import json
+
+from app.external_clients import ExternalServiceError
+from app.routers.chat import _profile_payload
 
 
 def test_chat_requires_mistral_key(client, admin_headers, monkeypatch):
@@ -97,6 +102,112 @@ def test_chat_upload_image_uses_user_storage(client, admin_headers):
     assert response.status_code == 201
     assert response.json() == uploaded
     assert upload.call_args.args[0] == "1"
+
+
+def test_chat_recommendations_call_microservice_with_user_profile(client, admin_headers):
+    recommendation = {
+        "calories": {"calories": 2700, "metabolisme_basal": 1700, "detail": "Maintenance"},
+        "exercices": {
+            "detail": "Selon vos objectifs.",
+            "exercices": [
+                {
+                    "nom_exercice": "Squat",
+                    "type_exercice": "force",
+                    "niveau_difficulte": "intermediaire",
+                    "equipement": None,
+                    "muscle_principal": "jambes",
+                    "score": 0.9,
+                    "justification": "Objectif force.",
+                }
+            ],
+        },
+    }
+
+    with patch("app.routers.chat.call_microservice_ia_recommendations", return_value=recommendation) as call_ia:
+        response = client.post("/chat/recommendations", headers=admin_headers)
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "2700 kcal" in body["answer"]
+    assert "Squat" in body["answer"]
+    assert body["recommendation"] == recommendation
+    assert call_ia.call_args.args[0]["age"] == 30
+    assert call_ia.call_args.args[0]["sexe"] == "H"
+    assert call_ia.call_args.args[0]["niveau_activite"] == 1
+
+
+def test_profile_payload_is_json_serializable_with_decimal_values():
+    user = MagicMock(
+        age=Decimal("30"),
+        sexe="H",
+        taille_cm=Decimal("180.0"),
+        poids_kg=Decimal("75.5"),
+        niveau_activite=Decimal("2"),
+        perte_de_poids=False,
+        performance=True,
+        endurance=False,
+        force=True,
+    )
+
+    payload = _profile_payload(user)
+
+    assert payload["age"] == 30
+    assert payload["taille_cm"] == 180.0
+    assert payload["poids_kg"] == 75.5
+    json.dumps(payload)
+
+
+def test_chat_analyze_image_calls_photo_microservice(client, admin_headers):
+    analysis = {"answer": "Cette assiette semble contenir des legumes.", "calories_estimees": 320}
+
+    with (
+        patch("app.routers.chat.presigned_image_url", return_value="http://minio/image.jpg") as presigned,
+        patch("app.routers.chat.call_photo_processing", return_value=analysis) as call_photo,
+    ):
+        response = client.post(
+            "/chat/images/analyze",
+            headers=admin_headers,
+            json={
+                "image": {"object_key": "users/1/chat/image.jpg", "filename": "image.jpg"},
+                "question": "Analyse mon repas",
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json() == {"answer": analysis["answer"], "analysis": analysis}
+    presigned.assert_called_once_with("users/1/chat/image.jpg", public=False)
+    payload = call_photo.call_args.args[0]
+    assert payload["image_url"] == "http://minio/image.jpg"
+    assert payload["question"] == "Analyse mon repas"
+    assert payload["user_id"] == "1"
+
+
+def test_chat_analyze_image_returns_degraded_when_photo_microservice_is_down(client, admin_headers):
+    with (
+        patch("app.routers.chat.presigned_image_url", return_value="http://minio/image.jpg"),
+        patch("app.routers.chat.call_photo_processing", side_effect=ExternalServiceError("down")),
+    ):
+        response = client.post(
+            "/chat/images/analyze",
+            headers=admin_headers,
+            json={"image": {"object_key": "users/1/chat/image.jpg", "filename": "image.jpg"}},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "temporairement indisponible" in body["answer"]
+    assert body["analysis"]["status"] == "degraded"
+
+
+def test_chat_analyze_image_rejects_image_from_another_user(client, admin_headers):
+    response = client.post(
+        "/chat/images/analyze",
+        headers=admin_headers,
+        json={"image": {"object_key": "users/999/chat/image.jpg", "filename": "image.jpg"}},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Image non autorisee"
 
 
 def test_chat_rejects_image_from_another_user(client, admin_headers, monkeypatch):

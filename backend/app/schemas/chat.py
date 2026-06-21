@@ -26,3 +26,18 @@ class ChatImageResponse(BaseModel):
     url: str
     content_type: str
     filename: str
+
+
+class ChatRecommendationResponse(BaseModel):
+    answer: str
+    recommendation: dict
+
+
+class ChatPhotoAnalysisRequest(BaseModel):
+    image: ChatImageAttachment
+    question: str | None = Field(default=None, max_length=1000)
+
+
+class ChatPhotoAnalysisResponse(BaseModel):
+    answer: str
+    analysis: dict

@@ -57,6 +57,16 @@ def test_recommandation_exercice():
     assert body["exercices"][0]["score"] > 0
 
 
+def test_api_prefixed_recommendation_routes():
+    calories = client.post("/api/recommandation_calorique", json=PROFILE)
+    exercices = client.post("/api/recommandation_exercice", json={**PROFILE, "endurance": True, "limit": 3})
+
+    assert calories.status_code == 200
+    assert exercices.status_code == 200
+    assert calories.json()["calories"] == 2700
+    assert len(exercices.json()["exercices"]) <= 3
+
+
 def test_generate_program():
     response = client.post("/api/v1/recommendations/generate", json=GENERATE_PAYLOAD)
     assert response.status_code == 200

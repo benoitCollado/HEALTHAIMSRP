@@ -14,6 +14,16 @@ export interface ChatImage {
   filename: string
 }
 
+export interface ChatRecommendation {
+  answer: string
+  recommendation: Record<string, unknown>
+}
+
+export interface ChatPhotoAnalysis {
+  answer: string
+  analysis: Record<string, unknown>
+}
+
 function getToken(): string {
   const token = auth.getToken()
   if (!token) {
@@ -36,6 +46,58 @@ export async function uploadChatImage(file: File): Promise<ChatImage> {
 
   if (!response.ok) {
     let messageErreur = "Impossible d'envoyer l'image."
+    try {
+      const body = await response.json()
+      messageErreur = body?.detail || messageErreur
+    } catch {
+      // no-op
+    }
+    throw new Error(messageErreur)
+  }
+
+  return response.json()
+}
+
+export async function getChatRecommendations(): Promise<ChatRecommendation> {
+  const response = await fetch(`${API_BASE_URL}/chat/recommendations`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getToken()}`
+    }
+  })
+
+  if (!response.ok) {
+    let messageErreur = 'Recommandations IA indisponibles.'
+    try {
+      const body = await response.json()
+      messageErreur = body?.detail || messageErreur
+    } catch {
+      // no-op
+    }
+    throw new Error(messageErreur)
+  }
+
+  return response.json()
+}
+
+export async function analyzeChatImage(image: ChatImage, question?: string): Promise<ChatPhotoAnalysis> {
+  const response = await fetch(`${API_BASE_URL}/chat/images/analyze`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${getToken()}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      image: {
+        object_key: image.object_key,
+        filename: image.filename
+      },
+      question
+    })
+  })
+
+  if (!response.ok) {
+    let messageErreur = 'Analyse photo indisponible.'
     try {
       const body = await response.json()
       messageErreur = body?.detail || messageErreur
