@@ -168,6 +168,8 @@ Schéma détaillé avec exemples JSON : [`docs/mongodb_schema.md`](docs/mongodb_
 
 Documentation technique complète (architecture, flux, ML, tests) : [`docs/DOCUMENTATION_TECHNIQUE.md`](docs/DOCUMENTATION_TECHNIQUE.md)
 
+Rapport ML pour documentation projet (synthèse JSON + démarches) : [`doc/RAPPORT_ML_SYNTHESE.md`](doc/RAPPORT_ML_SYNTHESE.md)
+
 ```bash
 export MONGODB_URI="mongodb://localhost:27017"
 export MONGODB_DB="healthai_ia"
@@ -193,10 +195,13 @@ Pipeline complet pour entraîner et servir un modèle `.pkl` :
 ```text
 ml/
 ├── generate_training_data.py   # Dataset synthétique (1500 sessions)
-├── train_random_forest.py      # Entraînement + export bundle
+├── data_prep.py                # Encodage features / labels
+├── evaluation.py               # Métriques + cross-validation GroupKFold
+├── train_random_forest.py      # GridSearchCV + export bundle + rapport
 └── data/                       # CSV généré (gitignored)
 models/
-└── workout_rf_bundle.pkl       # Classifier activité + regressor séries
+├── workout_rf_bundle.pkl       # Modèle final (classifier + regressor)
+└── training_report.json        # Rapport métriques + meilleurs hyperparamètres
 ```
 
 ### 1. Générer les données
@@ -208,20 +213,57 @@ python -m ml.generate_training_data
 
 Produit `ml/data/microservice_workout_training_data.csv` (profil utilisateur, fatigue RPE, objectifs, labels activité/séries).
 
-### 2. Entraîner le modèle
+### 2. Entraîner le modèle (CV + hyperparamètres)
 
 ```bash
 python -m ml.train_random_forest
 ```
 
+Le script enchaîne :
+
+1. **Split** train/test 80/20 (stratifié sur l'activité)
+2. **GridSearchCV** + **GroupKFold** (5 folds par `user_id`) pour le classifier et le regressor
+3. **Métriques test** + **cross-validation** sur le jeu train
+4. Export du `.pkl` et du rapport JSON
+
+**Grille d'hyperparamètres explorée** : `n_estimators`, `max_depth`, `min_samples_split`, `min_samples_leaf`, `max_features`
+
+**Scoring** :
+- Classifier → `f1_weighted`
+- Regressor → `neg_mean_absolute_error` (MAE)
+
+**Métriques produites** :
+
+| Tâche | Métriques test | Cross-validation |
+|-------|----------------|------------------|
+| Activité (classification) | accuracy, precision/recall/f1 weighted & macro, matrice de confusion | accuracy, f1_weighted, precision, recall (mean ± std par fold) |
+| Séries (régression) | MAE, RMSE, R², MAPE | MAE, RMSE, R² (mean ± std par fold) |
+
+Variables utiles :
+
+| Variable | Défaut | Description |
+|----------|--------|-------------|
+| `ML_CV_FOLDS` | `5` | Nombre de folds GroupKFold |
+| `ML_FAST_TRAIN` | `0` | `1` = grille réduite (tests / CI rapide) |
+
 Exporte `models/workout_rf_bundle.pkl` contenant :
 
 | Composant | Rôle |
 |-----------|------|
-| `classifier` | RandomForestClassifier → activité (`musculation`, `running`, `hiit`, `pilates`) |
-| `regressor` | RandomForestRegressor → nombre de séries (2–6) |
+| `classifier` | RandomForestClassifier optimisé |
+| `regressor` | RandomForestRegressor optimisé |
+| `best_params` | Meilleurs hyperparamètres retenus |
+| `metrics` | Métriques test + cross-validation |
 | `encoders` | LabelEncoder par feature catégorielle |
 | `feature_columns` | Ordre des colonnes pour l'inférence |
+
+Consultez aussi `models/training_report.json` pour le détail complet (grille CV, scores par fold, confusion matrix).
+
+```bash
+# Exemple de sortie console
+python -m ml.train_random_forest
+# → best_params, accuracy/f1, MAE/RMSE/R², CV mean ± std
+```
 
 ### 3. Inférence via l'API
 

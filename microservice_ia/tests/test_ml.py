@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import pytest
@@ -24,6 +25,7 @@ PROFILE = UserProfile(
 @pytest.fixture(scope="module", autouse=True)
 def ensure_model():
     if not MODEL_PATH.exists():
+        os.environ["ML_FAST_TRAIN"] = "1"
         from ml.train_random_forest import main as train_main
 
         train_main()

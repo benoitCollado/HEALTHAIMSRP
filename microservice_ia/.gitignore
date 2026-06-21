@@ -4,4 +4,5 @@ __pycache__/
 .pytest_cache/
 ml/data/
 *.csv
+!ml/input/base_profiles.csv
 scripts/test_program_flow_result*.json

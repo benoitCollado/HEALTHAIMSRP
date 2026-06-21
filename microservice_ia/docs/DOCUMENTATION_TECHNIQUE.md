@@ -89,10 +89,15 @@ microservice_ia/
 │       ├── api/mappers/                 # Domaine → JSON réponse
 │       └── dependencies.py              # AppContainer (composition root)
 ├── ml/
-│   ├── generate_training_data.py        # Dataset synthétique 1500 lignes
-│   └── train_random_forest.py           # Entraînement → .pkl
+│   ├── generate_training_data.py        # CSV base → dataset 1500 lignes
+│   ├── data_prep.py                     # Encodage features
+│   ├── evaluation.py                    # Métriques, matrice de confusion
+│   └── train_random_forest.py           # Entraînement → .pkl + rapport JSON
+├── ml/input/
+│   └── base_profiles.csv                # Profils utilisateurs (entrée étape A)
 ├── models/
-│   └── workout_rf_bundle.pkl            # Modèle servi en inférence
+│   ├── workout_rf_bundle.pkl            # Modèle servi en inférence
+│   └── training_report.json             # Métriques, matrice de confusion, hyperparams
 ├── scripts/
 │   └── test_program_flow.py             # Test manuel + rapport JSON
 ├── tests/                               # 17 tests pytest
@@ -605,11 +610,14 @@ flowchart LR
 ```mermaid
 flowchart TB
     subgraph offline [Hors ligne]
+        BASE[(base_profiles.csv)]
         G[generate_training_data.py]
         CSV[(microservice_workout_training_data.csv)]
         T[train_random_forest.py]
         PKL[workout_rf_bundle.pkl]
-        G --> CSV --> T --> PKL
+        RPT[training_report.json]
+        BASE --> G --> CSV --> T --> PKL
+        T --> RPT
     end
 
     subgraph online [En ligne — microservice]
@@ -618,24 +626,32 @@ flowchart TB
     end
 ```
 
-### 10.2 Génération des données synthétiques
+### 10.2 Génération des données
 
 **Script** : `python -m ml.generate_training_data`
 
+| Élément | Détail |
+|---------|--------|
+| **Entrée** | `ml/input/base_profiles.csv` — 1 ligne = 1 profil utilisateur (9 colonnes) |
+| **Génération initiale** | `python -m ml.generate_training_data --generate-base` |
+| **Expansion** | 15 séances simulées par profil (RPE, durée, dates) |
+| **Labels** | Règles métier dans `apply_label_rules()` (étape B) |
+| **Sortie** | `ml/data/microservice_workout_training_data.csv` |
+
 | Paramètre | Valeur |
 |-----------|--------|
-| `N_USERS` | 100 |
+| Profils (CSV base) | 100 (`USER_000` … `USER_099`) |
 | `SESSIONS_PER_USER` | 15 |
 | **Total lignes** | 1500 |
 
-**Features** : age, height_cm, weight_kg, fitness_level, health_goal, equipment, preferred_activity, physical_limitation, current_fatigue_rpe, desired_duration_min, performance_history_score, session_timestamp.
+**Colonnes CSV de base** : `user_id`, `age`, `height_cm`, `weight_kg`, `fitness_level`, `health_goal`, `equipment_available`, `preferred_activity`, `physical_limitation`.
+
+**Features finales (12)** : `session_timestamp`, `age`, `height_cm`, `weight_kg`, `current_fatigue_rpe`, `desired_duration_min`, `performance_history_score`, `fitness_level`, `health_goal`, `equipment_available`, `preferred_activity`, `physical_limitation`.
 
 **Labels** (règles métier simulées) :
 
 - `recommended_activity` — classification (blessure genou → pilates/musculation, perte_graisse → hiit/running, …)
 - `recommended_sets` — régression (base niveau + progression session − fatigue)
-
-**Sortie** : `ml/data/microservice_workout_training_data.csv`
 
 ### 10.3 Entraînement
 
@@ -643,34 +659,117 @@ flowchart TB
 
 | Modèle | Algorithme | Cible |
 |--------|------------|-------|
-| `classifier` | RandomForestClassifier (120 arbres, depth 12) | `recommended_activity` |
-| `regressor` | RandomForestRegressor (120 arbres, depth 10) | `recommended_sets` |
+| `classifier` | RandomForestClassifier + GridSearchCV | `recommended_activity` |
+| `regressor` | RandomForestRegressor + GridSearchCV | `recommended_sets` |
 
 **Préprocessing** : `LabelEncoder` sur 5 features catégorielles + cible activité.
 
-**Split** : 80 % train / 20 % test, `random_state=42`.
+**Split** : 80 % train / 20 % test, `stratify=recommended_activity`, `random_state=42`.
 
-**Métriques typiques** :
+**Validation croisée** : `GroupKFold(n_splits=5)` par `user_id` (évite la fuite inter-sessions).
 
-| Métrique | Valeur observée |
-|----------|---------------|
-| accuracy_activity | ~0.91 |
-| mae_sets | ~0.03 |
+**Meilleurs hyperparamètres (dernier run)** — source `models/training_report.json` :
 
-**Bundle exporté** (`joblib`) :
+| Modèle | Paramètres retenus |
+|--------|-------------------|
+| Classifier | `n_estimators=120`, `max_depth=8`, `max_features=sqrt`, `min_samples_split=2`, `min_samples_leaf=2` |
+| Regressor | `n_estimators=160`, `max_depth=14`, `max_features=sqrt`, `min_samples_split=2`, `min_samples_leaf=1` |
+
+**Bundle exporté** (`joblib`, version `2.0`) :
 
 ```python
 {
-    "version": "1.0",
+    "version": "2.0",
     "classifier": RandomForestClassifier,
     "regressor": RandomForestRegressor,
     "encoders": { feature: LabelEncoder, ... },
     "feature_columns": [...],
-    "metrics": { "accuracy_activity", "mae_sets", ... }
+    "output_classes": { "classification": {...}, "regression": {...} },
+    "metrics": { "accuracy_activity", "tables", ... }
 }
 ```
 
-### 10.4 Sélection moteur à runtime
+**Rapport JSON** : `models/training_report.json` — métriques détaillées, matrice de confusion labellisée, tableaux par classe (`metrics.tables`).
+
+### 10.4 Métriques et résultats du dernier entraînement
+
+> Source : `models/training_report.json` — 1200 train / 300 test, 5 folds CV.  
+> Rapport MSPR détaillé : [`doc/RAPPORT_ML_SYNTHESE.md`](../doc/RAPPORT_ML_SYNTHESE.md) §4.
+
+#### Classes de sortie du modèle
+
+| Tâche | Cible | Type | Valeurs possibles |
+|-------|-------|------|-------------------|
+| **Classification** | `recommended_activity` | multiclasse | `hiit`, `musculation`, `pilates`, `running` |
+| **Régression** | `recommended_sets` | entier | 2 à 6 séries |
+
+Ordre LabelEncoder : `hiit` → 0, `musculation` → 1, `pilates` → 2, `running` → 3.
+
+#### Test hold-out — classification (global)
+
+| Métrique | Valeur |
+|----------|--------|
+| Accuracy | 0,8800 |
+| Precision (weighted) | 0,9009 |
+| Recall (weighted) | 0,8800 |
+| F1 (weighted) | 0,8801 |
+| F1 (macro) | 0,9155 |
+
+#### Test hold-out — classification (par classe)
+
+| Classe | Precision | Recall | F1 | Support |
+|--------|-----------|--------|-----|---------|
+| hiit | 0,7333 | 0,9565 | 0,8302 | 92 |
+| musculation | 1,0000 | 1,0000 | 1,0000 | 45 |
+| pilates | 1,0000 | 1,0000 | 1,0000 | 42 |
+| running | 0,9570 | 0,7355 | 0,8318 | 121 |
+
+#### Matrice de confusion (test hold-out)
+
+Lignes = **classe réelle**, colonnes = **classe prédite**.
+
+| Réel \ Prédit | hiit | musculation | pilates | running |
+|---------------|------|-------------|---------|---------|
+| **hiit** | 88 | 0 | 0 | 4 |
+| **musculation** | 0 | 45 | 0 | 0 |
+| **pilates** | 0 | 0 | 42 | 0 |
+| **running** | 32 | 0 | 0 | 89 |
+
+**Lecture** : 32 sessions `running` prédites à tort comme `hiit` ; 4 sessions `hiit` prédites `running`. Confusions principalement entre activités cardio (`hiit` ↔ `running`).
+
+#### Test hold-out — régression (séries)
+
+| Métrique | Valeur |
+|----------|--------|
+| MAE | 0,1268 |
+| RMSE | 0,1999 |
+| R² | 0,9631 |
+| MAPE (%) | 4,01 |
+
+#### Cross-validation — classification (moyenne ± écart-type)
+
+| Métrique | Test mean | Test std | Train mean |
+|----------|-----------|----------|------------|
+| Accuracy | 0,7792 | 0,0624 | 0,9408 |
+| F1 weighted | 0,7815 | 0,0601 | 0,9412 |
+| Precision weighted | 0,8000 | 0,0593 | 0,9484 |
+| Recall weighted | 0,7792 | 0,0624 | 0,9408 |
+
+Scores par fold (test) — accuracy : `[0,8375, 0,6917, 0,8375, 0,8125, 0,7167]`
+
+#### Cross-validation — régression (moyenne ± écart-type)
+
+| Métrique | Test mean | Test std | Train mean |
+|----------|-----------|----------|------------|
+| MAE | 0,1425 | 0,0187 | 0,0509 |
+| RMSE | 0,2046 | 0,0299 | 0,0771 |
+| R² | 0,9576 | 0,0097 | 0,9942 |
+
+**Interprétation** : écart train/test en CV (accuracy ~0,94 vs ~0,78) indique un léger sur-apprentissage, cohérent avec des données synthétiques et des règles métier partiellement apprises.
+
+**Implémentation métriques** : `ml/evaluation.py` — `evaluate_classifier()`, `evaluate_regressor()`, `build_metrics_summary()`.
+
+### 10.5 Sélection moteur à runtime
 
 | `ML_ENABLED` | `.pkl` présent | Moteur |
 |--------------|----------------|--------|
@@ -977,8 +1076,9 @@ cd microservice_ia && python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 
 # 2. ML (optionnel mais recommandé)
-python -m ml.generate_training_data
-python -m ml.train_random_forest
+python -m ml.generate_training_data --generate-base   # première fois
+python -m ml.generate_training_data                   # relance
+python -m ml.train_random_forest                      # → models/training_report.json
 
 # 3. Tests automatisés
 pytest -v
@@ -996,6 +1096,7 @@ open http://localhost:8090/docs
 ### D. Liens internes
 
 - [README opérationnel](../README.md)
+- [Rapport ML / métriques détaillées](../doc/RAPPORT_ML_SYNTHESE.md)
 - [Schéma MongoDB](mongodb_schema.md)
 - [Backend principal — calcul calories](../../Frontend/src/services/calorieCalculator.ts)
 

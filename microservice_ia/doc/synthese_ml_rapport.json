@@ -1,0 +1,285 @@
+{
+  "meta": {
+    "projet": "HealthAI MSPR — microservice_ia",
+    "pipeline_version": "2.0",
+    "modele": "Random Forest (Classifier + Regressor)",
+    "objectif": "Recommander une activité physique et un volume de séries personnalisés",
+    "fichier_modele": "models/workout_rf_bundle.pkl",
+    "fichier_rapport_detaille": "models/training_report.json",
+    "date_reference_entrainement": "2026-06-19"
+  },
+  "demarche_preparation_donnees": {
+    "objectif": "Produire un dataset tabulaire session-level avec features profil/contexte et labels activité + séries",
+    "etapes": [
+      {
+        "ordre": 1,
+        "nom": "Lecture CSV base et expansion séances",
+        "script": "python -m ml.generate_training_data",
+        "entree": "ml/input/base_profiles.csv",
+        "sortie": "ml/data/microservice_workout_training_data.csv",
+        "volume": {
+          "utilisateurs": 100,
+          "sessions_par_utilisateur": 15,
+          "lignes_totales": 1500
+        },
+        "colonnes_entree": [
+          "user_id", "age", "height_cm", "weight_kg",
+          "fitness_level", "health_goal", "equipment_available",
+          "preferred_activity", "physical_limitation"
+        ],
+        "reproductibilite": "np.random.seed(42) + CSV base versionné",
+        "commande_initiale": "python -m ml.generate_training_data --generate-base"
+      },
+      {
+        "ordre": 2,
+        "nom": "Modification des données",
+        "options": [
+          "Éditer ml/input/base_profiles.csv (profils utilisateurs)",
+          "Ajuster les règles métier dans generate_training_data.py (apply_label_rules)",
+          "Futur : exporter session_logs MongoDB vers base_profiles.csv"
+        ]
+      },
+      {
+        "ordre": 3,
+        "nom": "Encodage et matrices",
+        "script": "ml/data_prep.py",
+        "features_numeriques": [
+          "session_timestamp",
+          "age",
+          "height_cm",
+          "weight_kg",
+          "current_fatigue_rpe",
+          "desired_duration_min",
+          "performance_history_score"
+        ],
+        "features_categorielles_encodees": [
+          "fitness_level",
+          "health_goal",
+          "equipment_available",
+          "preferred_activity",
+          "physical_limitation"
+        ],
+        "cibles": {
+          "classification": "recommended_activity",
+          "regression": "recommended_sets"
+        },
+        "groupe_cross_validation": "user_id"
+      }
+    ],
+    "regles_metier_labels": [
+      "Blessure genou → pilates ou musculation (éviter impact)",
+      "Objectif perte_graisse → hiit ou running",
+      "Objectif endurance → running",
+      "Fatigue RPE élevée → réduction du nombre de séries",
+      "Progression session_idx → légère surcharge de séries"
+    ]
+  },
+  "demarche_recherche_modele": {
+    "modeles_candidats": [
+      {
+        "nom": "RandomForestClassifier",
+        "tache": "Classification multi-classe activité",
+        "classes": ["musculation", "running", "hiit", "pilates"]
+      },
+      {
+        "nom": "RandomForestRegressor",
+        "tache": "Régression volume séries",
+        "plage_attendue": "2-6 séries"
+      }
+    ],
+    "justification": "Données tabulaires, règles non linéaires, robustesse, alignement spec projet",
+    "protocol": [
+      "Split train/test 80-20 stratifié sur recommended_activity",
+      "GridSearchCV sur train avec GroupKFold(user_id)",
+      "Sélection best_params par scoring dédié (f1_weighted / MAE)",
+      "Évaluation finale sur test hold-out 20%",
+      "Cross-validation du modèle retenu sur train",
+      "Export joblib bundle v2.0 pour inférence FastAPI"
+    ],
+    "split": {
+      "methode": "train_test_split",
+      "test_size": 0.2,
+      "random_state": 42,
+      "stratify": "recommended_activity"
+    }
+  },
+  "demarche_cross_validation": {
+    "methode": "GroupKFold",
+    "folds": 5,
+    "variable_groupe": "user_id",
+    "raison": "Éviter la fuite de sessions corrélées d'un même utilisateur entre train et validation",
+    "usages": [
+      "Validation interne GridSearchCV (sélection hyperparamètres)",
+      "Évaluation post-sélection via cross_validate (stabilité du modèle final)"
+    ],
+    "agregats_par_metrique": ["test_mean", "test_std", "train_mean", "fold_test_scores"],
+    "variables_environnement": {
+      "ML_CV_FOLDS": "Nombre de folds (défaut 5)"
+    }
+  },
+  "demarche_metriques": {
+    "classes_sortie": {
+      "classification": {
+        "target": "recommended_activity",
+        "classes": ["hiit", "musculation", "pilates", "running"],
+        "type": "multiclass"
+      },
+      "regression": {
+        "target": "recommended_sets",
+        "type": "integer",
+        "plage": [2, 6]
+      }
+    },
+    "classification": {
+      "metriques_globales": ["accuracy", "precision_weighted", "recall_weighted", "f1_weighted", "f1_macro"],
+      "metriques_par_classe": ["precision", "recall", "f1_score", "support"],
+      "artefacts": ["per_class_metrics", "confusion_matrix_table", "classification_report"],
+      "critere_selection_modele": "f1_weighted"
+    },
+    "regression": {
+      "metriques": ["mae", "rmse", "r2", "mape"],
+      "critere_selection_modele": "mae (neg_mean_absolute_error en GridSearch)"
+    },
+    "export_tableaux": "metrics.tables dans training_report.json",
+    "contextes_evaluation": {
+      "test_holdout": "Jeu test 20% jamais vu pendant GridSearch",
+      "cross_validation": "Jeu train 80% — moyenne et écart-type sur 5 folds"
+    },
+    "interpretation_surapprentissage": "Comparer train_mean vs test_mean en CV ; écart élevé → sur-apprentissage"
+  },
+  "demarche_recherche_hyperparametres": {
+    "methode": "GridSearchCV",
+    "refit": true,
+    "grille_complete": {
+      "n_estimators": [80, 120, 160],
+      "max_depth_classifier": [8, 12, 16, null],
+      "max_depth_regressor": [6, 10, 14, null],
+      "min_samples_split": [2, 5],
+      "min_samples_leaf": [1, 2],
+      "max_features": ["sqrt", "log2"]
+    },
+    "grille_rapide_ML_FAST_TRAIN_1": {
+      "n_estimators": [80, 120],
+      "max_depth": "grille réduite",
+      "usage": "Tests pytest et CI"
+    },
+    "scoring": {
+      "classifier": "f1_weighted",
+      "regressor": "neg_mean_absolute_error"
+    },
+    "meilleurs_hyperparametres_dernier_run": {
+      "classifier": {
+        "n_estimators": 120,
+        "max_depth": 8,
+        "max_features": "sqrt",
+        "min_samples_split": 2,
+        "min_samples_leaf": 2
+      },
+      "regressor": {
+        "n_estimators": 160,
+        "max_depth": 14,
+        "max_features": "sqrt",
+        "min_samples_split": 2,
+        "min_samples_leaf": 1
+      }
+    },
+    "scores_cv_gridsearch": {
+      "classifier_best_f1_weighted": 0.7815,
+      "regressor_best_neg_mae": -0.1425
+    }
+  },
+  "demarche_tests_modele": {
+    "tests_unitaires_et_integration": {
+      "framework": "pytest",
+      "commande": "pytest -v",
+      "nombre_total": 22,
+      "fichiers_ml": [
+        {
+          "fichier": "tests/test_ml_training.py",
+          "focus": "data_prep, evaluate_classifier/regressor, cross_validate, export report"
+        },
+        {
+          "fichier": "tests/test_ml.py",
+          "focus": "Chargement pkl, prédiction adaptateur, API generate avec ML"
+        }
+      ]
+    },
+    "test_manuel": {
+      "script": "scripts/test_program_flow.py",
+      "sortie": "scripts/test_program_flow_result_YYYYMMDD_HHMMSS.json",
+      "enchainement": ["GET /health", "POST /generate", "GET /current", "POST /adjust"]
+    },
+    "validation_production": {
+      "health_check": "GET /health → ml_engine: loaded",
+      "routes_inference": [
+        "POST /recommandation_exercice",
+        "POST /api/v1/recommendations/generate"
+      ]
+    }
+  },
+  "resultats_dernier_entrainement": {
+    "jeu_donnees": {
+      "train_samples": 1200,
+      "test_samples": 300,
+      "cv_folds": 5
+    },
+    "classes_sortie": {
+      "classification": ["hiit", "musculation", "pilates", "running"],
+      "regression": { "target": "recommended_sets", "plage": [2, 6] }
+    },
+    "test_holdout": {
+      "classification_global": [
+        { "metrique": "accuracy", "valeur": 0.88 },
+        { "metrique": "precision_weighted", "valeur": 0.9009 },
+        { "metrique": "recall_weighted", "valeur": 0.88 },
+        { "metrique": "f1_weighted", "valeur": 0.8801 },
+        { "metrique": "f1_macro", "valeur": 0.9155 }
+      ],
+      "classification_par_classe": [
+        { "class": "hiit", "precision": 0.7333, "recall": 0.9565, "f1_score": 0.8302, "support": 92 },
+        { "class": "musculation", "precision": 1.0, "recall": 1.0, "f1_score": 1.0, "support": 45 },
+        { "class": "pilates", "precision": 1.0, "recall": 1.0, "f1_score": 1.0, "support": 42 },
+        { "class": "running", "precision": 0.957, "recall": 0.7355, "f1_score": 0.8318, "support": 121 }
+      ],
+      "matrice_confusion": {
+        "labels": ["hiit", "musculation", "pilates", "running"],
+        "matrix": [[88, 0, 0, 4], [0, 45, 0, 0], [0, 0, 42, 0], [32, 0, 0, 89]]
+      },
+      "regression": [
+        { "metrique": "mae", "valeur": 0.1268 },
+        { "metrique": "rmse", "valeur": 0.1999 },
+        { "metrique": "r2", "valeur": 0.9631 },
+        { "metrique": "mape", "valeur": 4.0091 }
+      ]
+    },
+    "cross_validation": {
+      "classification": [
+        { "metrique": "accuracy", "test_mean": 0.7792, "test_std": 0.0624, "train_mean": 0.9408, "fold_test_scores": [0.8375, 0.6917, 0.8375, 0.8125, 0.7167] },
+        { "metrique": "f1_weighted", "test_mean": 0.7815, "test_std": 0.0601, "train_mean": 0.9412, "fold_test_scores": [0.8344, 0.6917, 0.8385, 0.8147, 0.7282] },
+        { "metrique": "precision_weighted", "test_mean": 0.8, "test_std": 0.0593, "train_mean": 0.9484, "fold_test_scores": [0.8523, 0.6931, 0.8413, 0.8351, 0.7781] },
+        { "metrique": "recall_weighted", "test_mean": 0.7792, "test_std": 0.0624, "train_mean": 0.9408, "fold_test_scores": [0.8375, 0.6917, 0.8375, 0.8125, 0.7167] }
+      ],
+      "regression": [
+        { "metrique": "mae", "test_mean": 0.1425, "test_std": 0.0187, "train_mean": 0.0509, "fold_test_scores": [0.1244, 0.1351, 0.1369, 0.1786, 0.1373] },
+        { "metrique": "rmse", "test_mean": 0.2046, "test_std": 0.0299, "train_mean": 0.0771, "fold_test_scores": [0.1767, 0.1867, 0.1985, 0.262, 0.199] },
+        { "metrique": "r2", "test_mean": 0.9576, "test_std": 0.0097, "train_mean": 0.9942, "fold_test_scores": [0.9662, 0.9649, 0.9638, 0.9408, 0.9525] }
+      ]
+    }
+  },
+  "commandes_cles": [
+    "python -m ml.generate_training_data --generate-base",
+    "python -m ml.generate_training_data",
+    "python -m ml.train_random_forest",
+    "ML_FAST_TRAIN=1 ML_CV_FOLDS=3 python -m ml.train_random_forest",
+    "pytest -v",
+    "python scripts/test_program_flow.py"
+  ],
+  "fichiers_livrables": [
+    "ml/input/base_profiles.csv",
+    "ml/data/microservice_workout_training_data.csv",
+    "models/workout_rf_bundle.pkl",
+    "models/training_report.json",
+    "doc/synthese_ml_rapport.json",
+    "doc/RAPPORT_ML_SYNTHESE.md"
+  ]
+}
