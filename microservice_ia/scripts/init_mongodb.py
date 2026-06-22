@@ -5,6 +5,12 @@ from __future__ import annotations
 
 import os
 import sys
+from pathlib import Path
+
+# Racine microservice_ia (parent de scripts/) — requis hors pytest / Docker WORKDIR
+_ROOT = Path(__file__).resolve().parents[1]
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 
 
 def main() -> int:
