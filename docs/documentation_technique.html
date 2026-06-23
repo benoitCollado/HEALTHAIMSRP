@@ -268,8 +268,9 @@
           <li><a href="#api">10. Routes principales</a></li>
           <li><a href="#env">11. Configuration</a></li>
           <li><a href="#microservice-ia">12. Microservice IA</a></li>
-          <li><a href="#deploy">13. Installation et deploiement</a></li>
-          <li><a href="#tests">14. Tests</a></li>
+          <li><a href="#ml-pipeline">13. Pipeline ML — entrainement et modele</a></li>
+          <li><a href="#deploy">14. Installation et deploiement</a></li>
+          <li><a href="#tests">15. Tests</a></li>
         </ul>
       </nav>
 
@@ -870,31 +871,21 @@ infrastructure/ adaptateurs ML, Mifflin, repositories MongoDB ou in-memory</code
           utilisent les URLs prefixees <code>/api/recommandation_*</code>.
         </p>
 
-        <h3>Machine Learning — deux niveaux de prediction</h3>
+        <h3>Machine Learning</h3>
         <p>
-          Le Random Forest ne predit <strong>pas</strong> un exercice precis (ex. « Course a pied »)
-          dans la matrice de confusion. Il predit une <strong>famille d'activite</strong> :
-          <code>hiit</code>, <code>musculation</code>, <code>pilates</code>, <code>running</code>.
-          Puis le catalogue <code>ACTIVITY_EXERCISES</code> mappe vers des exercices concrets
-          (<code>running</code> → Course a pied, Marche rapide, Velo).
-        </p>
-        <table>
-          <thead>
-            <tr>
-              <th>Metrique test hold-out</th>
-              <th>Classification</th>
-              <th>Regression (series)</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td>Principale</td><td>Accuracy ~0,88 / F1 weighted ~0,88</td><td>MAE ~0,13 / R² ~0,96</td></tr>
-          </tbody>
-        </table>
-        <p>
-          Pipeline offline : <code>ml/generate_training_data.py</code> →
-          <code>ml/train_random_forest.py</code> →
-          <code>models/workout_rf_bundle.pkl</code> +
+          Le microservice utilise un Random Forest (classification activite + regression series).
+          Le detail complet de l'entrainement, du choix du modele, de la cross-validation,
+          des metriques et des hyperparametres est documente en
+          <a href="#ml-pipeline">section 13</a>.
+          Source de verite :
+          <code>microservice_ia/doc/RAPPORT_ML_SYNTHESE.md</code> et
           <code>models/training_report.json</code>.
+        </p>
+        <p class="note">
+          Le modele predit une <strong>famille d'activite</strong>
+          (<code>hiit</code>, <code>musculation</code>, <code>pilates</code>, <code>running</code>),
+          puis le catalogue <code>ACTIVITY_EXERCISES</code> propose les exercices concrets
+          (ex. <code>running</code> → Course a pied, Marche rapide, Velo).
         </p>
 
         <h3>Persistance MongoDB</h3>
@@ -933,8 +924,192 @@ pytest -v
 curl http://localhost:8090/health</code></pre>
       </section>
 
+      <section id="ml-pipeline">
+        <h2>13. Pipeline ML — entrainement et modele</h2>
+        <p>
+          Synthese extraite de
+          <code>microservice_ia/doc/RAPPORT_ML_SYNTHESE.md</code>
+          (pipeline version <strong>2.0</strong>).
+          Fichiers : <code>ml/generate_training_data.py</code>,
+          <code>ml/data_prep.py</code>, <code>ml/evaluation.py</code>,
+          <code>ml/train_random_forest.py</code>.
+          Livrables : <code>models/workout_rf_bundle.pkl</code>,
+          <code>models/training_report.json</code>.
+        </p>
+
+        <h3>Vue d'ensemble du pipeline</h3>
+        <pre><code>1. Generation / modification des donnees (base_profiles.csv → 1500 sessions)
+2. Preparation features (12 features, LabelEncoder)
+3. Split train / test (80 % / 20 %, stratifie)
+4. GridSearchCV + GroupKFold (hyperparametres)
+5. Evaluation metriques test hold-out
+6. Cross-validation modele final
+7. Export .pkl + training_report.json
+8. Tests pytest + inference API (/recommandation_exercice, /generate)</code></pre>
+
+        <h3>13.1 Preparation des donnees</h3>
+        <p>
+          Chaque ligne = <strong>une session utilisateur</strong> avec features explicatives
+          et deux cibles :
+        </p>
+        <table>
+          <thead>
+            <tr><th>Cible</th><th>Colonne</th><th>Type</th><th>Valeurs</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Classification</td><td><code>recommended_activity</code></td><td>multiclasse</td><td>hiit, musculation, pilates, running</td></tr>
+            <tr><td>Regression</td><td><code>recommended_sets</code></td><td>entier</td><td>2 a 6 series</td></tr>
+          </tbody>
+        </table>
+        <table>
+          <thead>
+            <tr><th>Etape</th><th>Entree</th><th>Sortie</th><th>Detail</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>A — Expansion</td><td><code>ml/input/base_profiles.csv</code> (100 profils)</td><td>1500 lignes brutes</td><td>15 seances simulees / profil (RPE, duree, dates)</td></tr>
+            <tr><td>B — Labels</td><td>Contexte seance + profil</td><td>Labels calcules</td><td><code>apply_label_rules()</code> : blessures, objectifs, fatigue</td></tr>
+            <tr><td>C — Export</td><td>Dataset enrichi</td><td><code>ml/data/microservice_workout_training_data.csv</code></td><td>17 colonnes, seed 42</td></tr>
+          </tbody>
+        </table>
+        <p><strong>12 features</strong> (X) : <code>session_timestamp</code>, <code>age</code>, <code>height_cm</code>, <code>weight_kg</code>, <code>current_fatigue_rpe</code>, <code>desired_duration_min</code>, <code>performance_history_score</code>, <code>fitness_level</code>, <code>health_goal</code>, <code>equipment_available</code>, <code>preferred_activity</code>, <code>physical_limitation</code> (5 categorielles encodees).</p>
+        <pre><code>cd microservice_ia
+python -m ml.generate_training_data --generate-base   # premiere fois
+python -m ml.generate_training_data                   # regenerer le CSV</code></pre>
+
+        <h3>13.2 Choix du modele</h3>
+        <table>
+          <thead>
+            <tr><th>Modele</th><th>Classe sklearn</th><th>Tache</th><th>Sortie</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Classifier</td><td><code>RandomForestClassifier</code></td><td>Activite recommandee</td><td>1 parmi 4 familles</td></tr>
+            <tr><td>Regressor</td><td><code>RandomForestRegressor</code></td><td>Volume (series)</td><td>Entier 2–6</td></tr>
+          </tbody>
+        </table>
+        <p><strong>Justification Random Forest</strong> : donnees tabulaires mixtes, regles metier non lineaires dans les labels synthetiques, robustesse, peu de preprocessing, aligne avec la spec projet.</p>
+        <p><strong>Pipeline de recherche</strong> : split 80/20 stratifie → GridSearchCV sur train → evaluation test hold-out (300 sessions jamais vues) → CV du modele final → export bundle.</p>
+        <p class="note">Encodage LabelEncoder : hiit=0, musculation=1, pilates=2, running=3. La matrice de confusion porte sur ces <strong>familles</strong>, pas sur les noms d'exercices du catalogue API.</p>
+
+        <h3>13.3 Cross-validation</h3>
+        <p>
+          <strong>GroupKFold</strong> par <code>user_id</code> (5 folds) : evite la fuite entre les 15 sessions
+          correlees d'un meme utilisateur. Utilise pour GridSearchCV et validation du modele final.
+        </p>
+        <table>
+          <thead>
+            <tr><th>Metrique</th><th>Test mean</th><th>Test std</th><th>Train mean</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Accuracy (classification)</td><td>0,7792</td><td>0,0624</td><td>0,9408</td></tr>
+            <tr><td>F1 weighted</td><td>0,7815</td><td>0,0601</td><td>0,9412</td></tr>
+            <tr><td>MAE series (regression)</td><td>0,1425</td><td>0,0187</td><td>0,0509</td></tr>
+            <tr><td>R² series</td><td>0,9576</td><td>0,0097</td><td>0,9942</td></tr>
+          </tbody>
+        </table>
+        <p class="note">Ecart train/test en CV (accuracy ~0,94 vs ~0,78) : leger sur-apprentissage attendu sur donnees synthetiques.</p>
+
+        <h3>13.4 Metriques et resultats (test hold-out)</h3>
+        <p>Jeu : <strong>1200 train / 300 test</strong>. Implementation : <code>ml/evaluation.py</code>.</p>
+        <table>
+          <thead>
+            <tr><th>Metrique</th><th>Classification</th><th>Regression (series)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Principale</td><td>Accuracy 0,8800 / F1 weighted 0,8801</td><td>MAE 0,1268 / R² 0,9631</td></tr>
+            <tr><td>Complement</td><td>F1 macro 0,9155</td><td>RMSE 0,1999 / MAPE 4,01 %</td></tr>
+          </tbody>
+        </table>
+        <h4>Classification par classe (test)</h4>
+        <table>
+          <thead>
+            <tr><th>Classe</th><th>Precision</th><th>Recall</th><th>F1</th><th>Support</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>hiit</td><td>0,7333</td><td>0,9565</td><td>0,8302</td><td>92</td></tr>
+            <tr><td>musculation</td><td>1,0000</td><td>1,0000</td><td>1,0000</td><td>45</td></tr>
+            <tr><td>pilates</td><td>1,0000</td><td>1,0000</td><td>1,0000</td><td>42</td></tr>
+            <tr><td>running</td><td>0,9570</td><td>0,7355</td><td>0,8318</td><td>121</td></tr>
+          </tbody>
+        </table>
+        <h4>Matrice de confusion (lignes = reel, colonnes = predit)</h4>
+        <table>
+          <thead>
+            <tr><th>Reel \ Predit</th><th>hiit</th><th>musculation</th><th>pilates</th><th>running</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><strong>hiit</strong></td><td>88</td><td>0</td><td>0</td><td>4</td></tr>
+            <tr><td><strong>musculation</strong></td><td>0</td><td>45</td><td>0</td><td>0</td></tr>
+            <tr><td><strong>pilates</strong></td><td>0</td><td>0</td><td>42</td><td>0</td></tr>
+            <tr><td><strong>running</strong></td><td>32</td><td>0</td><td>0</td><td>89</td></tr>
+          </tbody>
+        </table>
+        <p>Confusions principales entre activites cardio : 32 sessions <code>running</code> predites <code>hiit</code>, 4 <code>hiit</code> predites <code>running</code>.</p>
+
+        <h3>13.5 Recherche des hyperparametres (GridSearchCV)</h3>
+        <p>Grille exhaustive evaluee par GroupKFold. Mode rapide CI : <code>ML_FAST_TRAIN=1</code>.</p>
+        <table>
+          <thead>
+            <tr><th>Critere GridSearch</th><th>Modele</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>f1_weighted</code> (maximiser)</td><td>Classifier</td></tr>
+            <tr><td><code>neg_mean_absolute_error</code> (minimiser MAE)</td><td>Regressor</td></tr>
+          </tbody>
+        </table>
+        <table>
+          <thead>
+            <tr><th>Hyperparametre</th><th>Classifier (retenu)</th><th>Regressor (retenu)</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>n_estimators</code></td><td>120</td><td>160</td></tr>
+            <tr><td><code>max_depth</code></td><td>8</td><td>14</td></tr>
+            <tr><td><code>max_features</code></td><td>sqrt</td><td>sqrt</td></tr>
+            <tr><td><code>min_samples_split</code></td><td>2</td><td>2</td></tr>
+            <tr><td><code>min_samples_leaf</code></td><td>2</td><td>1</td></tr>
+            <tr><td>Score CV GridSearch</td><td>F1 weighted = 0,7815</td><td>MAE = 0,1425</td></tr>
+          </tbody>
+        </table>
+        <p>Grille exploree : <code>n_estimators</code> 80/120/160, <code>max_depth</code> variable, <code>min_samples_split</code> 2/5, <code>min_samples_leaf</code> 1/2, <code>max_features</code> sqrt/log2.</p>
+
+        <h3>13.6 Tests et validation du modele</h3>
+        <table>
+          <thead>
+            <tr><th>Type</th><th>Fichier / commande</th><th>Objectif</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>pytest ML pipeline</td><td><code>tests/test_ml_training.py</code> (5)</td><td>Data prep, metriques, CV, export rapport</td></tr>
+            <tr><td>pytest inference</td><td><code>tests/test_ml.py</code> (2)</td><td>Chargement .pkl, API generate avec ML</td></tr>
+            <tr><td>pytest API</td><td><code>tests/test_api.py</code> (12)</td><td>Routes v1 + legacy</td></tr>
+            <tr><td>Test manuel E2E</td><td><code>scripts/test_program_flow.py</code></td><td>Rapport JSON requetes/reponses</td></tr>
+          </tbody>
+        </table>
+        <p>Runtime : <code>ML_ENABLED=auto</code> charge le .pkl si present ; <code>GET /health</code> retourne <code>ml_engine: loaded</code> ou <code>rule_based</code>.</p>
+
+        <h3>13.7 Commandes de reproduction</h3>
+        <pre><code>cd microservice_ia
+
+# 1. Donnees
+python -m ml.generate_training_data --generate-base
+python -m ml.generate_training_data
+
+# 2. Entrainement (CV + GridSearch + metriques)
+python -m ml.train_random_forest
+
+# 3. Tests
+pytest -v
+
+# 4. Inference API
+uvicorn app.main:app --reload --port 8090
+python scripts/test_program_flow.py</code></pre>
+        <p class="note">
+          Rapport complet et JSON exportable :
+          <code>microservice_ia/doc/RAPPORT_ML_SYNTHESE.md</code>,
+          <code>microservice_ia/doc/synthese_ml_rapport.json</code>.
+        </p>
+      </section>
+
       <section id="deploy">
-        <h2>13. Installation et deploiement</h2>
+        <h2>14. Installation et deploiement</h2>
         <h3>Docker</h3>
         <pre><code>cp .env.example .env
 docker compose up -d --build
@@ -989,7 +1164,7 @@ npm run dev</code></pre>
       </section>
 
       <section id="tests">
-        <h2>14. Tests et verification</h2>
+        <h2>15. Tests et verification</h2>
         <table>
           <thead>
             <tr>
