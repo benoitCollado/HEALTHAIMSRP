@@ -1,9 +1,4 @@
-from app.chat_agent import (
-    build_microservice_degraded_context,
-    build_microservice_system_context,
-    fetch_microservice_recommendations,
-    should_call_microservice_ia,
-)
+from app.chat_agent import run_chat_with_tools
 from app.dependencies import get_current_user, get_db
 from app.models.utilisateur import Utilisateur
 from app.object_storage import presigned_image_url, upload_user_image
@@ -13,7 +8,6 @@ from app.external_clients import (
     ExternalServiceResponseError,
     build_chat_fallback_answer,
     call_microservice_ia_recommendations,
-    call_mistral_chat,
     call_photo_processing,
 )
 from app.cache import cache, chat_cache_ttl_seconds, stable_cache_key
@@ -43,8 +37,11 @@ objectifs, l'alimentation, l'activite physique, les metriques, et l'utilisation
 de la plateforme. Ne donne pas de diagnostic medical; conseille de consulter un
 professionnel de sante en cas de symptome, douleur, urgence ou decision medicale.
 
-Lorsqu'un message systeme te fournit des donnees du microservice IA (calories,
-exercices personnalises), appuie-toi dessus pour formuler ta reponse.
+Tu disposes d'outils pour obtenir des recommandations caloriques et d'exercices
+personnalisees calculees a partir du profil de l'utilisateur connecte. Appelle-les
+lorsque l'utilisateur demande un repere calorique, des exercices adaptes, ou des
+conseils personnalises lies a son profil. N'invente pas de chiffres personnalises
+sans avoir appele l'outil correspondant.
 """.strip()
 
 
@@ -114,6 +111,17 @@ def _ensure_user_image(user_id: str, object_key: str) -> None:
         raise HTTPException(status_code=403, detail="Image non autorisee")
 
 
+def _cached_chat_response(cached: object) -> ChatResponse | None:
+    if isinstance(cached, str):
+        return ChatResponse(answer=cached)
+    if isinstance(cached, dict) and cached.get("answer"):
+        return ChatResponse(
+            answer=str(cached["answer"]),
+            recommendation=cached.get("recommendation"),
+        )
+    return None
+
+
 @router.post("/images", response_model=ChatImageResponse, status_code=201)
 def upload_chat_image(file: UploadFile = File(...), user: dict = Depends(get_current_user)):
     user_id = _current_user_id(user)
@@ -181,51 +189,30 @@ def chat_with_mistral(
         image_lines = [f"- {image.filename or 'image'}: {image.object_key}" for image in payload.images]
         user_message = f"{user_message}\n\nImages jointes par l'utilisateur:\n" + "\n".join(image_lines)
 
-    recommendation: dict | None = None
-    microservice_context: str | None = None
-    if should_call_microservice_ia(user_message):
-        utilisateur = _get_user_profile(user_id, db)
-        recommendation = fetch_microservice_recommendations(_profile_payload(utilisateur))
-        microservice_context = (
-            build_microservice_system_context(recommendation)
-            if recommendation
-            else build_microservice_degraded_context()
-        )
+    utilisateur = _get_user_profile(user_id, db)
+    profile_payload = _profile_payload(utilisateur)
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    if microservice_context:
-        messages.append({"role": "system", "content": microservice_context})
     messages.extend(message.model_dump() for message in payload.history[-10:])
     messages.append({"role": "user", "content": user_message})
 
     cache_key = stable_cache_key("chat:mistral", {"user_id": user_id, "messages": messages})
-    cached_answer = cache.get_json(cache_key)
-    if cached_answer:
-        return ChatResponse(answer=str(cached_answer), recommendation=recommendation)
+    cached_response = _cached_chat_response(cache.get_json(cache_key))
+    if cached_response:
+        return cached_response
 
     try:
-        answer = call_mistral_chat(messages)
-        cache.set_json(cache_key, answer, chat_cache_ttl_seconds())
-    except ExternalServiceAuthError as exc:
+        answer, recommendation = run_chat_with_tools(messages, profile_payload)
+        cache_value: str | dict = answer
         if recommendation:
-            return ChatResponse(
-                answer=_format_recommendation_answer(recommendation),
-                recommendation=recommendation,
-            )
+            cache_value = {"answer": answer, "recommendation": recommendation}
+        cache.set_json(cache_key, cache_value, chat_cache_ttl_seconds())
+    except ExternalServiceAuthError as exc:
         raise HTTPException(status_code=503, detail="API Mistral non configuree ou refusee") from exc
     except ExternalServiceResponseError as exc:
-        if recommendation:
-            return ChatResponse(
-                answer=_format_recommendation_answer(recommendation),
-                recommendation=recommendation,
-            )
         raise HTTPException(status_code=502, detail="Reponse Mistral invalide") from exc
     except Exception:
-        if recommendation:
-            return ChatResponse(
-                answer=_format_recommendation_answer(recommendation),
-                recommendation=recommendation,
-            )
         answer = build_chat_fallback_answer()
+        recommendation = None
 
     return ChatResponse(answer=answer, recommendation=recommendation)

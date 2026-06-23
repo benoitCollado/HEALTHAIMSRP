@@ -153,10 +153,25 @@ def build_chat_fallback_answer() -> str:
     )
 
 
-def call_mistral_chat(messages: list[dict[str, str]]) -> str:
+def call_mistral_chat_completion(
+    messages: list[dict[str, Any]],
+    *,
+    tools: list[dict[str, Any]] | None = None,
+    tool_choice: str = "auto",
+) -> dict[str, Any]:
     api_key = get_mistral_api_key()
     if not api_key:
         raise ExternalServiceAuthError("API Mistral non configuree")
+
+    payload: dict[str, Any] = {
+        "model": os.getenv("MISTRAL_MODEL", DEFAULT_MISTRAL_MODEL),
+        "messages": messages,
+        "temperature": 0.3,
+        "max_tokens": 500,
+    }
+    if tools:
+        payload["tools"] = tools
+        payload["tool_choice"] = tool_choice
 
     response = _request_with_resilience(
         "mistral",
@@ -167,50 +182,64 @@ def call_mistral_chat(messages: list[dict[str, str]]) -> str:
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
         },
-        json={
-            "model": os.getenv("MISTRAL_MODEL", DEFAULT_MISTRAL_MODEL),
-            "messages": messages,
-            "temperature": 0.3,
-            "max_tokens": 500,
-        },
+        json=payload,
     )
 
     try:
-        answer = response.json()["choices"][0]["message"]["content"].strip()
+        return response.json()["choices"][0]["message"]
     except (KeyError, IndexError, TypeError, AttributeError) as exc:
         raise ExternalServiceResponseError("Reponse Mistral invalide") from exc
 
+
+def call_mistral_chat(messages: list[dict[str, str]]) -> str:
+    message = call_mistral_chat_completion(messages)
+    answer = (message.get("content") or "").strip()
     if not answer:
         raise ExternalServiceResponseError("Reponse Mistral vide")
     return answer
 
 
-def call_microservice_ia_recommendations(profile_payload: dict[str, Any]) -> dict[str, Any]:
-    base_url = os.getenv("MICROSERVICE_IA_URL", "http://microservice_ia:8090").rstrip("/")
-    timeout = max(1.0, _float_env("MICROSERVICE_IA_TIMEOUT_SECONDS", 10.0))
+def _microservice_ia_base_url() -> str:
+    return os.getenv("MICROSERVICE_IA_URL", "http://microservice_ia:8090").rstrip("/")
 
-    calories_response = _request_with_resilience(
+
+def _microservice_ia_timeout() -> float:
+    return max(1.0, _float_env("MICROSERVICE_IA_TIMEOUT_SECONDS", 10.0))
+
+
+def call_microservice_ia_calories(profile_payload: dict[str, Any]) -> dict[str, Any]:
+    response = _request_with_resilience(
         "microservice_ia_recommendations",
         "POST",
-        f"{base_url}/api/recommandation_calorique",
-        timeout=timeout,
+        f"{_microservice_ia_base_url()}/api/recommandation_calorique",
+        timeout=_microservice_ia_timeout(),
         json=profile_payload,
     )
-    exercises_response = _request_with_resilience(
-        "microservice_ia_recommendations",
-        "POST",
-        f"{base_url}/api/recommandation_exercice",
-        timeout=timeout,
-        json={**profile_payload, "limit": 5},
-    )
-
     try:
-        return {
-            "calories": calories_response.json(),
-            "exercices": exercises_response.json(),
-        }
+        return response.json()
     except ValueError as exc:
         raise ExternalServiceResponseError("Reponse microservice_ia invalide") from exc
+
+
+def call_microservice_ia_exercises(profile_payload: dict[str, Any], *, limit: int = 5) -> dict[str, Any]:
+    response = _request_with_resilience(
+        "microservice_ia_recommendations",
+        "POST",
+        f"{_microservice_ia_base_url()}/api/recommandation_exercice",
+        timeout=_microservice_ia_timeout(),
+        json={**profile_payload, "limit": limit},
+    )
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise ExternalServiceResponseError("Reponse microservice_ia invalide") from exc
+
+
+def call_microservice_ia_recommendations(profile_payload: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "calories": call_microservice_ia_calories(profile_payload),
+        "exercices": call_microservice_ia_exercises(profile_payload, limit=5),
+    }
 
 
 def call_photo_processing(image_payload: dict[str, Any]) -> dict[str, Any]:
