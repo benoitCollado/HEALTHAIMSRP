@@ -4,6 +4,15 @@ set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/opt/HEALTHAIMSRP}"
 
+export DOCKER_BUILDKIT=1
+export COMPOSE_DOCKER_CLI_BUILD=1
+export BUILDKIT_PROGRESS=plain
+
+log_step() {
+  echo ""
+  echo "==> $(date -u +%Y-%m-%dT%H:%M:%SZ) $*"
+}
+
 if [[ ! -d "$DEPLOY_PATH" ]]; then
   echo "Erreur : le repertoire de deploiement '$DEPLOY_PATH' n'existe pas."
   exit 1
@@ -43,12 +52,15 @@ export MINIO_PUBLIC_ENDPOINT="127.0.0.1:19100"
 
 # MongoDB microservice IA — valeur par defaut Compose si absente du .env serveur
 if ! grep -qE '^MONGODB_URI=.+' .env; then
-  echo "==> MONGODB_URI absent du .env — utilisation de mongodb://mongodb:27017 (Compose)"
+  log_step "MONGODB_URI absent du .env — utilisation de mongodb://mongodb:27017 (Compose)"
+  export MONGODB_URI="mongodb://mongodb:27017"
+elif grep -qE '^MONGODB_URI=mongodb://(127\.0\.0\.1|localhost)' .env; then
+  log_step "MONGODB_URI pointe localhost dans .env — correction pour le reseau Docker Compose"
   export MONGODB_URI="mongodb://mongodb:27017"
 fi
 
 wait_mongodb() {
-  echo "==> Attente MongoDB (healthcheck)..."
+  log_step "Attente MongoDB (healthcheck)..."
   for i in $(seq 1 30); do
     if docker compose exec -T mongodb mongosh --quiet --eval "db.adminCommand('ping').ok" 2>/dev/null | grep -q '^1$'; then
       echo "    MongoDB operationnel."
@@ -64,7 +76,7 @@ wait_mongodb() {
 }
 
 wait_microservice_ia() {
-  echo "==> Attente microservice_ia (/health)..."
+  log_step "Attente microservice_ia (/health)..."
   for i in $(seq 1 30); do
     if docker compose exec -T microservice_ia python -c \
       "import json, urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=3); \
@@ -82,28 +94,29 @@ wait_microservice_ia() {
   done
 }
 
-echo "==> Arret des services app (sans MongoDB — donnees conservees)..."
+log_step "Arret des services app (sans MongoDB — donnees conservees)..."
 docker compose stop backend frontend minio microservice_ia || true
 docker compose rm -f backend frontend minio microservice_ia || true
 
-echo "==> Demarrage MongoDB..."
+log_step "Demarrage MongoDB..."
 docker compose up -d mongodb
 wait_mongodb
 
-echo "==> Build image microservice_ia..."
-docker compose build microservice_ia
+log_step "Build image microservice_ia (pip install numpy/pandas/sklearn — peut prendre plusieurs minutes)..."
+docker compose build --progress=plain microservice_ia
 
-echo "==> Migration / initialisation MongoDB (index idempotents)..."
+log_step "Migration / initialisation MongoDB (index idempotents)..."
 docker compose run --rm --no-deps microservice_ia python scripts/init_mongodb.py
 
-echo "==> Demarrage microservice_ia..."
+log_step "Demarrage microservice_ia..."
 docker compose up -d microservice_ia
 wait_microservice_ia
 
-echo "==> Build et redemarrage minio, backend, frontend..."
-docker compose up -d --build minio backend frontend
+log_step "Build et redemarrage minio, backend, frontend..."
+docker compose build --progress=plain minio backend frontend
+docker compose up -d minio backend frontend
 
-echo "==> Attente du backend (connexion Neon via DATABASE_URL)..."
+log_step "Attente du backend (connexion Neon via DATABASE_URL)..."
 for i in $(seq 1 30); do
   if docker compose exec -T backend python -c \
     "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)" \
@@ -120,7 +133,7 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
-echo "==> Etat des conteneurs app :"
+log_step "Etat des conteneurs app :"
 docker compose ps mongodb microservice_ia minio backend frontend
 
-echo "==> Deploiement termine avec succes."
+log_step "Deploiement termine avec succes."

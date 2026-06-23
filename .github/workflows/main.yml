@@ -215,6 +215,7 @@ jobs:
     needs: [test-backend, test-frontend, test-microservice-ia]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
@@ -255,5 +256,5 @@ jobs:
         run: |
           PORT="${SSH_PORT:-22}"
           PATH_ON_SERVER="${DEPLOY_PATH:-/opt/HEALTHAIMSRP}"
-          ssh -p "$PORT" "$SSH_USER@$SSH_HOST" \
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=120 -p "$PORT" "$SSH_USER@$SSH_HOST" \
             "DEPLOY_PATH='$PATH_ON_SERVER' bash -s" < scripts/deploy.sh
