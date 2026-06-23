@@ -1,5 +1,6 @@
-from app.chat_agent import run_chat_with_tools
+from app.chat_graph import run_chat_graph
 from app.dependencies import get_current_user, get_db
+from app.models.objectif import Objectif
 from app.models.utilisateur import Utilisateur
 from app.object_storage import presigned_image_url, upload_user_image
 from app.external_clients import (
@@ -37,11 +38,10 @@ objectifs, l'alimentation, l'activite physique, les metriques, et l'utilisation
 de la plateforme. Ne donne pas de diagnostic medical; conseille de consulter un
 professionnel de sante en cas de symptome, douleur, urgence ou decision medicale.
 
-Tu disposes d'outils pour obtenir des recommandations caloriques et d'exercices
-personnalisees calculees a partir du profil de l'utilisateur connecte. Appelle-les
-lorsque l'utilisateur demande un repere calorique, des exercices adaptes, ou des
-conseils personnalises lies a son profil. N'invente pas de chiffres personnalises
-sans avoir appele l'outil correspondant.
+Tu disposes d'outils microservice IA (calories, exercices, programmes, ajustements,
+feedbacks, contraintes, historique). Appelle-les pour toute question liee au profil,
+aux objectifs ou aux recommandations. N'invente jamais de chiffres, exercices ou seances
+sans resultat d'outil.
 """.strip()
 
 
@@ -62,6 +62,21 @@ def _get_user_profile(user_id: str, db: Session) -> Utilisateur:
     if utilisateur is None:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     return utilisateur
+
+
+def _objectifs_payload(db: Session, user_id: int) -> list[dict]:
+    rows = db.query(Objectif).filter(Objectif.id_utilisateur == user_id).all()
+    return [
+        {
+            "id_objectif": row.id_objectif,
+            "type_objectif": row.type_objectif,
+            "description": row.description,
+            "statut": row.statut,
+            "date_debut": row.date_debut.isoformat() if row.date_debut else None,
+            "date_fin": row.date_fin.isoformat() if row.date_fin else None,
+        }
+        for row in rows
+    ]
 
 
 def _profile_payload(utilisateur: Utilisateur) -> dict:
@@ -191,6 +206,7 @@ def chat_with_mistral(
 
     utilisateur = _get_user_profile(user_id, db)
     profile_payload = _profile_payload(utilisateur)
+    objectifs = _objectifs_payload(db, int(user_id))
 
     messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     messages.extend(message.model_dump() for message in payload.history[-10:])
@@ -202,7 +218,12 @@ def chat_with_mistral(
         return cached_response
 
     try:
-        answer, recommendation = run_chat_with_tools(messages, profile_payload)
+        answer, recommendation = run_chat_graph(
+            messages,
+            user_id=int(user_id),
+            profile_payload=profile_payload,
+            objectifs=objectifs,
+        )
         cache_value: str | dict = answer
         if recommendation:
             cache_value = {"answer": answer, "recommendation": recommendation}

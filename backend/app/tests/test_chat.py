@@ -28,7 +28,7 @@ def test_chat_calls_microservice_when_asking_recommendations(client, admin_heade
         patch("app.routers.chat.cache.get_json", return_value=None),
         patch("app.routers.chat.cache.set_json"),
         patch(
-            "app.routers.chat.run_chat_with_tools",
+            "app.routers.chat.run_chat_graph",
             return_value=("Voici vos conseils personnalises.", recommendation),
         ) as run_agent,
     ):
@@ -92,7 +92,7 @@ def test_chat_returns_cached_answer_without_calling_mistral(client, admin_header
 
     with (
         patch("app.routers.chat.cache.get_json", return_value="Reponse depuis Redis"),
-        patch("app.routers.chat.run_chat_with_tools") as run_agent,
+        patch("app.routers.chat.run_chat_graph") as run_agent,
     ):
         response = client.post("/chat/", headers=admin_headers, json={"message": "Bonjour"})
 
@@ -107,7 +107,7 @@ def test_chat_returns_fallback_when_mistral_is_down(client, admin_headers, monke
     with (
         patch("app.routers.chat.cache.get_json", return_value=None),
         patch("app.routers.chat.cache.set_json") as set_cache,
-        patch("app.routers.chat.run_chat_with_tools", side_effect=RuntimeError("down")),
+        patch("app.routers.chat.run_chat_graph", side_effect=RuntimeError("down")),
     ):
         response = client.post("/chat/", headers=admin_headers, json={"message": "Bonjour"})
 

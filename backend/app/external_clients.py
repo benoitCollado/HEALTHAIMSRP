@@ -157,7 +157,8 @@ def call_mistral_chat_completion(
     messages: list[dict[str, Any]],
     *,
     tools: list[dict[str, Any]] | None = None,
-    tool_choice: str = "auto",
+    tool_choice: str | dict[str, Any] = "auto",
+    max_tokens: int = 500,
 ) -> dict[str, Any]:
     api_key = get_mistral_api_key()
     if not api_key:
@@ -167,7 +168,7 @@ def call_mistral_chat_completion(
         "model": os.getenv("MISTRAL_MODEL", DEFAULT_MISTRAL_MODEL),
         "messages": messages,
         "temperature": 0.3,
-        "max_tokens": 500,
+        "max_tokens": max_tokens,
     }
     if tools:
         payload["tools"] = tools
@@ -240,6 +241,99 @@ def call_microservice_ia_recommendations(profile_payload: dict[str, Any]) -> dic
         "calories": call_microservice_ia_calories(profile_payload),
         "exercices": call_microservice_ia_exercises(profile_payload, limit=5),
     }
+
+
+def _microservice_ia_json_response(response: httpx.Response) -> dict[str, Any]:
+    try:
+        return response.json()
+    except ValueError as exc:
+        raise ExternalServiceResponseError("Reponse microservice_ia invalide") from exc
+
+
+def call_microservice_ia_health() -> dict[str, Any]:
+    response = _request_with_resilience(
+        "microservice_ia_recommendations",
+        "GET",
+        f"{_microservice_ia_base_url()}/health",
+        timeout=_microservice_ia_timeout(),
+    )
+    return _microservice_ia_json_response(response)
+
+
+def call_microservice_ia_generate_program(payload: dict[str, Any]) -> dict[str, Any]:
+    response = _request_with_resilience(
+        "microservice_ia_recommendations",
+        "POST",
+        f"{_microservice_ia_base_url()}/api/v1/recommendations/generate",
+        timeout=max(_microservice_ia_timeout(), 30.0),
+        json=payload,
+    )
+    return _microservice_ia_json_response(response)
+
+
+def call_microservice_ia_current_program(user_id: int) -> dict[str, Any]:
+    response = _request_with_resilience(
+        "microservice_ia_recommendations",
+        "GET",
+        f"{_microservice_ia_base_url()}/api/v1/recommendations/current",
+        timeout=_microservice_ia_timeout(),
+        params={"user_id": user_id},
+    )
+    return _microservice_ia_json_response(response)
+
+
+def call_microservice_ia_adjust_session(payload: dict[str, Any]) -> dict[str, Any]:
+    response = _request_with_resilience(
+        "microservice_ia_recommendations",
+        "POST",
+        f"{_microservice_ia_base_url()}/api/v1/recommendations/adjust",
+        timeout=_microservice_ia_timeout(),
+        json=payload,
+    )
+    return _microservice_ia_json_response(response)
+
+
+def call_microservice_ia_session_feedback(session_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    response = _request_with_resilience(
+        "microservice_ia_recommendations",
+        "POST",
+        f"{_microservice_ia_base_url()}/api/v1/recommendations/sessions/{session_id}/feedback",
+        timeout=_microservice_ia_timeout(),
+        json=payload,
+    )
+    return _microservice_ia_json_response(response)
+
+
+def call_microservice_ia_update_constraints(profile_id: int, payload: dict[str, Any]) -> dict[str, Any]:
+    response = _request_with_resilience(
+        "microservice_ia_recommendations",
+        "PUT",
+        f"{_microservice_ia_base_url()}/api/v1/profiles/{profile_id}/constraints",
+        timeout=_microservice_ia_timeout(),
+        json=payload,
+    )
+    return _microservice_ia_json_response(response)
+
+
+def call_microservice_ia_profile_history(
+    profile_id: int,
+    *,
+    date_from: str | None = None,
+    date_to: str | None = None,
+) -> dict[str, Any]:
+    params: dict[str, Any] = {}
+    if date_from:
+        params["date_from"] = date_from
+    if date_to:
+        params["date_to"] = date_to
+    response = _request_with_resilience(
+        "microservice_ia_recommendations",
+        "GET",
+        f"{_microservice_ia_base_url()}/api/v1/profiles/{profile_id}/history",
+        timeout=_microservice_ia_timeout(),
+        params=params or None,
+    )
+    return _microservice_ia_json_response(response)
 
 
 def call_photo_processing(image_payload: dict[str, Any]) -> dict[str, Any]:
