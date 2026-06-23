@@ -48,7 +48,12 @@
             :class="message.role"
           >
             <div class="message-author">{{ message.role === 'user' ? 'Vous' : 'HealthAI' }}</div>
-            <p>{{ message.content }}</p>
+            <div
+              v-if="message.role === 'assistant'"
+              class="message-markdown"
+              v-html="renderAssistantMessage(message.content)"
+            ></div>
+            <p v-else>{{ message.content }}</p>
             <div v-if="message.images?.length" class="message-images" aria-label="Images jointes">
               <a
                 v-for="image in message.images"
@@ -130,6 +135,7 @@ import {
   type ChatImage,
   type ChatMessage
 } from '../services/chatApi'
+import { renderMarkdown } from '../utils/renderMarkdown'
 
 export default defineComponent({
   components: { Navbar },
@@ -160,6 +166,10 @@ export default defineComponent({
 
     function markImageError(objectKey: string) {
       imageLoadErrors.value = { ...imageLoadErrors.value, [objectKey]: true }
+    }
+
+    function renderAssistantMessage(content: string): string {
+      return renderMarkdown(content)
     }
 
     function buildImageAnalysisAnswer(analysisAnswers: string[], recommendationAnswer: string): string {
@@ -246,6 +256,7 @@ export default defineComponent({
       markImageError,
       messages,
       removeImage,
+      renderAssistantMessage,
       resetChat,
       submitMessage,
       uploadingImage,
@@ -427,6 +438,82 @@ export default defineComponent({
 .chat-message p {
   margin: 0;
   white-space: pre-wrap;
+}
+
+.message-markdown {
+  color: inherit;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+.message-markdown :deep(p) {
+  margin: 0 0 0.65rem;
+}
+
+.message-markdown :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.message-markdown :deep(h1),
+.message-markdown :deep(h2),
+.message-markdown :deep(h3) {
+  margin: 0.35rem 0 0.55rem;
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.message-markdown :deep(h1) {
+  font-size: 1.08rem;
+}
+
+.message-markdown :deep(ul),
+.message-markdown :deep(ol) {
+  margin: 0.35rem 0 0.65rem;
+  padding-left: 1.25rem;
+}
+
+.message-markdown :deep(li + li) {
+  margin-top: 0.25rem;
+}
+
+.message-markdown :deep(strong) {
+  font-weight: 800;
+}
+
+.message-markdown :deep(code) {
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: rgba(148, 163, 184, 0.18);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.88em;
+}
+
+.message-markdown :deep(pre) {
+  margin: 0.5rem 0 0.75rem;
+  padding: 0.65rem 0.75rem;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.message-markdown :deep(pre code) {
+  padding: 0;
+  background: transparent;
+  color: inherit;
+}
+
+.message-markdown :deep(blockquote) {
+  margin: 0.5rem 0;
+  padding-left: 0.75rem;
+  border-left: 3px solid rgba(37, 99, 235, 0.35);
+  color: var(--gray-500);
+}
+
+.message-markdown :deep(a) {
+  color: var(--primary-dark);
+  font-weight: 700;
+  text-decoration: underline;
 }
 
 .chat-form {
