@@ -25,9 +25,7 @@ def test_chat_calls_microservice_when_asking_recommendations(client, admin_heade
     }
 
     mock_response = MagicMock()
-    mock_response.json.return_value = {
-        "choices": [{"message": {"content": "Voici vos conseils personnalises."}}]
-    }
+    mock_response.json.return_value = {"choices": [{"message": {"content": "Voici vos conseils personnalises."}}]}
     mock_response.raise_for_status.return_value = None
     mock_client = MagicMock()
     mock_client.__enter__.return_value.request.return_value = mock_response
