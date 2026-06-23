@@ -267,8 +267,9 @@
           <li><a href="#security">9. Securite</a></li>
           <li><a href="#api">10. Routes principales</a></li>
           <li><a href="#env">11. Configuration</a></li>
-          <li><a href="#deploy">12. Installation et deploiement</a></li>
-          <li><a href="#tests">13. Tests</a></li>
+          <li><a href="#microservice-ia">12. Microservice IA</a></li>
+          <li><a href="#deploy">13. Installation et deploiement</a></li>
+          <li><a href="#tests">14. Tests</a></li>
         </ul>
       </nav>
 
@@ -290,13 +291,13 @@
       <section id="architecture">
         <h2>2. Architecture generale</h2>
         <pre><code>Utilisateur
-  -> Frontend Vue / Nginx
+  -> Frontend Vue / Nginx (Markdown assistant via marked + DOMPurify)
     -> Backend FastAPI (/api)
-      -> PostgreSQL Neon : donnees relationnelles
+      -> PostgreSQL Neon : donnees relationnelles + objectifs utilisateur
       -> Redis : rate limiting, cache et donnees temporaires
       -> MiniIO : images du Chat IA
-      -> Mistral : conversation IA
-      -> microservice_ia : recommandations calories/exercices
+      -> LangGraph + Mistral (9 tools) : agent conversationnel
+      -> microservice_ia : calories, exercices, programmes v1, MongoDB
       -> microservice photo : analyse d'image
       -> Airflow : flux admin et pipelines data
       -> Monitoring : metrics, logs, alertes</code></pre>
@@ -306,7 +307,7 @@
             <h3>Frontend</h3>
             <p>
               Application Vue avec authentification, pages utilisateur, admin,
-              tableau de bord et Chat IA.
+              tableau de bord et Chat IA (reponses assistant en Markdown).
             </p>
           </div>
           <div class="card">
@@ -319,8 +320,8 @@
           <div class="card">
             <h3>Microservices IA</h3>
             <p>
-              Services separes pour recommandations sport/sante et analyse
-              d'image. Le frontend ne les appelle pas directement.
+              <code>microservice_ia</code> : calories, exercices ML, programmes v1, MongoDB.
+              <code>microservice_photo</code> : analyse d'image. Non appeles directement par le frontend.
             </p>
           </div>
         </div>
@@ -339,13 +340,13 @@
           <tbody>
             <tr>
               <td>Frontend</td>
-              <td>Vue 3, Vite, TypeScript, Nginx</td>
-              <td>Interface web et consommation de l'API backend.</td>
+              <td>Vue 3, Vite, TypeScript, marked, DOMPurify, Nginx</td>
+              <td>Interface web ; Chat IA avec rendu Markdown des reponses assistant.</td>
             </tr>
             <tr>
               <td>Backend</td>
-              <td>Python, FastAPI, SQLAlchemy, Pydantic, Uvicorn</td>
-              <td>API REST, validation, auth, orchestration IA.</td>
+              <td>Python, FastAPI, LangGraph, SQLAlchemy, Pydantic, Uvicorn</td>
+              <td>API REST, agent chat (tools Mistral), auth, orchestration IA.</td>
             </tr>
             <tr>
               <td>Base SQL</td>
@@ -424,7 +425,19 @@
             </tr>
             <tr>
               <td><code>app/external_clients.py</code></td>
-              <td>Clients HTTP resilients vers Mistral, Airflow et microservices IA.</td>
+              <td>Mistral tool-calling, clients HTTP vers microservice_ia (legacy + v1), Airflow, photo.</td>
+            </tr>
+            <tr>
+              <td><code>app/chat_agent.py</code></td>
+              <td>Declaration des 9 tools Mistral et execution des routes microservice_ia.</td>
+            </tr>
+            <tr>
+              <td><code>app/chat_graph.py</code></td>
+              <td>Agent LangGraph : contexte objectifs, forçage tools, boucle Mistral.</td>
+            </tr>
+            <tr>
+              <td><code>app/routers/chat.py</code></td>
+              <td>Routes Chat IA, lecture profil SQL + objectifs PostgreSQL.</td>
             </tr>
             <tr>
               <td><code>app/cache.py</code></td>
@@ -512,10 +525,14 @@
       <section id="chat">
         <h2>6. Chat IA et microservices</h2>
         <p>
-          Le Chat IA est expose par le backend principal. Le navigateur ne
-          contacte jamais directement Mistral ou les microservices internes.
+          Le Chat IA est expose par le backend principal (<code>Frontend/src/pages/ChatAssistant.vue</code>).
+          Le navigateur ne contacte jamais directement Mistral ni les microservices internes.
+          Les reponses de l'assistant sont rendues en <strong>Markdown</strong>
+          (<code>Frontend/src/utils/renderMarkdown.ts</code> : <code>marked</code> + <code>DOMPurify</code>).
+          Les messages utilisateur restent en texte brut.
         </p>
 
+        <h3>Routes backend chat</h3>
         <table>
           <thead>
             <tr>
@@ -526,7 +543,11 @@
           <tbody>
             <tr>
               <td><code>POST /api/chat/</code></td>
-              <td>Conversation HealthAI avec Mistral, historique court et cache Redis.</td>
+              <td>
+                Conversation via agent LangGraph (<code>chat_graph.py</code>) :
+                profil SQL + objectifs PostgreSQL, Mistral avec 9 tools, cache Redis.
+                Reponse : <code>answer</code> + <code>recommendation</code> optionnel.
+              </td>
             </tr>
             <tr>
               <td><code>POST /api/chat/images</code></td>
@@ -534,21 +555,69 @@
             </tr>
             <tr>
               <td><code>POST /api/chat/recommendations</code></td>
-              <td>Lecture du profil SQL et appel a <code>microservice_ia</code> pour calories et exercices.</td>
+              <td>Appel direct microservice (calories + exercices), sans LangGraph.</td>
             </tr>
             <tr>
               <td><code>POST /api/chat/images/analyze</code></td>
-              <td>Generation d'une URL MiniIO presignee et appel au microservice photo.</td>
+              <td>URL MiniIO presignee + appel microservice photo.</td>
             </tr>
           </tbody>
         </table>
 
-        <h3>Flux recommandations</h3>
+        <h3>Agent LangGraph (backend)</h3>
+        <pre><code>POST /api/chat/
+  -> chat.py : profil Utilisateur + table objectif (PostgreSQL)
+  -> chat_graph.py :
+       enrich_context (objectifs normalises pour le microservice)
+       detect_requirements (intent : calories, exercices, programme…)
+       invoke_model (Mistral + tool_choice force si tool requis)
+       run_tools (execute_microservice_tool)
+       finalize (reponse basee sur les resultats tools)
+  -> Mistral reformule ; pas d'invention de chiffres sans tool</code></pre>
+
+        <h3>9 tools Mistral → routes microservice_ia</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Tool</th>
+              <th>Route microservice</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>get_microservice_health</code></td><td><code>GET /health</code></td></tr>
+            <tr><td><code>get_calorie_recommendations</code></td><td><code>POST /api/recommandation_calorique</code></td></tr>
+            <tr><td><code>get_exercise_recommendations</code></td><td><code>POST /api/recommandation_exercice</code></td></tr>
+            <tr><td><code>generate_workout_program</code></td><td><code>POST /api/v1/recommendations/generate</code></td></tr>
+            <tr><td><code>get_current_workout_program</code></td><td><code>GET /api/v1/recommendations/current</code></td></tr>
+            <tr><td><code>adjust_workout_session</code></td><td><code>POST /api/v1/recommendations/adjust</code></td></tr>
+            <tr><td><code>record_session_feedback</code></td><td><code>POST /api/v1/recommendations/sessions/{id}/feedback</code></td></tr>
+            <tr><td><code>update_profile_constraints</code></td><td><code>PUT /api/v1/profiles/{id}/constraints</code></td></tr>
+            <tr><td><code>get_profile_history</code></td><td><code>GET /api/v1/profiles/{id}/history</code></td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          <code>user_id</code> et le profil biométrique sont injectes automatiquement depuis
+          l'utilisateur connecte. Les objectifs PostgreSQL (<code>objectif</code>) sont mappes
+          vers les tokens microservice (<code>endurance</code>, <code>force</code>,
+          <code>perte_de_poids</code>, <code>performance</code>) pour
+          <code>generate_workout_program</code>.
+        </p>
+
+        <h3>Flux conversation principale</h3>
+        <pre><code>Frontend ChatAssistant.vue
+  -> POST /api/chat/ { message, history }
+    -> Backend : objectifs + profil SQL
+    -> LangGraph + Mistral (tools)
+    -> microservice_ia (selon tool appele)
+    -> answer (Markdown) + recommendation JSON
+  -> Frontend : renderMarkdown(answer) pour l'assistant</code></pre>
+
+        <h3>Flux recommandations directes</h3>
         <pre><code>Frontend
   -> POST /api/chat/recommendations
     -> Backend lit utilisateurs dans PostgreSQL
-    -> Backend appelle MICROSERVICE_IA_URL/api/recommandation_calorique
-    -> Backend appelle MICROSERVICE_IA_URL/api/recommandation_exercice
+    -> POST MICROSERVICE_IA_URL/api/recommandation_calorique
+    -> POST MICROSERVICE_IA_URL/api/recommandation_exercice
     -> Backend retourne answer + recommendation</code></pre>
 
         <h3>Flux analyse photo</h3>
@@ -562,13 +631,11 @@
     -> Backend retourne answer + analysis</code></pre>
 
         <p class="note">
-          La configuration photo est volontairement simple :
-          <code>PHOTO_PROCESSING_API_URL</code> contient l'URL complete du
-          endpoint d'analyse, par exemple
-          <code>http://microservice_photo:8000/analyze</code>.
-          Pour cet appel interne, le backend utilise une URL MinIO signee avec
-          l'endpoint Docker <code>minio:9000</code>. Les URLs renvoyees au
-          navigateur restent publiques via <code>MINIO_PUBLIC_ENDPOINT</code>.
+          Configuration photo :
+          <code>PHOTO_PROCESSING_API_URL</code> = URL complete du endpoint d'analyse
+          (ex. <code>http://microservice_photo:8000/analyze</code>).
+          Appel interne MinIO via <code>minio:9000</code> ; URLs navigateur via
+          <code>MINIO_PUBLIC_ENDPOINT</code>.
         </p>
       </section>
 
@@ -700,7 +767,7 @@ RATE_LIMIT_CHAT_LIMIT=20</code></pre>
             <tr><td><span class="badge get">GET</span></td><td><code>/api/activites/</code></td><td>Auth</td><td>Activites sportives.</td></tr>
             <tr><td><span class="badge get">GET</span></td><td><code>/api/metriques-sante/</code></td><td>Auth</td><td>Metriques sante.</td></tr>
             <tr><td><span class="badge get">GET</span></td><td><code>/api/objectifs/</code></td><td>Auth</td><td>Objectifs utilisateur.</td></tr>
-            <tr><td><span class="badge post">POST</span></td><td><code>/api/chat/</code></td><td>Auth</td><td>Conversation Chat IA.</td></tr>
+            <tr><td><span class="badge post">POST</span></td><td><code>/api/chat/</code></td><td>Auth</td><td>Chat IA LangGraph + tools Mistral + microservice_ia.</td></tr>
             <tr><td><span class="badge post">POST</span></td><td><code>/api/chat/images</code></td><td>Auth</td><td>Upload image Chat IA.</td></tr>
             <tr><td><span class="badge post">POST</span></td><td><code>/api/chat/recommendations</code></td><td>Auth</td><td>Recommandations IA depuis profil.</td></tr>
             <tr><td><span class="badge post">POST</span></td><td><code>/api/chat/images/analyze</code></td><td>Auth</td><td>Analyse photo via microservice.</td></tr>
@@ -746,8 +813,128 @@ MONGODB_URI=mongodb://localhost:27017
 MONGODB_DB=healthai_ia</code></pre>
       </section>
 
+      <section id="microservice-ia">
+        <h2>12. Microservice IA</h2>
+        <p>
+          Service autonome dans <code>microservice_ia/</code> (port <strong>8090</strong>, version <strong>1.1.0</strong>).
+          Documentation detaillee :
+          <code>microservice_ia/docs/DOCUMENTATION_TECHNIQUE.md</code> —
+          rapport ML :
+          <code>microservice_ia/doc/RAPPORT_ML_SYNTHESE.md</code>.
+        </p>
+
+        <h3>Perimetre</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Capacite</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Calories</td><td>Mifflin-St Jeor (aligne frontend HealthAI).</td></tr>
+            <tr><td>Exercices</td><td>Random Forest (<code>workout_rf_bundle.pkl</code>) ou rule-based.</td></tr>
+            <tr><td>Programmes v1</td><td>Generation multi-semaines, ajustement seance, feedback RPE.</td></tr>
+            <tr><td>Profil / historique</td><td>Contraintes materielles, blessures, progression.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Architecture (Clean Architecture)</h3>
+        <pre><code>presentation/  routes FastAPI, schemas Pydantic
+application/   use cases (GenerateProgram, RecommendCalories, …)
+domain/        entites, ports, services
+infrastructure/ adaptateurs ML, Mifflin, repositories MongoDB ou in-memory</code></pre>
+
+        <h3>API HTTP</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Route</th>
+              <th>Role</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>GET /health</code></td><td>Sante, moteur ML, persistance (<code>mongodb</code> / <code>memory</code>).</td></tr>
+            <tr><td><code>POST /api/recommandation_calorique</code></td><td>Legacy v0 — repere calorique.</td></tr>
+            <tr><td><code>POST /api/recommandation_exercice</code></td><td>Legacy v0 — liste d'exercices.</td></tr>
+            <tr><td><code>POST /api/v1/recommendations/generate</code></td><td>Programme complet (seances × semaines).</td></tr>
+            <tr><td><code>GET /api/v1/recommendations/current</code></td><td>Programme actif (<code>user_id</code>).</td></tr>
+            <tr><td><code>POST /api/v1/recommendations/adjust</code></td><td>Ajuste la seance courante (fatigue, douleur).</td></tr>
+            <tr><td><code>POST /api/v1/recommendations/sessions/{id}/feedback</code></td><td>Feedback RPE post-seance.</td></tr>
+            <tr><td><code>PUT /api/v1/profiles/{id}/constraints</code></td><td>Equipements et blessures actives.</td></tr>
+            <tr><td><code>GET /api/v1/profiles/{id}/history</code></td><td>Historique profil et feedbacks.</td></tr>
+          </tbody>
+        </table>
+        <p class="note">
+          Les routes legacy existent aussi sans prefixe <code>/api</code> ; le backend et le chat
+          utilisent les URLs prefixees <code>/api/recommandation_*</code>.
+        </p>
+
+        <h3>Machine Learning — deux niveaux de prediction</h3>
+        <p>
+          Le Random Forest ne predit <strong>pas</strong> un exercice precis (ex. « Course a pied »)
+          dans la matrice de confusion. Il predit une <strong>famille d'activite</strong> :
+          <code>hiit</code>, <code>musculation</code>, <code>pilates</code>, <code>running</code>.
+          Puis le catalogue <code>ACTIVITY_EXERCISES</code> mappe vers des exercices concrets
+          (<code>running</code> → Course a pied, Marche rapide, Velo).
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Metrique test hold-out</th>
+              <th>Classification</th>
+              <th>Regression (series)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Principale</td><td>Accuracy ~0,88 / F1 weighted ~0,88</td><td>MAE ~0,13 / R² ~0,96</td></tr>
+          </tbody>
+        </table>
+        <p>
+          Pipeline offline : <code>ml/generate_training_data.py</code> →
+          <code>ml/train_random_forest.py</code> →
+          <code>models/workout_rf_bundle.pkl</code> +
+          <code>models/training_report.json</code>.
+        </p>
+
+        <h3>Persistance MongoDB</h3>
+        <p>
+          Active si <code>MONGODB_URI</code> est defini (Docker Compose :
+          <code>mongodb://mongodb:27017</code>, conteneur <code>mongodb_healthai</code>).
+          Initialisation index : <code>scripts/init_mongodb.py</code>.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Collection</th>
+              <th>Contenu</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><code>users</code></td><td>Profil IA, contraintes.</td></tr>
+            <tr><td><code>workout_plans</code></td><td>Programmes actifs et seances.</td></tr>
+            <tr><td><code>session_logs</code></td><td>Feedbacks RPE, exercices valides.</td></tr>
+          </tbody>
+        </table>
+
+        <h3>Tests microservice_ia</h3>
+        <p>
+          <strong>23 tests pytest</strong> :
+          <code>tests/test_api.py</code> (12),
+          <code>tests/test_ml_training.py</code> (5),
+          <code>tests/test_ml.py</code> (2),
+          use cases calories/exercices (4).
+          Test manuel E2E :
+          <code>scripts/test_program_flow.py</code>.
+        </p>
+        <pre><code>cd microservice_ia
+pip install -r requirements.txt
+pytest -v
+curl http://localhost:8090/health</code></pre>
+      </section>
+
       <section id="deploy">
-        <h2>12. Installation et deploiement</h2>
+        <h2>13. Installation et deploiement</h2>
         <h3>Docker</h3>
         <pre><code>cp .env.example .env
 docker compose up -d --build
@@ -765,7 +952,8 @@ docker compose ps</code></pre>
           <tbody>
             <tr><td>Frontend</td><td><code>http://localhost:89</code></td><td>Interface web.</td></tr>
             <tr><td>Backend direct</td><td><code>http://localhost:8089</code></td><td>API FastAPI principale.</td></tr>
-            <tr><td>Microservice IA</td><td><code>http://localhost:8090</code></td><td>Recommandations calories/exercices.</td></tr>
+            <tr><td>Microservice IA</td><td><code>http://localhost:8090</code></td><td>Calories, exercices, programmes v1.</td></tr>
+            <tr><td>MongoDB</td><td><code>127.0.0.1:27017</code></td><td>Persistance programmes / feedbacks microservice IA.</td></tr>
             <tr><td>Microservice photo</td><td><code>http://localhost:8001</code></td><td>Analyse des images Chat IA.</td></tr>
             <tr><td>MiniIO API</td><td><code>http://localhost:19100</code></td><td>Stockage objet images.</td></tr>
             <tr><td>MiniIO Console</td><td><code>http://localhost:19101</code></td><td>Administration MiniIO.</td></tr>
@@ -787,6 +975,12 @@ npm ci
 npm run dev</code></pre>
 
         <p class="note">
+          Deploiement production (CI) : <code>scripts/deploy.sh</code> met a jour le code,
+          lance <code>docker compose up -d --build mongodb microservice_ia minio backend frontend</code>,
+          puis <code>init_mongodb.py</code>. Voir pipeline GitHub Actions job <code>deploy</code>.
+        </p>
+
+        <p class="note">
           En developpement local hors Docker, verifier que
           <code>DATABASE_URL</code>, <code>REDIS_URL</code>,
           <code>MINIO_ENDPOINT</code> et les URLs de microservices pointent vers
@@ -795,7 +989,7 @@ npm run dev</code></pre>
       </section>
 
       <section id="tests">
-        <h2>13. Tests et verification</h2>
+        <h2>14. Tests et verification</h2>
         <table>
           <thead>
             <tr>
@@ -805,28 +999,34 @@ npm run dev</code></pre>
           </thead>
           <tbody>
             <tr>
-              <td><code>python -m compileall app</code></td>
-              <td>Verifier que le backend Python compile.</td>
+              <td><code>ruff check backend/app …</code></td>
+              <td>Lint Python (CI backend).</td>
             </tr>
             <tr>
-              <td><code>python -m pytest app\tests --no-cov</code></td>
-              <td>Lancer les tests backend sans contrainte coverage.</td>
+              <td><code>cd backend && pytest</code></td>
+              <td>Tests backend (SQLite, mocks Mistral / microservice).</td>
             </tr>
             <tr>
-              <td><code>npm run lint</code></td>
-              <td>Verifier le typage frontend.</td>
+              <td><code>cd microservice_ia && pytest -v</code></td>
+              <td>23 tests microservice (API, ML, pipeline training).</td>
             </tr>
             <tr>
-              <td><code>npm test</code></td>
-              <td>Lancer les tests frontend.</td>
+              <td><code>cd Frontend && npm run lint && npm test</code></td>
+              <td>Typage TypeScript et tests Vitest.</td>
+            </tr>
+            <tr>
+              <td><code>cd Frontend && npm run build</code></td>
+              <td>Build production Vite.</td>
             </tr>
           </tbody>
         </table>
 
         <p>
           Les tests backend utilisent SQLite en memoire pour eviter de toucher
-          Neon. Les appels externes sont remplaces par des mocks lorsque c'est
-          necessaire.
+          Neon. L'agent chat (<code>chat_graph.py</code>, <code>chat_agent.py</code>)
+          est couvert par des mocks Mistral et microservice_ia.
+          Le frontend teste le typage ; le rendu Markdown du chat est verifie manuellement
+          dans <code>ChatAssistant.vue</code>.
         </p>
       </section>
     </main>
