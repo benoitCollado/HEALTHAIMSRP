@@ -17,6 +17,43 @@ def test_chat_requires_mistral_key(client, admin_headers, monkeypatch):
     assert response.json()["detail"] == "API Mistral non configuree ou refusee"
 
 
+def test_chat_calls_microservice_when_asking_recommendations(client, admin_headers, monkeypatch):
+    monkeypatch.setenv("KEY_MISTRAL_API", "test-key")
+    recommendation = {
+        "calories": {"calories": 2700, "detail": "Maintenance"},
+        "exercices": {"detail": "HIIT", "exercices": [{"nom_exercice": "Course"}]},
+    }
+
+    mock_response = MagicMock()
+    mock_response.json.return_value = {
+        "choices": [{"message": {"content": "Voici vos conseils personnalises."}}]
+    }
+    mock_response.raise_for_status.return_value = None
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value.request.return_value = mock_response
+    mock_client.__exit__.return_value = False
+
+    with (
+        patch("app.routers.chat.cache.get_json", return_value=None),
+        patch("app.routers.chat.cache.set_json"),
+        patch("app.routers.chat.fetch_microservice_recommendations", return_value=recommendation) as call_ia,
+        patch("app.external_clients.httpx.Client", return_value=mock_client),
+    ):
+        response = client.post(
+            "/chat/",
+            headers=admin_headers,
+            json={"message": "Quelles calories et exercices me recommandez-vous ?"},
+        )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["answer"] == "Voici vos conseils personnalises."
+    assert body["recommendation"] == recommendation
+    call_ia.assert_called_once()
+    mistral_messages = mock_client.__enter__.return_value.request.call_args.kwargs["json"]["messages"]
+    assert any("microservice IA" in msg["content"] for msg in mistral_messages if msg["role"] == "system")
+
+
 def test_chat_calls_mistral(client, admin_headers, monkeypatch):
     monkeypatch.setenv("KEY_MISTRAL_API", "test-key")
 

@@ -22,6 +22,10 @@
             <h2>Comment puis-je vous aider ?</h2>
             <p>Choisissez un exemple ou ecrivez directement votre question.</p>
             <div class="suggestions">
+              <button type="button" @click="useSuggestion('Quelles calories et exercices me recommandez-vous ?')">
+                <span>Recommandations IA</span>
+                <small>Calories + exercices via microservice</small>
+              </button>
               <button type="button" @click="useSuggestion('Comment suivre mes objectifs sante dans HealthAI MSPR ?')">
                 <span>Objectifs sante</span>
                 <small>Suivi, progression, conseils</small>
@@ -221,7 +225,8 @@ export default defineComponent({
           const recommendation = await getChatRecommendations()
           answer = buildImageAnalysisAnswer(analysisAnswers, recommendation.answer)
         } else {
-          answer = await sendChatMessage(content, history)
+          const reply = await sendChatMessage(content, history)
+          answer = reply.answer
         }
         messages.value.push({ role: 'assistant', content: answer })
       } catch (err) {
@@ -349,7 +354,7 @@ export default defineComponent({
 
 .suggestions {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   width: min(100%, 620px);
   margin-top: 2px;

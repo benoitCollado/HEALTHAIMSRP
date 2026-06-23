@@ -110,7 +110,16 @@ export async function analyzeChatImage(image: ChatImage, question?: string): Pro
   return response.json()
 }
 
-export async function sendChatMessage(message: string, history: ChatMessage[], images: ChatImage[] = []): Promise<string> {
+export interface ChatReply {
+  answer: string
+  recommendation?: Record<string, unknown> | null
+}
+
+export async function sendChatMessage(
+  message: string,
+  history: ChatMessage[],
+  images: ChatImage[] = []
+): Promise<ChatReply> {
   const response = await fetch(`${API_BASE_URL}/chat/`, {
     method: 'POST',
     headers: {
@@ -136,5 +145,8 @@ export async function sendChatMessage(message: string, history: ChatMessage[], i
   }
 
   const body = await response.json()
-  return body.answer
+  return {
+    answer: body.answer,
+    recommendation: body.recommendation ?? null
+  }
 }

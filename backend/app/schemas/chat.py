@@ -19,6 +19,7 @@ class ChatRequest(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
+    recommendation: dict | None = None
 
 
 class ChatImageResponse(BaseModel):

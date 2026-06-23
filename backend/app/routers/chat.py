@@ -1,3 +1,9 @@
+from app.chat_agent import (
+    build_microservice_degraded_context,
+    build_microservice_system_context,
+    fetch_microservice_recommendations,
+    should_call_microservice_ia,
+)
 from app.dependencies import get_current_user, get_db
 from app.models.utilisateur import Utilisateur
 from app.object_storage import presigned_image_url, upload_user_image
@@ -36,6 +42,9 @@ Reponds simplement en francais. Aide l'utilisateur sur le suivi sante, les
 objectifs, l'alimentation, l'activite physique, les metriques, et l'utilisation
 de la plateforme. Ne donne pas de diagnostic medical; conseille de consulter un
 professionnel de sante en cas de symptome, douleur, urgence ou decision medicale.
+
+Lorsqu'un message systeme te fournit des donnees du microservice IA (calories,
+exercices personnalises), appuie-toi dessus pour formuler ta reponse.
 """.strip()
 
 
@@ -157,33 +166,66 @@ def analyze_chat_image(payload: ChatPhotoAnalysisRequest, user: dict = Depends(g
 
 
 @router.post("/", response_model=ChatResponse)
-def chat_with_mistral(payload: ChatRequest, user: dict = Depends(get_current_user)):
+def chat_with_mistral(
+    payload: ChatRequest,
+    user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     user_id = _current_user_id(user)
 
     for image in payload.images:
         _ensure_user_image(user_id, image.object_key)
 
-    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-    messages.extend(message.model_dump() for message in payload.history[-10:])
     user_message = payload.message.strip()
     if payload.images:
         image_lines = [f"- {image.filename or 'image'}: {image.object_key}" for image in payload.images]
         user_message = f"{user_message}\n\nImages jointes par l'utilisateur:\n" + "\n".join(image_lines)
+
+    recommendation: dict | None = None
+    microservice_context: str | None = None
+    if should_call_microservice_ia(user_message):
+        utilisateur = _get_user_profile(user_id, db)
+        recommendation = fetch_microservice_recommendations(_profile_payload(utilisateur))
+        microservice_context = (
+            build_microservice_system_context(recommendation)
+            if recommendation
+            else build_microservice_degraded_context()
+        )
+
+    messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+    if microservice_context:
+        messages.append({"role": "system", "content": microservice_context})
+    messages.extend(message.model_dump() for message in payload.history[-10:])
     messages.append({"role": "user", "content": user_message})
 
     cache_key = stable_cache_key("chat:mistral", {"user_id": user_id, "messages": messages})
     cached_answer = cache.get_json(cache_key)
     if cached_answer:
-        return ChatResponse(answer=str(cached_answer))
+        return ChatResponse(answer=str(cached_answer), recommendation=recommendation)
 
     try:
         answer = call_mistral_chat(messages)
         cache.set_json(cache_key, answer, chat_cache_ttl_seconds())
     except ExternalServiceAuthError as exc:
+        if recommendation:
+            return ChatResponse(
+                answer=_format_recommendation_answer(recommendation),
+                recommendation=recommendation,
+            )
         raise HTTPException(status_code=503, detail="API Mistral non configuree ou refusee") from exc
     except ExternalServiceResponseError as exc:
+        if recommendation:
+            return ChatResponse(
+                answer=_format_recommendation_answer(recommendation),
+                recommendation=recommendation,
+            )
         raise HTTPException(status_code=502, detail="Reponse Mistral invalide") from exc
     except Exception:
+        if recommendation:
+            return ChatResponse(
+                answer=_format_recommendation_answer(recommendation),
+                recommendation=recommendation,
+            )
         answer = build_chat_fallback_answer()
 
-    return ChatResponse(answer=answer)
+    return ChatResponse(answer=answer, recommendation=recommendation)
