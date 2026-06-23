@@ -96,8 +96,17 @@ def test_run_chat_graph_executes_tools_then_returns_answer():
             answer, recommendation = run_chat_graph(
                 [{"role": "system", "content": "sys"}, {"role": "user", "content": "Calories ?"}],
                 user_id=1,
-                profile_payload={"age": 30, "sexe": "H", "taille_cm": 180, "poids_kg": 75, "niveau_activite": 2,
-                                 "perte_de_poids": False, "performance": False, "endurance": False, "force": False},
+                profile_payload={
+                    "age": 30,
+                    "sexe": "H",
+                    "taille_cm": 180,
+                    "poids_kg": 75,
+                    "niveau_activite": 2,
+                    "perte_de_poids": False,
+                    "performance": False,
+                    "endurance": False,
+                    "force": False,
+                },
                 objectifs=[{"type_objectif": "Force", "statut": "en_cours", "description": "Force"}],
             )
 
