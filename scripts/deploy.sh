@@ -4,15 +4,6 @@ set -euo pipefail
 
 DEPLOY_PATH="${DEPLOY_PATH:-/opt/HEALTHAIMSRP}"
 
-export DOCKER_BUILDKIT=1
-export COMPOSE_DOCKER_CLI_BUILD=1
-export BUILDKIT_PROGRESS=plain
-
-log_step() {
-  echo ""
-  echo "==> $(date -u +%Y-%m-%dT%H:%M:%SZ) $*"
-}
-
 if [[ ! -d "$DEPLOY_PATH" ]]; then
   echo "Erreur : le repertoire de deploiement '$DEPLOY_PATH' n'existe pas."
   exit 1
@@ -50,73 +41,22 @@ export MINIO_PORT="127.0.0.1:19100"
 export MINIO_CONSOLE_PORT="127.0.0.1:19101"
 export MINIO_PUBLIC_ENDPOINT="127.0.0.1:19100"
 
-# MongoDB microservice IA — valeur par defaut Compose si absente du .env serveur
 if ! grep -qE '^MONGODB_URI=.+' .env; then
-  log_step "MONGODB_URI absent du .env — utilisation de mongodb://mongodb:27017 (Compose)"
-  export MONGODB_URI="mongodb://mongodb:27017"
-elif grep -qE '^MONGODB_URI=mongodb://(127\.0\.0\.1|localhost)' .env; then
-  log_step "MONGODB_URI pointe localhost dans .env — correction pour le reseau Docker Compose"
+  echo "==> MONGODB_URI absent du .env — utilisation de mongodb://mongodb:27017 (Compose)"
   export MONGODB_URI="mongodb://mongodb:27017"
 fi
 
-wait_mongodb() {
-  log_step "Attente MongoDB (healthcheck)..."
-  for i in $(seq 1 30); do
-    if docker compose exec -T mongodb mongosh --quiet --eval "db.adminCommand('ping').ok" 2>/dev/null | grep -q '^1$'; then
-      echo "    MongoDB operationnel."
-      return 0
-    fi
-    if [[ "$i" -eq 30 ]]; then
-      echo "Erreur : MongoDB ne repond pas apres 30 tentatives."
-      docker compose logs --tail=50 mongodb
-      return 1
-    fi
-    sleep 2
-  done
-}
-
-wait_microservice_ia() {
-  log_step "Attente microservice_ia (/health)..."
-  for i in $(seq 1 30); do
-    if docker compose exec -T microservice_ia python -c \
-      "import json, urllib.request; r=urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=3); \
-       b=json.loads(r.read()); assert b.get('persistence') in ('mongodb', 'memory')" \
-      > /dev/null 2>&1; then
-      echo "    microservice_ia operationnel."
-      return 0
-    fi
-    if [[ "$i" -eq 30 ]]; then
-      echo "Erreur : microservice_ia ne repond pas sur /health apres 30 tentatives."
-      docker compose logs --tail=50 microservice_ia
-      return 1
-    fi
-    sleep 2
-  done
-}
-
-log_step "Arret des services app (sans MongoDB — donnees conservees)..."
+echo "==> Arret des services app (sans MongoDB — donnees conservees)..."
 docker compose stop backend frontend minio microservice_ia || true
 docker compose rm -f backend frontend minio microservice_ia || true
 
-log_step "Demarrage MongoDB..."
-docker compose up -d mongodb
-wait_mongodb
+echo "==> Build et redemarrage (mongodb, microservice_ia, minio, backend, frontend)..."
+docker compose up -d --build mongodb microservice_ia minio backend frontend
 
-log_step "Build image microservice_ia (pip install numpy/pandas/sklearn — peut prendre plusieurs minutes)..."
-docker compose build --progress=plain microservice_ia
+echo "==> Initialisation MongoDB (index idempotents)..."
+docker compose exec -T microservice_ia python scripts/init_mongodb.py || true
 
-log_step "Migration / initialisation MongoDB (index idempotents)..."
-docker compose run --rm --no-deps microservice_ia python scripts/init_mongodb.py
-
-log_step "Demarrage microservice_ia..."
-docker compose up -d microservice_ia
-wait_microservice_ia
-
-log_step "Build et redemarrage minio, backend, frontend..."
-docker compose build --progress=plain minio backend frontend
-docker compose up -d minio backend frontend
-
-log_step "Attente du backend (connexion Neon via DATABASE_URL)..."
+echo "==> Attente du backend (connexion Neon via DATABASE_URL)..."
 for i in $(seq 1 30); do
   if docker compose exec -T backend python -c \
     "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)" \
@@ -133,7 +73,7 @@ for i in $(seq 1 30); do
   sleep 2
 done
 
-log_step "Etat des conteneurs app :"
+echo "==> Etat des conteneurs app :"
 docker compose ps mongodb microservice_ia minio backend frontend
 
-log_step "Deploiement termine avec succes."
+echo "==> Deploiement termine avec succes."
