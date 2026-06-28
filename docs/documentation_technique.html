@@ -326,6 +326,175 @@
             </p>
           </div>
         </div>
+
+        <h3>Architecture technique detaillee</h3>
+        <p>
+          L'architecture est separee en couches. Le navigateur appelle uniquement
+          les routes publiques du backend sous <code>/api</code>. Le backend
+          orchestre ensuite les acces SQL, cache, stockage objet, IA externe et
+          microservices internes sur le reseau Docker.
+        </p>
+
+        <table>
+          <thead>
+            <tr>
+              <th>Couche</th>
+              <th>Composants</th>
+              <th>Responsabilite</th>
+              <th>Communication</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Presentation</td>
+              <td><code>Frontend</code>, Nginx</td>
+              <td>Interface Vue, Chat IA, pages utilisateur/admin, rendu Markdown securise.</td>
+              <td>HTTP public vers <code>/api/*</code>.</td>
+            </tr>
+            <tr>
+              <td>API principale</td>
+              <td><code>backend_api</code>, FastAPI</td>
+              <td>JWT, RBAC, CRUD, Chat IA, orchestration microservices, fallback.</td>
+              <td>Expose <code>/api</code> via Nginx ; routes internes FastAPI sans prefixe proxy.</td>
+            </tr>
+            <tr>
+              <td>Donnees relationnelles</td>
+              <td>PostgreSQL Neon / PostgreSQL Docker local</td>
+              <td>Utilisateurs, objectifs, aliments, exercices, consommations, activites, metriques.</td>
+              <td>SQLAlchemy via <code>DATABASE_URL</code>.</td>
+            </tr>
+            <tr>
+              <td>Cache et charge</td>
+              <td><code>redis</code></td>
+              <td>Rate limiting, cache Chat IA, cache Airflow, cache URLs MinIO.</td>
+              <td><code>redis://redis:6379/0</code> depuis Docker.</td>
+            </tr>
+            <tr>
+              <td>Stockage objet</td>
+              <td><code>minio</code></td>
+              <td>Images Chat IA sous <code>users/{id}/chat/{uuid}.jpg</code>.</td>
+              <td><code>MINIO_ENDPOINT=minio:9000</code> interne ; <code>MINIO_PUBLIC_ENDPOINT</code> pour navigateur.</td>
+            </tr>
+            <tr>
+              <td>IA conversationnelle</td>
+              <td>LangGraph + Mistral tools</td>
+              <td>Orchestration du Chat IA, etat de conversation, selection et execution de tools sante/sport.</td>
+              <td>Backend uniquement, cle API jamais exposee au frontend.</td>
+            </tr>
+            <tr>
+              <td>Microservice recommandations</td>
+              <td><code>microservice_ia</code></td>
+              <td>Calories, exercices, programmes v1, ML Random Forest, MongoDB optionnel.</td>
+              <td><code>http://microservice_ia:8090/api/*</code> depuis le backend.</td>
+            </tr>
+            <tr>
+              <td>Microservice photo</td>
+              <td><code>microservice_photo</code></td>
+              <td>Analyse des images jointes au Chat IA.</td>
+              <td><code>http://microservice_photo:8000/analyze</code> avec URL MinIO interne signee.</td>
+            </tr>
+            <tr>
+              <td>Data pipeline</td>
+              <td>Airflow</td>
+              <td>Imports, exports, nettoyage, flux admin.</td>
+              <td>Backend vers API Airflow, cache frais/stale Redis.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Orchestration LangGraph pour le Chat IA</h3>
+        <p>
+          Le Chat IA utilise <strong>LangGraph</strong> cote backend pour organiser
+          le raisonnement de l'assistant sous forme de graphe. Cette couche evite
+          d'avoir un simple appel direct au modele : elle permet de gerer l'etat de
+          la conversation, de choisir les bons outils et de recuperer les donnees
+          utiles avant de construire la reponse finale.
+        </p>
+        <table>
+          <thead>
+            <tr>
+              <th>Etape</th>
+              <th>Role dans le Chat IA</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Message utilisateur</td>
+              <td>Le backend recoit la question depuis <code>/api/chat/</code> et prepare le contexte utilisateur.</td>
+            </tr>
+            <tr>
+              <td>Graphe LangGraph</td>
+              <td>LangGraph decide si la reponse peut etre generee directement ou si un tool doit etre appele.</td>
+            </tr>
+            <tr>
+              <td>Tools sante</td>
+              <td>Les tools peuvent lire les donnees SQL, utiliser le cache Redis ou appeler les microservices IA.</td>
+            </tr>
+            <tr>
+              <td>Microservices IA</td>
+              <td>Les recommandations passent par <code>microservice_ia</code> avec les routes <code>/api/recommandation_*</code>.</td>
+            </tr>
+            <tr>
+              <td>Reponse finale</td>
+              <td>Le backend renvoie une reponse Markdown au frontend, nettoyee ensuite cote interface.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Topologie Docker et ports</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Service Compose</th>
+              <th>Nom reseau interne</th>
+              <th>Port hote</th>
+              <th>Port conteneur</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>Frontend</td><td><code>frontend</code></td><td><code>127.0.0.1:89</code></td><td><code>80</code></td></tr>
+            <tr><td>Backend</td><td><code>backend</code></td><td><code>127.0.0.1:8089</code></td><td><code>8000</code></td></tr>
+            <tr><td>Microservice IA</td><td><code>microservice_ia</code></td><td><code>127.0.0.1:8090</code></td><td><code>8090</code></td></tr>
+            <tr><td>Microservice photo</td><td><code>microservice_photo</code></td><td><code>127.0.0.1:8001</code></td><td><code>8000</code></td></tr>
+            <tr><td>MiniIO API</td><td><code>minio</code></td><td><code>127.0.0.1:19100</code></td><td><code>9000</code></td></tr>
+            <tr><td>MiniIO Console</td><td><code>minio</code></td><td><code>127.0.0.1:19101</code></td><td><code>9001</code></td></tr>
+            <tr><td>Redis</td><td><code>redis</code></td><td>Interne Docker</td><td><code>6379</code></td></tr>
+            <tr><td>Airflow</td><td><code>airflow-webserver</code></td><td><code>localhost:8080</code></td><td><code>8080</code></td></tr>
+          </tbody>
+        </table>
+
+        <h3>Flux techniques principaux</h3>
+        <pre><code>Flux Chat texte
+Frontend -> POST /api/chat/
+Backend -> cache Redis
+Backend -> LangGraph + Mistral tools
+Backend -> microservice_ia / PostgreSQL selon tool
+Backend -> reponse Markdown nettoyee cote frontend
+
+Flux image + recommandation
+Frontend -> POST /api/chat/images
+Backend -> MinIO interne minio:9000
+Frontend -> POST /api/chat/images/analyze
+Backend -> URL MinIO signee interne
+Backend -> microservice_photo /analyze
+Frontend -> POST /api/chat/recommendations
+Backend -> microservice_ia /api/recommandation_calorique
+Backend -> microservice_ia /api/recommandation_exercice
+
+Flux admin Airflow
+Frontend -> GET /api/admin/flux
+Backend -> cache Redis frais
+Backend -> API Airflow
+Backend -> cache stale si Airflow indisponible</code></pre>
+
+        <h3>Regles de routage</h3>
+        <ul>
+          <li>Les routes appelees par le navigateur commencent par <code>/api</code>.</li>
+          <li>Les routes FastAPI internes gardent leur prefixe applicatif, par exemple <code>/chat</code>.</li>
+          <li>Le backend appelle le microservice IA avec <code>/api/recommandation_*</code>.</li>
+          <li>Le backend appelle le microservice photo avec <code>/analyze</code>.</li>
+          <li>Les images utilisent une URL MinIO publique pour le navigateur et une URL MinIO interne pour les microservices Docker.</li>
+        </ul>
       </section>
 
       <section id="stack">
@@ -1202,6 +1371,62 @@ npm run dev</code></pre>
           est couvert par des mocks Mistral et microservice_ia.
           Le frontend teste le typage ; le rendu Markdown du chat est verifie manuellement
           dans <code>ChatAssistant.vue</code>.
+        </p>
+      </section>
+
+      <section id="conclusion">
+        <h2>16. Conclusion</h2>
+        <h3>Objectifs atteints</h3>
+        <ul>
+          <li>&#10003; Gestion des utilisateurs, authentification et securisation des acces.</li>
+          <li>&#10003; Suivi des donnees sante avec stockage SQL et exploitation metier.</li>
+          <li>&#10003; Analyse et visualisation des informations utilisateur dans le frontend.</li>
+          <li>&#10003; Assistant IA integre au chat avec recommandations personnalisees.</li>
+          <li>&#10003; Analyse des images via un microservice photo dedie.</li>
+          <li>&#10003; Architecture conteneurisee avec Docker Compose.</li>
+          <li>&#10003; Gestion de la charge avec Redis, cache et rate limiting.</li>
+          <li>&#10003; Continuite de service grace aux mecanismes de fallback.</li>
+        </ul>
+
+        <p>
+          HealthAI MSPR repose sur une architecture modulaire qui separe clairement
+          l'interface utilisateur, l'API backend, les donnees, le stockage objet et
+          les traitements IA. Cette organisation permet de faire evoluer chaque
+          partie du projet sans casser l'ensemble de la plateforme.
+        </p>
+
+        <p>
+          Le backend FastAPI reste le point d'entree principal : il centralise
+          l'authentification, les regles metier, les acces SQL et NoSQL, la gestion
+          du cache Redis, les fichiers MinIO et les appels aux microservices. Le
+          frontend ne contacte pas directement les services IA ; il passe par les
+          routes securisees du backend, ce qui garde une logique plus simple et plus
+          fiable cote navigateur.
+        </p>
+
+        <p>
+          Les deux microservices IA apportent des responsabilites distinctes :
+          <code>microservice_ia</code> fournit les recommandations nutritionnelles
+          et sportives via les routes <code>/api/recommandation_*</code>, tandis que
+          <code>microservice_photo</code> analyse les images envoyees dans le chat.
+          Pour les images, MinIO utilise une URL interne dans Docker pour les
+          microservices et une URL publique uniquement lorsque le navigateur doit
+          afficher le fichier.
+        </p>
+
+        <p>
+          Les mecanismes de fallback, le rate limiting Redis, le cache, les tests
+          automatises et la configuration Docker renforcent la continuite de service.
+          Si un service IA est indisponible, l'application peut retourner une
+          reponse degradee au lieu de bloquer completement l'utilisateur.
+        </p>
+
+        <p>
+          Cette base technique est donc adaptee a une evolution progressive :
+          amelioration des modeles IA, enrichissement des analyses photo,
+          extension des donnees MongoDB, supervision plus avancee et deploiement
+          plus robuste peuvent etre ajoutes sans remettre en cause l'architecture
+          principale.
         </p>
       </section>
     </main>
